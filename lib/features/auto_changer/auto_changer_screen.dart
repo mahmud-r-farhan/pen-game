@@ -196,7 +196,7 @@ class AutoChangerScreen extends StatelessWidget {
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
                 sliver: SliverReorderableList(
                   itemCount: queue.length,
-                  onReorderItem: (oldIndex, newIndex) => storage.reorderQueue(oldIndex, newIndex),
+                  onReorder: (oldIndex, newIndex) => storage.reorderQueue(oldIndex, newIndex),
                   itemBuilder: (context, index) {
                     final item = queue[index];
                     return ReorderableDelayedDragStartListener(
