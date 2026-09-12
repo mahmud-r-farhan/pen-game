@@ -104,5 +104,25 @@ void main() {
       expect(AppColors.background, isNotNull);
       expect(AppColors.primary, isNotNull);
     });
+
+    test('WallpaperItem copyWith behavior and localCachedPath', () {
+      final original = WallpaperItem(
+        id: 'orig_1',
+        title: 'Original Title',
+        author: 'Original Author',
+        previewUrl: 'https://example.com/p.jpg',
+        fullUrl: 'https://example.com/f.jpg',
+        rawUrl: 'https://example.com/r.jpg',
+        source: WallpaperSource.pexels,
+      );
+
+      final updated = original.copyWith(
+        localCachedPath: '/data/user/0/com.bb.luminapaper/app_flutter/wallpapers/lumina_123.jpg',
+      );
+
+      expect(updated.id, original.id);
+      expect(updated.localCachedPath, '/data/user/0/com.bb.luminapaper/app_flutter/wallpapers/lumina_123.jpg');
+      expect(updated.source, WallpaperSource.pexels);
+    });
   });
 }

@@ -37,12 +37,15 @@ class _PreviewScreenState extends State<PreviewScreen> {
   bool _isSetting = false;
 
   Future<void> _applyWallpaper(WallpaperTarget target) async {
+    if (!mounted) return;
     setState(() => _isSetting = true);
     final downloadService = context.read<DownloadService>();
 
     // Download high-res version to disk first
     final file = await downloadService.downloadFile(widget.item.fullUrl);
-    if (file != null && mounted) {
+    if (!mounted) return;
+
+    if (file != null) {
       final success = await NativeWallpaperService.setStaticWallpaper(
         filePath: file.path,
         target: target,
@@ -60,7 +63,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
           ),
         );
       }
-    } else if (mounted) {
+    } else {
       setState(() => _isSetting = false);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -72,6 +75,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
   }
 
   Future<void> _saveToGallery() async {
+    if (!mounted) return;
     setState(() => _isDownloading = true);
     final downloadService = context.read<DownloadService>();
     final file = await downloadService.downloadFile(widget.item.fullUrl);
@@ -91,6 +95,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
   }
 
   Future<void> _addToAutoQueue() async {
+    if (!mounted) return;
     final storage = context.read<StorageService>();
     final downloadService = context.read<DownloadService>();
 
@@ -103,6 +108,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
       }
     }
 
+    if (!mounted) return;
     await storage.addToQueue(itemToQueue);
 
     if (mounted) {

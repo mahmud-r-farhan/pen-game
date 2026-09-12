@@ -87,13 +87,20 @@ class LiveWallpaperService : WallpaperService() {
         }
 
         private fun releasePlayer() {
-            try {
-                mediaPlayer?.stop()
-                mediaPlayer?.release()
-            } catch (e: Exception) {
-                Log.e(TAG, "Error releasing MediaPlayer: ${e.message}", e)
-            } finally {
-                mediaPlayer = null
+            synchronized(this) {
+                try {
+                    mediaPlayer?.apply {
+                        if (isPlaying) {
+                            stop()
+                        }
+                        reset()
+                        release()
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error releasing MediaPlayer: ${e.message}", e)
+                } finally {
+                    mediaPlayer = null
+                }
             }
         }
     }

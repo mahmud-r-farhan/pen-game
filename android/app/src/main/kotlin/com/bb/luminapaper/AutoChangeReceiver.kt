@@ -31,6 +31,7 @@ class AutoChangeReceiver : BroadcastReceiver() {
     }
 
     private fun processAutoChange(context: Context) {
+        var bitmap: android.graphics.Bitmap? = null
         try {
             val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             val isEnabled = prefs.getBoolean(KEY_AUTO_ENABLED, false)
@@ -46,13 +47,15 @@ class AutoChangeReceiver : BroadcastReceiver() {
             }
 
             val currentIndex = prefs.getInt(KEY_AUTO_INDEX, 0)
-            val nextIndex = (currentIndex + 1) % paths.size
+            val safeCurrentIndex = if (currentIndex < 0 || currentIndex >= paths.size) 0 else currentIndex
+            val nextIndex = (safeCurrentIndex + 1) % paths.size
             val targetPath = paths[nextIndex]
             val targetMode = prefs.getString(KEY_AUTO_TARGET, "both") ?: "both"
 
-            val bitmap = BitmapFactory.decodeFile(targetPath)
+            bitmap = BitmapFactory.decodeFile(targetPath)
             if (bitmap == null) {
                 Log.w(TAG, "Could not decode wallpaper file: $targetPath")
+                prefs.edit().putInt(KEY_AUTO_INDEX, nextIndex).apply()
                 return
             }
 
@@ -71,10 +74,16 @@ class AutoChangeReceiver : BroadcastReceiver() {
             // Update persisted index
             prefs.edit().putInt(KEY_AUTO_INDEX, nextIndex).apply()
             Log.d(TAG, "Successfully changed wallpaper on screen unlock to index $nextIndex: $targetPath")
-
-            bitmap.recycle()
+        } catch (e: OutOfMemoryError) {
+            Log.e(TAG, "OutOfMemoryError during auto change wallpaper", e)
         } catch (e: Exception) {
             Log.e(TAG, "Failed to change wallpaper automatically: ${e.message}", e)
+        } finally {
+            try {
+                bitmap?.recycle()
+            } catch (re: Exception) {
+                Log.w(TAG, "Error recycling auto changer bitmap: ${re.message}")
+            }
         }
     }
 }

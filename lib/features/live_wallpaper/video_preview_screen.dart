@@ -63,6 +63,7 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
   }
 
   Future<void> _applyLiveWallpaper() async {
+    if (!mounted) return;
     setState(() => _isDownloading = true);
 
     String? localPath = _resolvedVideoPath;
@@ -74,12 +75,13 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
         widget.item!.videoUrl!,
         customFileName: 'live_loop_${DateTime.now().millisecondsSinceEpoch}.mp4',
       );
+      if (!mounted) return;
       if (file != null) {
         localPath = file.path;
       }
     }
 
-    if (localPath != null && mounted) {
+    if (localPath != null) {
       final success = await NativeWallpaperService.setLiveWallpaper(videoPath: localPath);
       if (mounted) {
         setState(() => _isDownloading = false);
@@ -99,14 +101,16 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
           );
         }
       }
-    } else if (mounted) {
-      setState(() => _isDownloading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          backgroundColor: AppColors.error,
-          content: Text('Failed to prepare video file.'),
-        ),
-      );
+    } else {
+      if (mounted) {
+        setState(() => _isDownloading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            backgroundColor: AppColors.error,
+            content: Text('Failed to prepare video file.'),
+          ),
+        );
+      }
     }
   }
 

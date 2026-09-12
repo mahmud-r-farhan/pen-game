@@ -33,8 +33,9 @@ class MainActivity : FlutterActivity() {
                     }
 
                     Thread {
+                        var bitmap: android.graphics.Bitmap? = null
                         try {
-                            val bitmap = BitmapFactory.decodeFile(filePath)
+                            bitmap = BitmapFactory.decodeFile(filePath)
                             if (bitmap == null) {
                                 runOnUiThread { result.error("DECODE_ERROR", "Failed to decode image file", null) }
                                 return@Thread
@@ -52,11 +53,16 @@ class MainActivity : FlutterActivity() {
                                 wm.setBitmap(bitmap)
                             }
 
-                            bitmap.recycle()
                             runOnUiThread { result.success(true) }
                         } catch (e: Exception) {
                             Log.e(TAG, "Error setting static wallpaper: ${e.message}", e)
                             runOnUiThread { result.error("SET_FAILED", e.message, null) }
+                        } finally {
+                            try {
+                                bitmap?.recycle()
+                            } catch (re: Exception) {
+                                Log.w(TAG, "Error recycling bitmap: ${re.message}")
+                            }
                         }
                     }.start()
                 }

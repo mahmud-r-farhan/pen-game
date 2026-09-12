@@ -30,6 +30,7 @@ class _ExplorerScreenState extends State<ExplorerScreen> {
   String _selectedCategoryId = 'curated';
   int _currentPage = 1;
   FilterOptions _filterOptions = const FilterOptions();
+  int _requestRequestId = 0;
 
   @override
   void initState() {
@@ -54,6 +55,7 @@ class _ExplorerScreenState extends State<ExplorerScreen> {
   }
 
   Future<void> _loadWallpapers() async {
+    final currentReqId = ++_requestRequestId;
     setState(() {
       _isLoading = true;
       _currentPage = 1;
@@ -64,15 +66,15 @@ class _ExplorerScreenState extends State<ExplorerScreen> {
 
     final query = _searchController.text.trim();
     if (query.isNotEmpty) {
-      results = await repo.searchWallpapers(query, page: _currentPage, options: _filterOptions);
+      results = await repo.searchWallpapers(query, page: 1, options: _filterOptions);
     } else if (_selectedCategoryId == 'curated') {
-      results = await repo.getCuratedFeed(page: _currentPage);
+      results = await repo.getCuratedFeed(page: 1);
     } else {
       final cat = WallpaperCategory.defaultCategories.firstWhere((c) => c.id == _selectedCategoryId);
-      results = await repo.searchWallpapers(cat.searchQuery, page: _currentPage, options: _filterOptions);
+      results = await repo.searchWallpapers(cat.searchQuery, page: 1, options: _filterOptions);
     }
 
-    if (mounted) {
+    if (mounted && currentReqId == _requestRequestId) {
       setState(() {
         _wallpapers = results;
         _isLoading = false;
@@ -81,24 +83,30 @@ class _ExplorerScreenState extends State<ExplorerScreen> {
   }
 
   Future<void> _loadMore() async {
+    final currentReqId = _requestRequestId;
     setState(() => _isLoadingMore = true);
     final repo = context.read<WallpaperRepository>();
-    _currentPage += 1;
+    final nextPage = _currentPage + 1;
 
     List<WallpaperItem> newItems;
     final query = _searchController.text.trim();
     if (query.isNotEmpty) {
-      newItems = await repo.searchWallpapers(query, page: _currentPage, options: _filterOptions);
+      newItems = await repo.searchWallpapers(query, page: nextPage, options: _filterOptions);
     } else if (_selectedCategoryId == 'curated') {
-      newItems = await repo.getCuratedFeed(page: _currentPage);
+      newItems = await repo.getCuratedFeed(page: nextPage);
     } else {
       final cat = WallpaperCategory.defaultCategories.firstWhere((c) => c.id == _selectedCategoryId);
-      newItems = await repo.searchWallpapers(cat.searchQuery, page: _currentPage, options: _filterOptions);
+      newItems = await repo.searchWallpapers(cat.searchQuery, page: nextPage, options: _filterOptions);
     }
 
-    if (mounted) {
+    if (mounted && currentReqId == _requestRequestId) {
       setState(() {
+        _currentPage = nextPage;
         _wallpapers.addAll(newItems);
+        _isLoadingMore = false;
+      });
+    } else if (mounted) {
+      setState(() {
         _isLoadingMore = false;
       });
     }

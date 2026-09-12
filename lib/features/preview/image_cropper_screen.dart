@@ -64,6 +64,12 @@ class _ImageCropperScreenState extends State<ImageCropperScreen> {
     }
   }
 
+  @override
+  void dispose() {
+    _transformController.dispose();
+    super.dispose();
+  }
+
   void _showSetDialog() {
     showDialog(
       context: context,

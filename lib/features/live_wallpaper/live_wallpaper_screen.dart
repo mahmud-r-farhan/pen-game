@@ -46,7 +46,9 @@ class _LiveWallpaperScreenState extends State<LiveWallpaperScreen> {
       allowMultiple: false,
     );
 
-    if (result != null && result.files.single.path != null && mounted) {
+    if (!mounted) return;
+
+    if (result != null && result.files.single.path != null) {
       final path = result.files.single.path!;
       Navigator.of(context).push(
         MaterialPageRoute(

@@ -3,9 +3,19 @@ import 'package:dio/dio.dart';
 import 'package:path_provider/path_provider.dart';
 
 class DownloadService {
-  final Dio _dio = Dio();
+  final Dio _dio;
+
+  DownloadService({Dio? dio})
+      : _dio = dio ??
+            Dio(
+              BaseOptions(
+                connectTimeout: const Duration(seconds: 15),
+                receiveTimeout: const Duration(seconds: 30),
+              ),
+            );
 
   Future<File?> downloadFile(String url, {String? customFileName, void Function(int received, int total)? onProgress}) async {
+    String? savePath;
     try {
       final appDir = await getApplicationDocumentsDirectory();
       final wallpaperDir = Directory('${appDir.path}/wallpapers');
@@ -19,7 +29,7 @@ class DownloadService {
           : 'jpg';
 
       final safeName = customFileName ?? 'lumina_${DateTime.now().millisecondsSinceEpoch}.$extension';
-      final savePath = '${wallpaperDir.path}/$safeName';
+      savePath = '${wallpaperDir.path}/$safeName';
 
       final response = await _dio.download(
         url,
@@ -28,12 +38,27 @@ class DownloadService {
       );
 
       if (response.statusCode == 200) {
-        return File(savePath);
+        final downloadedFile = File(savePath);
+        if (await downloadedFile.exists() && await downloadedFile.length() > 0) {
+          return downloadedFile;
+        }
       }
+      _cleanupIncompleteFile(savePath);
       return null;
     } catch (e) {
+      _cleanupIncompleteFile(savePath);
       return null;
     }
+  }
+
+  void _cleanupIncompleteFile(String? path) {
+    if (path == null) return;
+    try {
+      final file = File(path);
+      if (file.existsSync()) {
+        file.deleteSync();
+      }
+    } catch (_) {}
   }
 
   Future<int> getCacheSizeInBytes() async {
