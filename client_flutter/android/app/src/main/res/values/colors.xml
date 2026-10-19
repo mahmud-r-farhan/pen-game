@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Warm natural teakwood tone matching the minimalist wooden desk -->
+    <color name="splash_background_color">#C2845D</color>
+    <color name="ic_launcher_background">#C2845D</color>
+</resources>

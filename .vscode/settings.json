@@ -1,0 +1,10 @@
+{
+  "deno.enable": true,
+  "deno.enablePaths": [
+    "server_deno"
+  ],
+  "deno.unstable": [
+    "kv"
+  ],
+  "typescript.validate.enable": true
+}

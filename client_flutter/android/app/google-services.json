@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "269698930474",
+    "project_id": "kolom-khela",
+    "storage_bucket": "kolom-khela.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:269698930474:android:a684a7e6fd0203982f3053",
+        "android_client_info": {
+          "package_name": "com.kolomkhela.kolom_fight"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCLLK4cG8I358bYEbXjBNHLselQKYnxYK0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:269698930474:android:f4fef2884c150be22f3053",
+        "android_client_info": {
+          "package_name": "com.penfight.kolomkhela"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCLLK4cG8I358bYEbXjBNHLselQKYnxYK0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
