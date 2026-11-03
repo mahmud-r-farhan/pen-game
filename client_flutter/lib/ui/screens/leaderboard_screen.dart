@@ -1,6 +1,5 @@
 // lib/ui/screens/leaderboard_screen.dart
 import 'package:flutter/material.dart';
-import '../../core/auth/user_session.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/localization/app_strings.dart';
 import '../../core/network/api_service.dart';
@@ -18,6 +17,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
   String _selectedDivision = 'Dhaka';
   List<UserProfile> _leaderboard = [];
   bool _isLoading = true;
+  String? _loadError;
 
   final List<String> _divisions = [
     'Dhaka',
@@ -41,19 +41,21 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
   }
 
   Future<void> _loadLeaderboard() async {
-    setState(() => _isLoading = true);
-    final user = UserSession().profile;
-    final list = await ApiService().getLeaderboard(
-      filter: _activeFilter,
-      division: _activeFilter == 'division' ? _selectedDivision : null,
-      userId: user.id,
-    );
-
-    if (!mounted) return;
     setState(() {
-      _leaderboard = list;
-      _isLoading = false;
+      _isLoading = true;
+      _loadError = null;
     });
+    try {
+      final list = await ApiService().getLeaderboard(
+        filter: _activeFilter,
+        division: _activeFilter == 'division' ? _selectedDivision : null,
+      );
+      if (mounted) setState(() => _leaderboard = list);
+    } catch (error) {
+      if (mounted) setState(() => _loadError = error.toString());
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   @override
@@ -168,7 +170,23 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
               Expanded(
                 child: _isLoading
                     ? const Center(child: CircularProgressIndicator(color: AppColors.goldTiffinCoin))
-                    : _leaderboard.isEmpty
+                    : _loadError != null
+                        ? Center(
+                            child: Padding(
+                              padding: const EdgeInsets.all(24),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.cloud_off_rounded, size: 48, color: AppColors.crimsonStrike),
+                                  const SizedBox(height: 12),
+                                  Text(_loadError!, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white70)),
+                                  const SizedBox(height: 12),
+                                  ElevatedButton(onPressed: _loadLeaderboard, child: const Text('Retry')),
+                                ],
+                              ),
+                            ),
+                          )
+                        : _leaderboard.isEmpty
                         ? Center(
                             child: Column(
                               mainAxisSize: MainAxisSize.min,

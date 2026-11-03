@@ -5,12 +5,12 @@ import '../../core/auth/user_session.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_theme.dart';
 import '../../core/localization/app_strings.dart';
-import '../../core/network/ws_client.dart';
 import '../../models/arena_room.dart';
 import '../../models/kolom_spec.dart';
 import '../../models/user_profile.dart';
 import '../widgets/coin_badge.dart';
 import 'game_screen.dart';
+import 'matchmaking_screen.dart';
 
 class RoomSelectionScreen extends StatefulWidget {
   final bool isOnline;
@@ -55,22 +55,15 @@ class _RoomSelectionScreenState extends State<RoomSelectionScreen> {
       return;
     }
 
-    if (widget.isOnline) {
-      KolomWsClient().connect(profile);
-      // Online is strictly 1v1 skill-based matchmaking matching player rating & trophies
-      KolomWsClient().joinQueue(
-        roomTypeId: room.id,
-        penModel: currentPen.id,
-      );
-    }
-
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => GameScreen(
-          room: room,
-          playerPen: currentPen,
-          isOnline: widget.isOnline,
-        ),
+        builder: (_) => widget.isOnline
+            ? MatchmakingScreen(room: room, playerPen: currentPen)
+            : GameScreen(
+                room: room,
+                playerPen: currentPen,
+                isOnline: false,
+              ),
       ),
     );
   }

@@ -3,15 +3,12 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class NetworkConfig {
-  static const String keyCustomServerHost = 'custom_server_host';
-
-  // Default Deno Deploy Production Domain (can be overridden via environment or Settings)
+  static const String keyCustomServerHost = 'custom_server_host_v2';
   static const String defaultProdHost = 'kolom-fight.deno.dev';
-
-  // Compile-time environment variable: flutter run --dart-define=SERVER_HOST=my-deno-app.deno.dev
   static const String envHost = String.fromEnvironment('SERVER_HOST', defaultValue: '');
 
   static String _activeHost = '';
+  static String? _webOrigin;
 
   static Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
@@ -21,31 +18,55 @@ class NetworkConfig {
     } else if (envHost.isNotEmpty) {
       _activeHost = envHost;
     } else if (kIsWeb) {
-      // Local web debugging
-      _activeHost = 'localhost:8080';
+      if (kReleaseMode) {
+        // Deno serves the compiled Flutter web bundle and API from one origin.
+        _webOrigin = Uri.base.origin;
+        _activeHost = Uri.base.authority;
+      } else {
+        _activeHost = 'localhost:8080';
+      }
+    } else if (kDebugMode) {
+      // Android emulator loopback. Set SERVER_HOST for a physical device.
+      _activeHost = defaultTargetPlatform == TargetPlatform.android ? '10.0.2.2:8080' : 'localhost:8080';
     } else {
-      // Android / iOS Production
       _activeHost = defaultProdHost;
     }
   }
 
-  static String get activeHost => _activeHost.isNotEmpty ? _activeHost : (kIsWeb ? 'localhost:8080' : defaultProdHost);
+  static String get activeHost => _activeHost;
 
   static Future<void> setCustomHost(String host) async {
-    _activeHost = host.trim();
+    final normalized = host.trim().replaceFirst(RegExp(r'^https?://'), '').replaceAll(RegExp(r'/$'), '');
+    if (normalized.isNotEmpty &&
+        (!RegExp(r'^[a-zA-Z0-9.-]+(?::\d{1,5})?$').hasMatch(normalized) || normalized.contains('..'))) {
+      throw const FormatException('Enter a valid host, optionally followed by a port.');
+    }
+    _webOrigin = null;
+    _activeHost = normalized;
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(keyCustomServerHost, _activeHost);
+    if (normalized.isEmpty) {
+      await prefs.remove(keyCustomServerHost);
+      await init();
+    } else {
+      await prefs.setString(keyCustomServerHost, normalized);
+    }
+  }
+
+  static bool get _isLocal {
+    final host = activeHost;
+    return host.startsWith('localhost') || host.startsWith('127.0.0.1') || host.startsWith('10.0.2.2');
   }
 
   static String get httpBaseUrl {
-    final host = activeHost;
-    final isLocal = host.contains('localhost') || host.contains('127.0.0.1') || host.contains('10.0.2.2');
-    return isLocal ? 'http://$host' : 'https://$host';
+    if (_webOrigin != null) return _webOrigin!;
+    return _isLocal ? 'http://$activeHost' : 'https://$activeHost';
   }
 
   static String get wsBaseUrl {
-    final host = activeHost;
-    final isLocal = host.contains('localhost') || host.contains('127.0.0.1') || host.contains('10.0.2.2');
-    return isLocal ? 'ws://$host/ws' : 'wss://$host/ws';
+    if (_webOrigin != null) {
+      final origin = Uri.parse(_webOrigin!);
+      return '${origin.scheme == 'https' ? 'wss' : 'ws'}://${origin.authority}/ws';
+    }
+    return _isLocal ? 'ws://$activeHost/ws' : 'wss://$activeHost/ws';
   }
 }

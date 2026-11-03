@@ -10,7 +10,8 @@ export const ARENA_ROOMS: Record<string, ArenaRoomConfig> = {
     entryCoins: 50,
     potCoins: 100,
     payoutCoins: 95,
-    description: "Weathered pine bench with chalk scratches and pencil carvings.",
+    description:
+      "Weathered pine bench with chalk scratches and pencil carvings.",
     descriptionBn: "চকের দাগ আর রুলার দিয়ে দাগানো ক্লাসরুমের কাঠের বেঞ্চ।",
     tableColorStart: "#8D5524",
     tableColorEnd: "#583111",
@@ -27,7 +28,8 @@ export const ARENA_ROOMS: Record<string, ArenaRoomConfig> = {
     entryCoins: 200,
     potCoins: 400,
     payoutCoins: 380,
-    description: "Classic varnished teakwood desk with compass compass marks and ink spots.",
+    description:
+      "Classic varnished teakwood desk with compass compass marks and ink spots.",
     descriptionBn: "সেগুন কাঠের চকচকে টেবিল, কম্পাস দিয়ে খোঁড়া আর কলমের কালির দাগ।",
     tableColorStart: "#A0522D",
     tableColorEnd: "#5C290E",
@@ -45,7 +47,8 @@ export const ARENA_ROOMS: Record<string, ArenaRoomConfig> = {
     entryCoins: 500,
     potCoins: 1000,
     payoutCoins: 950,
-    description: "Green engineering drafting table with T-square markings and grid lines.",
+    description:
+      "Green engineering drafting table with T-square markings and grid lines.",
     descriptionBn: "সবুজ ম্যাট ড্রাফটিং টেবিল, টি-স্কেল আর গ্রিড লাইনের স্মুথ সারফেস।",
     tableColorStart: "#1B4D3E",
     tableColorEnd: "#0F281E",
@@ -63,8 +66,10 @@ export const ARENA_ROOMS: Record<string, ArenaRoomConfig> = {
     entryCoins: 1000,
     potCoins: 2000,
     payoutCoins: 1900,
-    description: "Cold polished stainless steel laboratory bench. Super fast slides!",
-    descriptionBn: "ঠান্ডা চকচকে স্টিলের ল্যাব টেবিল। কম ঘর্ষণ, প্রচণ্ড গতি আর হুইপ স্পিন!",
+    description:
+      "Cold polished stainless steel laboratory bench. Super fast slides!",
+    descriptionBn:
+      "ঠান্ডা চকচকে স্টিলের ল্যাব টেবিল। কম ঘর্ষণ, প্রচণ্ড গতি আর হুইপ স্পিন!",
     tableColorStart: "#607D8B",
     tableColorEnd: "#263238",
     tableTexture: "stainless_steel",
@@ -99,7 +104,8 @@ export const ARENA_ROOMS: Record<string, ArenaRoomConfig> = {
     entryCoins: 5000,
     potCoins: 10000,
     payoutCoins: 9500,
-    description: "Heavy dark cherrywood desk with polished brass corners. Elite stakes!",
+    description:
+      "Heavy dark cherrywood desk with polished brass corners. Elite stakes!",
     descriptionBn: "অভিজাত ডার্ক চেরি কাঠ ও পিতলের কোনাওয়ালা সুশৃঙ্খল টেবিল।",
     tableColorStart: "#4A0E17",
     tableColorEnd: "#23060B",
@@ -117,8 +123,10 @@ export const ARENA_ROOMS: Record<string, ArenaRoomConfig> = {
     entryCoins: 10000,
     potCoins: 20000,
     payoutCoins: 19000,
-    description: "Tempered executive glass conference table. Ice-like slippery surface!",
-    descriptionBn: "টেম্পার্ড গ্লাসের সেমিনার টেবিল। কাঁচের মতো পিচ্ছিল, সামান্য ভুলে বাইরে ছিটকে পড়ে!",
+    description:
+      "Tempered executive glass conference table. Ice-like slippery surface!",
+    descriptionBn:
+      "টেম্পার্ড গ্লাসের সেমিনার টেবিল। কাঁচের মতো পিচ্ছিল, সামান্য ভুলে বাইরে ছিটকে পড়ে!",
     tableColorStart: "#102027",
     tableColorEnd: "#000A12",
     tableTexture: "executive_glass",

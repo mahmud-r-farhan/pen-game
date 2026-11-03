@@ -20,31 +20,25 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  Future<void> _handleGoogleLink() async {
-    final merged = await AuthService().signInWithGoogle();
-    if (!mounted) return;
-    if (merged != null) {
-      setState(() {});
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(AppLocale.tr('merge_success')),
-          backgroundColor: AppColors.emeraldTurn,
-        ),
-      );
-    }
-  }
+  bool _isLinking = false;
 
-  Future<void> _handleFacebookLink() async {
-    final merged = await AuthService().signInWithFacebook();
-    if (!mounted) return;
-    if (merged != null) {
-      setState(() {});
+  Future<void> _handleGoogleLink() async {
+    if (_isLinking) return;
+    setState(() => _isLinking = true);
+    try {
+      await AuthService().signInWithGoogle();
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(AppLocale.tr('merge_success')),
-          backgroundColor: const Color(0xFF1877F2),
-        ),
+        SnackBar(content: Text(AppLocale.tr('merge_success')), backgroundColor: AppColors.emeraldTurn),
       );
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(error.toString()), backgroundColor: AppColors.crimsonStrike),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLinking = false);
     }
   }
 
@@ -387,7 +381,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   if (user.isGuest) ...[
                     const SizedBox(height: 14),
                     ElevatedButton(
-                      onPressed: _handleGoogleLink,
+                      onPressed: _isLinking ? null : _handleGoogleLink,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.goldTiffinCoin,
                         foregroundColor: Colors.black,
@@ -402,27 +396,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           Text(
                             AppLocale.tr('link_google'),
                             style: const TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    ElevatedButton(
-                      onPressed: _handleFacebookLink,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF1877F2),
-                        foregroundColor: Colors.white,
-                        minimumSize: const Size.fromHeight(44),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: const [
-                          FacebookLogo(size: 20),
-                          SizedBox(width: 8),
-                          Text(
-                            'Link Facebook Account',
-                            style: TextStyle(fontWeight: FontWeight.bold),
                           ),
                         ],
                       ),

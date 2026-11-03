@@ -1,17 +1,29 @@
-# kolom_fight
+# Kolom Fight Flutter client
 
-A new Flutter project.
+Flutter/Flame client for Kolom Fight. Online matches authenticate with the Deno backend and render server-authoritative keyframes; local Forge2D physics is used only for labeled offline practice.
 
-## Getting Started
+## Development
 
-This project is a starting point for a Flutter application.
+Start `server_deno` first, then run:
 
-A few resources to get you started if this is your first Flutter project:
+```bash
+flutter pub get
+flutter run -d chrome
+# Android emulator uses 10.0.2.2:8080 automatically
+flutter run -d android
+```
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+Use `--dart-define=SERVER_HOST=host:port` for a physical device or deployed backend. Web Google sign-in additionally requires the Firebase `--dart-define` values documented in the root README.
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## Checks
+
+```bash
+dart format lib test
+flutter analyze
+flutter test
+flutter build web --release
+```
+
+For a signed Android release, copy `android/key.properties.example` to `android/key.properties` and provide the real keystore credentials. Never commit either secrets file.
+
+See [`../README.md`](../README.md) and [`../docs/CODEBASE_GUIDE.md`](../docs/CODEBASE_GUIDE.md) for backend setup, production configuration, protocol details, and live integration tests.

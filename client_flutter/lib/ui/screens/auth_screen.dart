@@ -46,58 +46,57 @@ class _AuthScreenState extends State<AuthScreen> {
   ];
 
   Future<void> _handleGuestLogin() async {
+    if (_isLoading) return;
     setState(() => _isLoading = true);
-    final name = _nameController.text.trim();
-    final reg = _regions.firstWhere((r) => r['code'] == _selectedRegion);
-    await AuthService().loginAsGuest(
-      desiredName: name.isNotEmpty ? name : null,
-      division: _selectedDivision,
-      region: reg['code'],
-      flagEmoji: reg['flag'],
-    );
-    if (!mounted) return;
-    setState(() => _isLoading = false);
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => const MainLobbyScreen()),
-    );
+    try {
+      final name = _nameController.text.trim();
+      final reg = _regions.firstWhere((r) => r['code'] == _selectedRegion);
+      await AuthService().loginAsGuest(
+        desiredName: name.isNotEmpty ? name : null,
+        division: _selectedDivision,
+        region: reg['code']!,
+        flagEmoji: reg['flag']!,
+      );
+      if (!mounted) return;
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const MainLobbyScreen()),
+      );
+    } catch (error) {
+      _showError(error);
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   Future<void> _handleGoogleSignIn() async {
+    if (_isLoading) return;
     setState(() => _isLoading = true);
-    final profile = await AuthService().signInWithGoogle();
-    if (!mounted) return;
-    setState(() => _isLoading = false);
-    if (profile != null) {
+    try {
+      final profile = await AuthService().signInWithGoogle();
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Welcome ${profile.username}! Account linked with 120 Starter Coins.'),
+          content: Text('Welcome ${profile.username}! Your cloud profile is synchronized.'),
           backgroundColor: AppColors.emeraldTurn,
         ),
       );
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (_) => const MainLobbyScreen()),
       );
+    } catch (error) {
+      _showError(error);
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
-  Future<void> _handleFacebookSignIn() async {
-    setState(() => _isLoading = true);
-    final profile = await AuthService().signInWithFacebook();
+  void _showError(Object error) {
     if (!mounted) return;
-    setState(() => _isLoading = false);
-    if (profile != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Welcome ${profile.username}! Facebook account linked with 120 Starter Coins.'),
-          backgroundColor: const Color(0xFF1877F2),
-        ),
-      );
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const MainLobbyScreen()),
-      );
-    }
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(error.toString()), backgroundColor: AppColors.crimsonStrike),
+    );
   }
-
   @override
   void dispose() {
     _nameController.dispose();
@@ -322,39 +321,6 @@ class _AuthScreenState extends State<AuthScreen> {
                         ),
                         const SizedBox(height: 12),
 
-                        // 3. Facebook Login Button (120 coins + Friends)
-                        ElevatedButton(
-                          onPressed: _handleFacebookSignIn,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF1877F2),
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const FacebookLogo(size: 20),
-                              const SizedBox(width: 8),
-                              Text(
-                                AppLocale.tr('sign_in_facebook'),
-                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                              ),
-                              const SizedBox(width: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: Colors.white24,
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: const Text(
-                                  '120 Coins',
-                                  style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
                         const SizedBox(height: 16),
 
                         Container(
@@ -370,7 +336,7 @@ class _AuthScreenState extends State<AuthScreen> {
                               SizedBox(width: 10),
                               Expanded(
                                 child: Text(
-                                  'Tip: You can start with Guest mode (75 coins) and merge later with Google/Facebook to preserve your trophies and pens!',
+                                  'Tip: You can start with Guest mode (75 coins) and merge later with Google to preserve your trophies and pens!',
                                   style: TextStyle(color: AppColors.slateMuted, fontSize: 11),
                                 ),
                               ),

@@ -55,7 +55,6 @@ class UserProfile {
   final List<String> unlockedPens;
   final bool isGuest;
   final String? googleId;
-  final String? facebookId;
   final String? googlePhotoUrl;
   final String division;
   final List<String> friends;
@@ -81,7 +80,6 @@ class UserProfile {
     required this.unlockedPens,
     required this.isGuest,
     this.googleId,
-    this.facebookId,
     this.googlePhotoUrl,
     this.division = 'Dhaka',
     this.friends = const [],
@@ -141,30 +139,8 @@ class UserProfile {
     }
   }
 
-  factory UserProfile.guestDefault(String id) {
-    final randTag = '#KLM-${(1000 + (id.hashCode % 9000)).abs()}';
-    return UserProfile(
-      id: id,
-      tag: randTag,
-      username: 'Guest_${randTag.replaceAll("#KLM-", "")}',
-      avatar: AppAvatars.getRandomId(), // Randomly choose a predefined avatar
-      coins: 75, // Default guest account gets 75 coins only
-      trophyPoints: 100,
-      cupTier: 'bronze',
-      region: 'BD',
-      flagEmoji: '🇧🇩',
-      equippedPen: 'hiSchoolClassic',
-      unlockedPens: const ['hiSchoolClassic', 'econoStriker'],
-      isGuest: true,
-      division: 'Dhaka',
-      friends: const [],
-      stats: const UserStats(),
-      createdAt: DateTime.now().millisecondsSinceEpoch,
-    );
-  }
-
   factory UserProfile.fromJson(Map<String, dynamic> json) {
-    final trophies = json['trophyPoints'] as int? ?? 100;
+    final trophies = (json['trophyPoints'] as num).toInt();
     String tier = json['cupTier'] as String? ?? 'bronze';
     if (trophies >= 5000) {
       tier = 'grandmaster';
@@ -177,12 +153,12 @@ class UserProfile {
     }
 
     return UserProfile(
-      id: json['id'] as String? ?? 'guest_default',
-      tag: json['tag'] as String? ?? '#KLM-1001',
-      username: json['username'] as String? ?? 'Kolom Player',
+      id: json['id'] as String,
+      tag: json['tag'] as String,
+      username: json['username'] as String,
       email: json['email'] as String?,
-      avatar: json['avatar'] as String? ?? 'avatar_shuvo',
-      coins: json['coins'] as int? ?? 75,
+      avatar: json['avatar'] as String,
+      coins: (json['coins'] as num).toInt(),
       trophyPoints: trophies,
       cupTier: tier,
       region: json['region'] as String? ?? 'GLOBAL',
@@ -191,20 +167,17 @@ class UserProfile {
       clubName: json['clubName'] as String?,
       clubTag: json['clubTag'] as String?,
       clubRole: json['clubRole'] as String?,
-      equippedPen: json['equippedPen'] as String? ?? 'hiSchoolClassic',
-      unlockedPens: (json['unlockedPens'] as List<dynamic>?)
-              ?.map((e) => e.toString())
-              .toList() ??
-          ['hiSchoolClassic'],
-      isGuest: json['isGuest'] as bool? ?? true,
+      equippedPen: json['equippedPen'] as String,
+      unlockedPens: (json['unlockedPens'] as List<dynamic>)
+          .map((e) => e as String)
+          .toList(growable: false),
+      isGuest: json['isGuest'] as bool,
       googleId: json['googleId'] as String?,
-      facebookId: json['facebookId'] as String?,
       googlePhotoUrl: json['googlePhotoUrl'] as String?,
       division: json['division'] as String? ?? 'Dhaka',
-      friends: (json['friends'] as List<dynamic>?)
-              ?.map((e) => e.toString())
-              .toList() ??
-          [],
+      friends: (json['friends'] as List<dynamic>)
+          .map((e) => e as String)
+          .toList(growable: false),
       stats: json['stats'] != null
           ? UserStats.fromJson(json['stats'] as Map<String, dynamic>)
           : const UserStats(),
@@ -231,7 +204,6 @@ class UserProfile {
     'unlockedPens': unlockedPens,
     'isGuest': isGuest,
     'googleId': googleId,
-    'facebookId': facebookId,
     'googlePhotoUrl': googlePhotoUrl,
     'division': division,
     'friends': friends,
@@ -258,7 +230,6 @@ class UserProfile {
     List<String>? unlockedPens,
     bool? isGuest,
     String? googleId,
-    String? facebookId,
     String? googlePhotoUrl,
     String? division,
     List<String>? friends,
@@ -283,7 +254,6 @@ class UserProfile {
       unlockedPens: unlockedPens ?? this.unlockedPens,
       isGuest: isGuest ?? this.isGuest,
       googleId: googleId ?? this.googleId,
-      facebookId: facebookId ?? this.facebookId,
       googlePhotoUrl: googlePhotoUrl ?? this.googlePhotoUrl,
       division: division ?? this.division,
       friends: friends ?? this.friends,

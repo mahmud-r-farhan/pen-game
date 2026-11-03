@@ -7,6 +7,7 @@ import '../../core/auth/user_session.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_theme.dart';
 import '../../core/localization/app_strings.dart';
+import '../../core/navigation/app_navigation.dart';
 import '../../core/network/ws_client.dart';
 import '../../game/bot/offline_bot_ai.dart';
 import '../../game/kolom_game_engine.dart';
@@ -24,7 +25,7 @@ class GameScreen extends StatefulWidget {
   final KolomSpec playerPen;
   final bool isOnline;
   final BotDifficulty botDifficulty;
-  final MatchPlayer? onlineOpponent;
+  final MatchStartData? match;
 
   const GameScreen({
     super.key,
@@ -32,8 +33,8 @@ class GameScreen extends StatefulWidget {
     required this.playerPen,
     this.isOnline = true,
     this.botDifficulty = BotDifficulty.medium,
-    this.onlineOpponent,
-  });
+    this.match,
+  }) : assert(!isOnline || match != null, 'Online games require an authoritative MATCH_START packet.');
 
   @override
   State<GameScreen> createState() => _GameScreenState();
@@ -51,7 +52,6 @@ class _GameScreenState extends State<GameScreen> {
   int _secondsLeft = 30;
   Timer? _turnCountdownTimer;
 
-  StreamSubscription? _flickSub;
   StreamSubscription? _aimingSub;
   StreamSubscription? _timerSub;
   StreamSubscription? _timeoutSub;
@@ -59,7 +59,6 @@ class _GameScreenState extends State<GameScreen> {
   StreamSubscription? _matchOverSub;
   StreamSubscription? _rematchOfferSub;
   StreamSubscription? _rematchDeclinedSub;
-  StreamSubscription? _rematchStartSub;
   StreamSubscription? _shotResultSub;
   bool _isWaitingForRematch = false;
 
@@ -69,18 +68,26 @@ class _GameScreenState extends State<GameScreen> {
   late String _opponentFlag;
   late String _opponentAvatar;
 
+  String? _matchOverRoomId;
+
+  MatchPlayer? get _onlineOpponent {
+    final match = widget.match;
+    if (match == null) return null;
+    final ownId = UserSession().profile.id;
+    return match.p1.id == ownId ? match.p2 : match.p1;
+  }
+
   @override
   void initState() {
     super.initState();
-
-    if (widget.onlineOpponent != null) {
-      _opponentPen = KolomSpec.getById(widget.onlineOpponent!.penModel);
-      _opponentName = widget.onlineOpponent!.username;
-      _opponentTag = widget.onlineOpponent!.tag;
-      _opponentFlag = widget.onlineOpponent!.flagEmoji;
-      _opponentAvatar = widget.onlineOpponent!.avatar;
+    final opponent = _onlineOpponent;
+    if (opponent != null) {
+      _opponentPen = KolomSpec.getById(opponent.penModel);
+      _opponentName = opponent.username;
+      _opponentTag = opponent.tag;
+      _opponentFlag = opponent.flagEmoji;
+      _opponentAvatar = opponent.avatar;
     } else {
-      // Pick random authentic human student / champ bot profile
       final bot = BotProfile.getRandom();
       _opponentPen = KolomSpec.getById(bot.penModel);
       _opponentName = bot.name;
@@ -88,43 +95,35 @@ class _GameScreenState extends State<GameScreen> {
       _opponentFlag = bot.flagEmoji;
       _opponentAvatar = bot.avatar;
     }
-
     _initGameEngine();
-
     if (widget.isOnline) {
       _listenToOnlineEvents();
+      _startServerSynchronizedTicker();
+    } else {
+      _startLocalTurnTimer();
     }
-
-    _startLocalTurnTimer();
   }
 
   void _initGameEngine() {
+    final match = widget.match;
+    final ownId = UserSession().profile.id;
+    final localSide = match?.p1.id == ownId ? 0 : 1;
     _gameEngine = KolomGameEngine(
       room: widget.room,
       playerSpec: widget.playerPen,
       opponentSpec: _opponentPen,
       mode: widget.isOnline ? GameMode.onlineMultiplayer : GameMode.offlineBot,
       botDifficulty: widget.botDifficulty,
+      onlineInitialState: match?.initialState,
+      localSide: localSide,
+      onlinePlayerFirst: match?.firstTurn == ownId,
+      onlineInputLocked: match?.inputLocked ?? false,
       onMatchEnd: (isPlayerWinner) {
+        // Only explicit offline practice reaches this local callback.
         _stopTurnTimer();
-        if (widget.isOnline) {
-          KolomWsClient().reportKnockout(
-            winnerId: isPlayerWinner ? UserSession().profile.id : (_opponentTag == '#BOT' ? 'GHOST_BOT' : widget.onlineOpponent?.id ?? 'p2'),
-          );
-        } else {
-          // In offline bot practice mode: 0 coins gained or lost!
-          const coinsChange = 0;
-          final trophyDelta = isPlayerWinner ? 10 : 0;
-          UserSession().recordMatchOutcome(
-            isWin: isPlayerWinner,
-            coinsChange: coinsChange,
-            trophyDelta: trophyDelta,
-          );
-          _showMatchOverDialog(isPlayerWinner, 0, trophyDelta);
-        }
+        _showMatchOverDialog(isPlayerWinner, 0, 0);
       },
       onOnlineFlickSubmit: (impulse, strikeOffset) {
-        _resetTurnTimer();
         KolomWsClient().submitFlick(
           impulseX: impulse.x,
           impulseY: impulse.y,
@@ -140,82 +139,56 @@ class _GameScreenState extends State<GameScreen> {
         );
       },
       onTurnPassed: () {
-        _resetTurnTimer();
+        if (widget.isOnline) KolomWsClient().passTurn();
       },
     );
+  }
+
+  void _startServerSynchronizedTicker() {
+    _turnCountdownTimer?.cancel();
+    _turnCountdownTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted || _secondsLeft <= 0) return;
+      setState(() => _secondsLeft--);
+      if (_secondsLeft <= 5) SoundEffects().playTimerWarning();
+    });
   }
 
   void _startLocalTurnTimer() {
     _turnCountdownTimer?.cancel();
     _secondsLeft = 30;
-
     _turnCountdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!mounted) return;
       if (_secondsLeft > 0) {
-        setState(() {
-          _secondsLeft -= 1;
-        });
-
-        // Pulsing audio/vibration warning for last 5 seconds
-        if (_secondsLeft <= 5 && _secondsLeft > 0) {
-          SoundEffects().playTimerWarning();
-        }
+        setState(() => _secondsLeft--);
+        if (_secondsLeft <= 5 && _secondsLeft > 0) SoundEffects().playTimerWarning();
       } else {
-        // 30 seconds expired without a flick!
-        _handleTimeoutExpired();
+        _secondsLeft = 30;
+        _gameEngine.passTurnDueToTimeout();
       }
     });
   }
 
   void _resetTurnTimer() {
-    setState(() {
-      _secondsLeft = 30;
-    });
+    if (mounted) setState(() => _secondsLeft = 30);
   }
 
-  void _stopTurnTimer() {
-    _turnCountdownTimer?.cancel();
-  }
-
-  void _handleTimeoutExpired() {
-    _resetTurnTimer();
-    _gameEngine.passTurnDueToTimeout();
-
-    if (widget.isOnline) {
-      KolomWsClient().passTurn();
-    }
-  }
+  void _stopTurnTimer() => _turnCountdownTimer?.cancel();
 
   void _listenToOnlineEvents() {
     final client = KolomWsClient();
-
-    _flickSub = client.onFlickExecute.listen((flick) {
-      if (flick.actorId != UserSession().profile.id) {
-        _resetTurnTimer();
-        _gameEngine.executeRemoteFlick(
-          impulse: Vector2(flick.impulseX, flick.impulseY),
-          strikeOffsetNormalized: flick.strikeOffset,
-          isNowPlayerTurn: flick.nextTurn == UserSession().profile.id,
-        );
-      }
-    });
-
     _shotResultSub = client.onShotResult.listen((shot) {
-      if (!mounted) return;
-      _resetTurnTimer();
+      if (!mounted || (shot.roomId.isNotEmpty && shot.roomId != widget.match?.roomId)) return;
       for (final event in shot.events) {
         SoundEffects().playCollision(intensity: (event.impact / 300.0).clamp(0.2, 1.0));
       }
-      if (shot.actorId != UserSession().profile.id) {
-        _gameEngine.isPlayerTurn = shot.nextTurn == UserSession().profile.id;
-        _gameEngine.turnStatus.value = _gameEngine.isPlayerTurn
-            ? AppLocale.tr('your_turn')
-            : AppLocale.tr('opponent_turn');
-      }
+      _gameEngine.playOnlineShot(
+        shot.frames,
+        isNowPlayerTurn: shot.nextTurn == UserSession().profile.id,
+      );
     });
 
     _aimingSub = client.onAimingSync.listen((aim) {
-      if (aim.actorId != UserSession().profile.id) {
+      if ((aim.roomId.isEmpty || aim.roomId == widget.match?.roomId) && aim.actorId != UserSession().profile.id) {
         _gameEngine.setRemoteAiming(
           isAiming: aim.isAiming,
           pullX: aim.pullX,
@@ -226,72 +199,51 @@ class _GameScreenState extends State<GameScreen> {
     });
 
     _timerSub = client.onTurnTimerTick.listen((tick) {
-      if (mounted) {
-        setState(() {
-          _secondsLeft = tick.secondsLeft;
-        });
-      }
+      if (!mounted || (tick.roomId.isNotEmpty && tick.roomId != widget.match?.roomId)) return;
+      setState(() => _secondsLeft = tick.secondsLeft);
+      _gameEngine.setOnlineTurn(tick.activeUserId == UserSession().profile.id);
     });
 
     _timeoutSub = client.onTurnTimeout.listen((timeout) {
+      if (timeout.roomId.isNotEmpty && timeout.roomId != widget.match?.roomId) return;
       _resetTurnTimer();
-      _gameEngine.passTurnDueToTimeout();
+      _gameEngine.setOnlineTurn(timeout.nextTurnUserId == UserSession().profile.id);
     });
 
     _emojiSub = client.onEmojiBroadcast.listen((emoji) {
-      setState(() {
-        _incomingEmojiText = emoji.textEn.isNotEmpty ? emoji.textEn : emoji.textBn;
-      });
+      if (!mounted) return;
+      setState(() => _incomingEmojiText = emoji.textEn.isNotEmpty ? emoji.textEn : emoji.textBn);
       _emojiDisplayTimer?.cancel();
       _emojiDisplayTimer = Timer(const Duration(seconds: 3), () {
         if (mounted) setState(() => _incomingEmojiText = null);
       });
     });
 
-    _rematchOfferSub = client.onRematchOffer.listen((data) {
-      _showIncomingRematchOfferDialog(data);
-    });
-
+    _rematchOfferSub = client.onRematchOffer.listen(_showIncomingRematchOfferDialog);
     _rematchDeclinedSub = client.onRematchDeclined.listen((reason) {
-      if (!mounted) return;
-      if (_isWaitingForRematch) {
-        setState(() => _isWaitingForRematch = false);
-        Navigator.of(context, rootNavigator: true).maybePop();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(reason),
-            backgroundColor: AppColors.crimsonStrike,
-          ),
-        );
-      }
-    });
-
-    _rematchStartSub = client.onMatchStart.listen((startData) {
-      if (!mounted) return;
+      if (!mounted || !_isWaitingForRematch) return;
+      setState(() => _isWaitingForRematch = false);
       Navigator.of(context, rootNavigator: true).maybePop();
-      setState(() {
-        _isWaitingForRematch = false;
-      });
-      _gameEngine.resetRound();
-      _startLocalTurnTimer();
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Rematch Started! Let the battle begin! ⚔️'),
-          backgroundColor: AppColors.emeraldTurn,
-        ),
+        SnackBar(content: Text(reason), backgroundColor: AppColors.crimsonStrike),
       );
     });
 
-    _matchOverSub = client.onMatchOver.listen((result) {
+    _matchOverSub = client.onMatchOver.listen((result) async {
+      if (!mounted ||
+          (result.roomId.isNotEmpty && result.roomId != widget.match?.roomId) ||
+          _matchOverRoomId == widget.match?.roomId) return;
+      _matchOverRoomId = widget.match?.roomId;
       _stopTurnTimer();
+      _gameEngine.endOnlineMatch();
+      if (result.profile != null) {
+        await UserSession().setProfile(result.profile!);
+      } else {
+        await UserSession().refreshProfile();
+      }
+      if (!mounted) return;
       final isWinner = result.winnerId == UserSession().profile.id;
-      final coinsChange = isWinner ? result.payout : -widget.room.entryCoins;
-      UserSession().recordMatchOutcome(
-        isWin: isWinner,
-        coinsChange: coinsChange,
-        trophyDelta: result.trophyDelta,
-      );
-      _showMatchOverDialog(isWinner, result.payout, result.trophyDelta);
+      _showMatchOverDialog(isWinner, isWinner ? result.payout : 0, result.trophyDelta);
     });
   }
 
@@ -460,7 +412,6 @@ class _GameScreenState extends State<GameScreen> {
   @override
   void dispose() {
     _stopTurnTimer();
-    _flickSub?.cancel();
     _shotResultSub?.cancel();
     _aimingSub?.cancel();
     _timerSub?.cancel();
@@ -468,12 +419,9 @@ class _GameScreenState extends State<GameScreen> {
     _emojiSub?.cancel();
     _rematchOfferSub?.cancel();
     _rematchDeclinedSub?.cancel();
-    _rematchStartSub?.cancel();
     _matchOverSub?.cancel();
     _emojiDisplayTimer?.cancel();
-    if (widget.isOnline) {
-      KolomWsClient().leaveQueue();
-    }
+    if (widget.match != null) AppNavigation.matchClosed(widget.match!.roomId);
     super.dispose();
   }
 
@@ -617,7 +565,7 @@ class _GameScreenState extends State<GameScreen> {
                       tag: _opponentTag,
                       flag: _opponentFlag,
                       avatar: _opponentAvatar,
-                      clanTag: widget.onlineOpponent?.clubTag,
+                      clanTag: _onlineOpponent?.clubTag,
                       isActiveTurn: !isPlayerTurn,
                       secondsLeft: !isPlayerTurn ? _secondsLeft : 30,
                     ),

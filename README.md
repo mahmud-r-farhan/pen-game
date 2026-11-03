@@ -1,195 +1,218 @@
-# 🇧🇩 Kolom Fight (কলম খেলা) — Online Classroom Pen Battle
+# Kolom Fight (কলম খেলা)
 
-A production-grade, turn-based multiplayer 2D tabletop physics game built with **Flutter + Flame (`flame_forge2d` Box2D)**, **procedural 2D Bangladeshi pen rendering (Zero external PNG sprites required!)**, and a high-performance **Deno + Deno KV WebSocket authoritative backend**.
+A turn-based tabletop pen battle for Android and the web. The client is built with Flutter, Flame, and Forge2D; the Deno backend owns authentication, matchmaking, match physics, wallets, rewards, clubs, friends, and leaderboards.
 
----
+Online matches are **human-only and server-authoritative**. Bots exist only in the explicitly labeled offline practice mode. There are no fabricated players, simulated backend responses, client-selected winners, or local-only shop transactions in the online flow.
 
-## 🎮 What Was Built
+## What is implemented
 
-### 1. Flutter Client (`client_flutter/`)
-- **2D Top-Down Table Physics Engine (`flame_forge2d` Box2D):**
-  - Zero gravity with authentic surface friction (`linearDamping` and `angularDamping`).
-  - **Asymmetric Center of Mass (`MassData`):** Weights shifted toward the posted back cap for realistic whip-spin helicopter turns.
-  - **Drag-to-Aim Slingshot Trajectory:** Dotted aiming line with power gauge.
-  - **Strike Point Selector (-0.85 to +0.85):** Shift contact point from Center Push (`0.0`) to Tip Whip-Spin (`+0.65`) or Back Cap Spin (`-0.65`).
-  - **Edge Teetering & Knockout Detection:** Real-time center of mass overhang check and falling-off scale-down animation.
-- **Vector-Sharp Procedural 2D Bangladeshi Pens (`ProceduralKolomPainter`):**
-  - Modular 6-layer procedural canvas anatomy: dynamic drop shadows, 3D gradient cylindrical barrel, transparent ink refills, ribbed rubber grips, conical nibs, detached caps, and pocket clips.
-- **7 Bangladeshi Educational System Arenas (`TableBenchComponent`):**
-  1. **Primary School (প্রাথমিক বিদ্যালয়)** — Weathered pine bench with chalk markings & compass doodles.
-  2. **High School (উচ্চ বিদ্যালয়)** — Varnished teakwood desk with pencil carvings and plank dividers.
-  3. **Polytechnic Institute (পলিটেকনিক ইনস্টিটিউট)** — Technical green drafting board with millimeter grid marks.
-  4. **Medical College (মেডিকেল কলেজ)** — Clinical stainless steel dissection lab bench (low friction, high speed).
-  5. **National University (জাতীয় বিশ্ববিদ্যালয়)** — Classic mahogany exam bench with chalk roll numbers.
-  6. **Cadet College (ক্যাডেট কলেজ)** — Dark military cherrywood desk with polished golden brass corner plates.
-  7. **Public University (DU / BUET)** — Tempered executive glass seminar table with neon reflections (ultra-low friction).
-- **Social & Friend System:**
-  - Unique Tag system (`#KLM-XXXX`) for finding players.
-  - Friend requests, remove friends, direct online match invitations.
-  - Facebook Friends sync.
-  - 6-digit private room codes (`ROOM_CODE_CREATE` & `ROOM_CODE_JOIN`).
-- **Leaderboards:**
-  - Global, 8 Bangladeshi Divisions (Dhaka, Chattogram, Rajshahi, Khulna, Sylhet, Barishal, Rangpur, Mymensingh), and Friends-only.
-- **Guest-to-Google Account Merging:**
-  - Players start immediately as Guests with 1,500 coins.
-  - Later, clicking "Link Google Account" atomically merges coins, inventory, unlocked pens, and stats into their Google profile without losing progress.
+### Game
 
----
+- Seven Bangladeshi education-themed arenas with distinct presentation, authoritative stakes, and server-owned surface physics.
+- Seven procedural pen designs, including transparent barrels, rubber grips, metal finishes, and double-cap modifications. Verified loadouts affect authoritative mass, inertia, dimensions, damping, and restitution—not just appearance.
+- Drag-to-aim shots, adjustable strike point, spin, collisions, table-edge knockouts, pass/timeout handling, quick chat, and rematches.
+- Human quick play, six-digit private rooms, friend challenges, and a 15-second reconnect grace period.
+- Server-produced 60 Hz keyframes rendered by both online clients; clients never report a knockout or choose a winner.
+- Offline practice uses local Forge2D physics and a local bot. It does not change online coins, trophies, or career statistics.
 
-### 2. Deno Authoritative Backend (`server_deno/`)
-- **Real-Time WebSocket Protocol (`/ws`):**
-  - Live matchmaking queue per educational arena tier.
-  - Turn sync with impulse clamping to prevent client cheats.
-  - Dotted trajectory aiming sync between live opponents.
-  - Classroom Bengali emoji reactions ("পড়ে গেল রে!", "কী শট ছিল!", "ক্যাপ খুলে মারবি না!").
-- **4.5-Second Seamless Ghost Bot Fallback:**
-  - Zero empty queues! If no human joins within 4.5s, spawns an AI bot with authentic Bangladeshi names (*Tanvir_Pabna*, *Sabbir_Dhaka*, *Nafis_RUET*) and matching pens.
-- **Atomic Coin Escrow with Deno KV (`kv.atomic()`):**
-  - Deducts entry stake when match begins.
-  - Awards 90% pot to winner with 10% platform coin sink to prevent virtual economy inflation.
-- **All-in-One Dual Serving:**
-  - The Deno server serves both the WebSocket / REST APIs AND the production Flutter Web client directly at `http://localhost:8080/`.
+### Accounts and progression
 
----
+- Cryptographically random guest identities and 30-day bearer sessions.
+- Session restoration is validated by the backend before entering the game.
+- Google sign-in through Firebase; the backend verifies the ID token signature, issuer, audience, expiry, and provider.
+- Guest progress can be linked to a verified Google identity.
+- Native session tokens are stored with `flutter_secure_storage`; only token hashes are persisted by the server.
+- Backend-owned pen purchases/equipping, daily rewards, match escrow, payouts, trophies, and statistics.
+- Mutual friend management by player tag or ID, direct challenges, sanitized leaderboards, and persistent clubs.
 
-## 🚀 How to Run Locally
+### Economy rules
 
-### 1. Start the Deno Server
+- Each ranked player pays the arena entry stake when a match is created.
+- The winner receives 95% of the two-player pot; 5% is a virtual-currency sink.
+- A ranked win normally awards 25 trophies and a loss deducts 15, clamped at zero.
+- Match settlement updates both players and is idempotent by room ID.
+- Coins are virtual game currency only. There is no cash-out or real-money wagering path.
+
+Facebook login/friend import, clan wars, cash purchases, and rewarded-ad payouts are not presented as working features. Ad rewards must not be enabled without a server-verified ad provider integration.
+
+## Repository layout
+
+```text
+client_flutter/
+  lib/
+    core/auth/                 Guest/Google auth and secure session state
+    core/navigation/           Single-owner online match navigation
+    core/network/              Typed REST client, configuration, WebSocket client
+    game/                      Offline physics and authoritative online playback
+    models/                    Profiles, arenas, pens, protocol DTOs
+    ui/                        Localized screens and reusable widgets
+  android/                     Release signing and network security configuration
+  test/                        Client physics-vector tests
+server_deno/
+  server.ts                    REST, WebSocket upgrade, security, static web hosting
+  auth.ts                      Sessions, WS tickets, Firebase Google verification
+  game_manager.ts              Human matchmaking, rooms, turns, reconnects, results
+  physics_sim.ts               Deterministic authoritative shot simulation
+  db.ts                        Deno KV transactions, inventory, social data, ledger
+  catalog.ts                   Server-owned pen prices and unlock rules
+  arena_config.ts              Server-owned arena stakes and table configuration
+  validation.ts                Input validation and typed errors
+  integration_test.ts          Live REST + two-client WebSocket verification
+  physics_sim_test.ts          Shared physics-vector verification
+test_vectors/
+  shared_physics_vectors.json  Cross-runtime physics fixtures
+docs/CODEBASE_GUIDE.md         Architecture and protocol details
+```
+
+## Run locally
+
+### Prerequisites
+
+- Flutter with Dart 3.12 or newer
+- Deno 2.x
+- Android SDK for Android builds
+
+### 1. Start the backend
+
 ```bash
 cd server_deno
 deno task start
-# Or for auto-reload during development:
-deno task dev
 ```
-Server runs at `http://localhost:8080`.
 
-### 2. Run the Flutter Client
+The server listens on `0.0.0.0:8080`. Local development uses these endpoints:
+
+- API/health: `http://localhost:8080/health`
+- WebSocket: `ws://localhost:8080/ws`
+
+For an isolated local database, set `DENO_KV_PATH` before starting. Do not use a production database for integration tests.
+
+### 2. Run Flutter
+
 ```bash
 cd client_flutter
-# Run on Chrome Web:
+flutter pub get
 flutter run -d chrome
-
-# Or run on Windows Desktop:
-flutter run -d windows
-
-# Or run on connected Android device:
+# or
 flutter run -d android
 ```
 
----
+Debug configuration is automatic for Chrome and the Android emulator (`10.0.2.2`). For a physical device or another backend:
 
-## 🛠️ Complete Guide: What You Should Do Next
-
-### Step 1: Firebase & Social Authentication Setup
-
-1. **Create Firebase Project:**
-   - Go to [Firebase Console](https://console.firebase.google.com/) and create a project named `kolom-fight`.
-2. **Enable Sign-in Providers:**
-   - Go to **Authentication > Sign-in method**.
-   - Enable **Anonymous** (for Guest Mode).
-   - Enable **Google**.
-   - Enable **Facebook** (if desired).
-3. **Android App Registration:**
-   - Add an Android App with package name: `com.kolomkhela.kolom_fight`.
-   - Generate your debug SHA-1 & SHA-256 fingerprints in PowerShell:
-     ```powershell
-     keytool -list -v -keystore "$env:USERPROFILE\.android\debug.keystore" -alias androiddebugkey -storepass android -keypass android
-     ```
-   - Paste the SHA-1 and SHA-256 into your Firebase Android app settings.
-   - Download `google-services.json` and place it in:
-     `client_flutter/android/app/google-services.json`
-4. **Account Merging in Firebase:**
-   - The game client's `AuthService` already implements `currentUser.linkWithCredential(credential)`.
-   - If an account already exists on the backend, it calls the Deno endpoint `/api/auth/merge` to combine coins, unlocked pens, and match stats automatically.
-
----
-
-### Step 2: Facebook Friends Discovery Setup
-
-1. Go to [Facebook Developers](https://developers.facebook.com/) and create an App.
-2. Add **Facebook Login** and request the `user_friends` permission.
-3. In `client_flutter`, configure Facebook App ID in `AndroidManifest.xml` if compiling for native Android.
-4. When users log in with Facebook, the backend matches mutual friends in Deno KV and surfaces them in the **বন্ধুমহল > ফেসবুক ফ্রেন্ডস** tab.
-
----
-
-### Step 3: Deploying Deno Backend for $0
-
-You can host the backend 24/7 globally with zero server costs:
-1. Push your repository to GitHub.
-2. Sign in to [Deno Deploy](https://deno.com/deploy).
-3. Create a project and link the `server_deno/server.ts` entry point.
-4. Deno Deploy provides built-in global **Deno KV** and native **WebSockets** with $0 monthly cost on the free tier!
-5. In `client_flutter/lib/core/network/ws_client.dart` and `api_service.dart`, update the `serverUrl` to your Deno Deploy domain:
-   ```dart
-   KolomWsClient().configureServerUrl('wss://your-project.deno.dev/ws');
-   ApiService().configureBaseUrl('https://your-project.deno.dev');
-   ```
-
----
-
-### Step 4: AdMob Monetization (Google Play Compliance)
-
-1. Sign up on [Google AdMob](https://admob.google.com/).
-2. Create:
-   - **Rewarded Video Ad Unit** ("Bankrupt? Watch ad for +250 Free Coins!").
-   - **Interstitial Ad Unit** (shown after every 2-3 completed matches).
-3. Enable **Server-Side Verification (SSV)** on AdMob so rewards are validated through your Deno backend before crediting coins.
-4. *Important Rule:* Virtual coins in Kolom Fight are strictly fun-money. Never allow cashing out to bKash or Nagad to ensure compliance with Google Play Store policies.
-
----
-
-## 📂 Project Directory Structure
-
-```text
-kolomkhela/
-├── README.md
-├── AGENTS.md
-├── chat.md
-├── server_deno/                     # Authoritative Deno Backend
-│   ├── deno.json                    # Start & dev task runner with --unstable-kv
-│   ├── server.ts                    # HTTP REST & WebSocket game handler
-│   ├── types.ts                     # TypeScript shared interfaces
-│   ├── db.ts                        # Deno KV database operations & atomic coin ledger
-│   ├── arena_config.ts              # 7 Bangladeshi educational room configs
-│   └── game_manager.ts              # Queues, ghost bots, turns, 6-digit room codes
-└── client_flutter/                  # Flutter + Flame 2D Game Client
-    ├── pubspec.yaml                 # flame, flame_forge2d, audioplayers, firebase
-    ├── android/                     # AndroidManifest with landscape lock & permissions
-    └── lib/
-        ├── main.dart                # Main entry point with dark esports theme
-        ├── core/
-        │   ├── audio/sound_effects.dart    # Synthesized tones & haptic feedback
-        │   ├── auth/auth_service.dart      # Guest mode, Google login & account merge
-        │   ├── auth/user_session.dart      # State management & local persistence
-        │   ├── constants/app_theme.dart    # Esports dark theme & typography
-        │   └── network/ws_client.dart      # WebSocket sync & API client
-        ├── models/
-        │   ├── arena_room.dart             # 7 Educational rooms
-        │   ├── kolom_spec.dart             # 7 Bangladeshi pens catalog
-        │   ├── match_packet.dart           # WebSocket turn & chat packets
-        │   └── user_profile.dart           # Profile & level stats
-        ├── game/
-        │   ├── kolom_game_engine.dart      # Forge2D Box2D top-down game engine
-        │   ├── bot/offline_bot_ai.dart     # Easy, Medium, Pro whip-spin AI bot
-        │   ├── components/pen_body_component.dart    # Asymmetric CoM & knockout
-        │   ├── components/table_bench_component.dart # Procedural table textures
-        │   └── rendering/procedural_kolom_painter.dart # Vector 2D 6-layer pen
-        └── ui/
-            ├── screens/
-            │   ├── splash_screen.dart       # Animated nostalgic intro
-            │   ├── auth_screen.dart         # Guest & Google login
-            │   ├── main_lobby_screen.dart   # Main lobby & game modes
-            │   ├── room_selection_screen.dart # Educational arena carousel
-            │   ├── game_screen.dart         # Turn HUD, strike slider & emoji chat
-            │   ├── private_room_screen.dart # 6-digit match code creator
-            │   ├── friends_screen.dart      # Search tag, challenge & Facebook sync
-            │   ├── leaderboard_screen.dart  # Global, 8 divisions & friends
-            │   ├── garage_shop_screen.dart  # 3D preview & stat bars
-            │   └── profile_screen.dart      # Stats, XP & Google merge button
-            └── widgets/
-                ├── coin_badge.dart
-                ├── strike_slider.dart
-                ├── emoji_picker_overlay.dart
-                └── victory_dialog.dart
+```bash
+flutter run --dart-define=SERVER_HOST=192.168.1.20:8080
 ```
+
+A custom host can also be entered in Settings. Non-local hosts always use HTTPS/WSS; local hosts use HTTP/WS only in development.
+
+## Backend configuration
+
+| Variable | Purpose | Default |
+|---|---|---|
+| `PORT` | HTTP/WebSocket port | `8080` |
+| `DENO_KV_PATH` | Optional local KV database path | Deno default |
+| `WEB_ROOT` | Compiled Flutter web directory | `client_flutter/build/web` |
+| `ALLOWED_ORIGINS` | Comma-separated exact browser origins | `*` (development only) |
+| `FIREBASE_PROJECT_ID` | Expected Firebase audience/issuer project | `kolom-khela` |
+
+Set an explicit production origin list, for example:
+
+```bash
+ALLOWED_ORIGINS=https://game.example.com \
+FIREBASE_PROJECT_ID=your-firebase-project \
+WEB_ROOT=/srv/kolom/client_flutter/build/web \
+deno task start
+```
+
+Profiles and transactions are durable in Deno KV. Active rooms, queues, sockets, and timers are intentionally process-local. Run the authoritative game service as one logical instance (or provide sticky routing plus a shared room coordinator before horizontally scaling). A multi-region serverless deployment without that coordination is not a supported multiplayer topology.
+
+## Google/Firebase setup
+
+1. Enable Google sign-in in Firebase Authentication.
+2. Register Android application ID `com.penfight.kolomkhela` and add the release SHA-1/SHA-256 fingerprints.
+3. Replace/update `client_flutter/android/app/google-services.json` with the real Firebase configuration, including the required Android OAuth client.
+4. Set the backend `FIREBASE_PROJECT_ID` to the same project.
+5. For web Google sign-in, supply the Firebase web values at build/run time:
+
+```bash
+flutter build web --release \
+  --dart-define=FIREBASE_API_KEY=your-web-api-key \
+  --dart-define=FIREBASE_APP_ID=your-web-app-id \
+  --dart-define=FIREBASE_MESSAGING_SENDER_ID=your-sender-id \
+  --dart-define=FIREBASE_PROJECT_ID=your-project-id \
+  --dart-define=FIREBASE_AUTH_DOMAIN=your-project-id.firebaseapp.com
+```
+
+Guest mode remains available when optional Google sign-in is not configured; the UI reports that limitation instead of creating a fake identity.
+
+## Production build
+
+### Web served by Deno
+
+```bash
+cd client_flutter
+flutter build web --release
+cd ../server_deno
+WEB_ROOT=../client_flutter/build/web \
+ALLOWED_ORIGINS=https://game.example.com \
+deno task start
+```
+
+Release web uses same-origin REST and WebSocket URLs, avoiding browser calls to a sandbox-local address.
+
+### Android
+
+1. Create a private upload/release keystore.
+2. Copy `client_flutter/android/key.properties.example` to `client_flutter/android/key.properties` and fill in its values. Both the properties file and keystore are excluded from Git.
+3. Build with the deployed backend host:
+
+```bash
+cd client_flutter
+flutter build appbundle --release --dart-define=SERVER_HOST=game.example.com
+```
+
+Without `key.properties`, a release APK remains unsigned rather than silently using the public debug key. Production Android blocks cleartext traffic, user-added certificate authorities, and backup extraction. Debug builds have a separate local-development network exception.
+
+## Verification
+
+Backend type check and physics tests:
+
+```bash
+cd server_deno
+deno task check
+deno task test
+```
+
+With a server running on an isolated test database:
+
+```bash
+# Terminal 1
+cd server_deno
+DENO_KV_PATH=/tmp/kolom-integration.sqlite3 deno task start
+
+# Terminal 2
+cd server_deno
+TEST_BASE_URL=http://127.0.0.1:8080 deno task test:integration
+```
+
+The live integration test covers authenticated sessions, reward idempotency, level/currency validation, private friend DTOs, two human WebSocket clients, authoritative shot frames for both sides, forged-winner rejection, settlement, and rematches.
+
+Flutter verification on a machine with the full SDK:
+
+```bash
+cd client_flutter
+flutter pub get
+dart format --output=none --set-exit-if-changed lib test
+flutter analyze
+flutter test
+flutter build web --release
+flutter build appbundle --release --dart-define=SERVER_HOST=game.example.com
+```
+
+## Operational requirements
+
+- Terminate TLS at the deployment or reverse proxy and use HTTPS/WSS only.
+- Restrict `ALLOWED_ORIGINS`; do not carry the development wildcard into production.
+- Back up self-hosted Deno KV and protect it as user/economy data.
+- Monitor `/health`, process restarts, WebSocket disconnects, and failed KV transactions.
+- Keep release keys and signing passwords in the CI secret store, never in the repository.
+- Review Bangladesh/Google Play policy requirements before adding monetization; virtual coins must remain non-redeemable.

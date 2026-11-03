@@ -1,4 +1,6 @@
 // lib/ui/screens/private_room_screen.dart
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../core/auth/user_session.dart';
@@ -6,8 +8,6 @@ import '../../core/constants/app_colors.dart';
 import '../../core/localization/app_strings.dart';
 import '../../core/network/ws_client.dart';
 import '../../models/arena_room.dart';
-import '../../models/kolom_spec.dart';
-import 'game_screen.dart';
 
 class PrivateRoomScreen extends StatefulWidget {
   const PrivateRoomScreen({super.key});
@@ -21,60 +21,75 @@ class _PrivateRoomScreenState extends State<PrivateRoomScreen> {
   ArenaRoom _selectedRoom = ArenaRoom.rooms[0];
   String? _generatedCode;
 
+  StreamSubscription<String>? _roomCodeSub;
+  StreamSubscription<String>? _errorSub;
+  bool _isBusy = false;
+
   @override
   void initState() {
     super.initState();
-    KolomWsClient().onRoomCodeCreated.listen((code) {
-      if (mounted) setState(() => _generatedCode = code);
+    _roomCodeSub = KolomWsClient().onRoomCodeCreated.listen((code) {
+      if (mounted) setState(() {
+        _generatedCode = code;
+        _isBusy = false;
+      });
     });
-
-    KolomWsClient().onMatchStart.listen((match) {
+    _errorSub = KolomWsClient().onError.listen((message) {
       if (!mounted) return;
-      final room = ArenaRoom.getById(match.roomTypeId);
-      final profile = UserSession().profile;
-      final currentPen = KolomSpec.getById(profile.equippedPen);
-
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (_) => GameScreen(
-            room: room,
-            playerPen: currentPen,
-            isOnline: true,
-            onlineOpponent: match.p1.id == profile.id ? match.p2 : match.p1,
-          ),
-        ),
+      setState(() => _isBusy = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message), backgroundColor: Colors.redAccent),
       );
     });
   }
 
-  void _createRoom() {
-    final profile = UserSession().profile;
-    KolomWsClient().connect(profile);
-    KolomWsClient().createPrivateRoom(
-      roomTypeId: _selectedRoom.id,
-      penModel: profile.equippedPen,
-    );
+  Future<void> _createRoom() async {
+    if (_isBusy) return;
+    setState(() => _isBusy = true);
+    try {
+      final profile = UserSession().profile;
+      await KolomWsClient().connect(profile);
+      KolomWsClient().createPrivateRoom(
+        roomTypeId: _selectedRoom.id,
+        penModel: profile.equippedPen,
+      );
+    } catch (error) {
+      if (mounted) {
+        setState(() => _isBusy = false);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.toString())));
+      }
+    }
   }
 
-  void _joinRoom() {
+  Future<void> _joinRoom() async {
     final code = _codeController.text.trim();
-    if (code.length < 4) {
+    if (!RegExp(r'^\d{6}$').hasMatch(code)) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a valid 6-digit room code')),
+        const SnackBar(content: Text('Enter the exact 6-digit room code.')),
       );
       return;
     }
-
-    final profile = UserSession().profile;
-    KolomWsClient().connect(profile);
-    KolomWsClient().joinPrivateRoom(
-      roomCode: code,
-      penModel: profile.equippedPen,
-    );
+    if (_isBusy) return;
+    setState(() => _isBusy = true);
+    try {
+      final profile = UserSession().profile;
+      await KolomWsClient().connect(profile);
+      KolomWsClient().joinPrivateRoom(roomCode: code, penModel: profile.equippedPen);
+    } catch (error) {
+      if (mounted) {
+        setState(() => _isBusy = false);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.toString())));
+      }
+    }
   }
 
   @override
   void dispose() {
+    if (_generatedCode != null && KolomWsClient().isConnected) {
+      KolomWsClient().cancelPrivateRoom();
+    }
+    _roomCodeSub?.cancel();
+    _errorSub?.cancel();
     _codeController.dispose();
     super.dispose();
   }
@@ -216,7 +231,7 @@ class _PrivateRoomScreenState extends State<PrivateRoomScreen> {
                         ),
                       ] else
                         ElevatedButton(
-                          onPressed: _createRoom,
+                          onPressed: _isBusy ? null : _createRoom,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.goldTiffinCoin,
                             foregroundColor: Colors.black,
@@ -287,7 +302,7 @@ class _PrivateRoomScreenState extends State<PrivateRoomScreen> {
                       ),
                       const SizedBox(height: 16),
                       ElevatedButton(
-                        onPressed: _joinRoom,
+                        onPressed: _isBusy ? null : _joinRoom,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.cyanSpin,
                           foregroundColor: Colors.black,

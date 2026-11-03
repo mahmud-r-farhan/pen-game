@@ -107,6 +107,7 @@ class PenBodyComponent extends BodyComponent<KolomGameEngine> with ContactCallba
   @override
   void update(double dt) {
     super.update(dt);
+    if (game.mode == GameMode.onlineMultiplayer) return;
 
     if (isEliminated) {
       // Fall into the abyss animation

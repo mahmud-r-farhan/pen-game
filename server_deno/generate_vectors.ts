@@ -1,6 +1,6 @@
 // server_deno/generate_vectors.ts
 /// <reference path="./deno.d.ts" />
-import { makePen, SimPen, SimShot, SimState, simulateTurn } from "./physics_sim.ts";
+import { makePen, SimShot, SimState, simulateTurn } from "./physics_sim.ts";
 
 interface VectorTestCase {
   name: string;
@@ -86,4 +86,8 @@ Deno.writeTextFileSync(
   "test_vectors/shared_physics_vectors.json",
   JSON.stringify(results, null, 2),
 );
-console.log("Successfully generated test_vectors/shared_physics_vectors.json with", results.length, "cases");
+console.log(
+  "Successfully generated test_vectors/shared_physics_vectors.json with",
+  results.length,
+  "cases",
+);

@@ -1,6 +1,6 @@
 // lib/ui/screens/splash_screen.dart
 import 'package:flutter/material.dart';
-import '../../core/auth/user_session.dart';
+import '../../core/auth/auth_service.dart';
 import '../../core/constants/app_colors.dart';
 import '../../game/rendering/procedural_kolom_painter.dart';
 import '../../models/kolom_spec.dart';
@@ -18,6 +18,8 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
   late AnimationController _animController;
   late Animation<double> _scaleAnimation;
   late Animation<double> _penSpinAnimation;
+  String? _startupError;
+  bool _isRetrying = false;
 
   @override
   void initState() {
@@ -41,18 +43,27 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
   }
 
   Future<void> _initApp() async {
-    await UserSession().init();
-    await Future.delayed(const Duration(milliseconds: 2200));
-    if (!mounted) return;
-
-    if (UserSession().hasProfile) {
+    if (_isRetrying) return;
+    setState(() {
+      _isRetrying = true;
+      _startupError = null;
+    });
+    try {
+      final results = await Future.wait<dynamic>([
+        AuthService().restoreSession(),
+        Future<void>.delayed(const Duration(milliseconds: 1200)),
+      ]);
+      if (!mounted) return;
+      final restored = results[0] != null;
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const MainLobbyScreen()),
+        MaterialPageRoute(
+          builder: (_) => restored ? const MainLobbyScreen() : const AuthScreen(),
+        ),
       );
-    } else {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const AuthScreen()),
-      );
+    } catch (error) {
+      if (mounted) setState(() => _startupError = error.toString());
+    } finally {
+      if (mounted) setState(() => _isRetrying = false);
     }
   }
 
@@ -139,15 +150,32 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                 style: TextStyle(color: AppColors.slateMuted, fontSize: 13),
               ),
             ),
-            const SizedBox(height: 44),
-            const SizedBox(
-              width: 32,
-              height: 32,
-              child: CircularProgressIndicator(
-                strokeWidth: 3,
-                color: AppColors.goldTiffinCoin,
+            const SizedBox(height: 36),
+            if (_startupError == null)
+              const SizedBox(
+                width: 32,
+                height: 32,
+                child: CircularProgressIndicator(strokeWidth: 3, color: AppColors.goldTiffinCoin),
+              )
+            else
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 28),
+                child: Column(
+                  children: [
+                    Text(
+                      _startupError!,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: Colors.white70, fontSize: 13),
+                    ),
+                    const SizedBox(height: 14),
+                    ElevatedButton.icon(
+                      onPressed: _isRetrying ? null : _initApp,
+                      icon: const Icon(Icons.refresh_rounded),
+                      label: const Text('Retry server connection'),
+                    ),
+                  ],
+                ),
               ),
-            ),
           ],
         ),
       ),

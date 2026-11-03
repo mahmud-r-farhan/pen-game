@@ -7,6 +7,7 @@ import 'core/auth/user_session.dart';
 import 'core/constants/app_theme.dart';
 import 'core/localization/app_strings.dart';
 import 'core/network/network_config.dart';
+import 'core/navigation/app_navigation.dart';
 import 'ui/screens/splash_screen.dart';
 
 void main() async {
@@ -44,6 +45,7 @@ class KolomFightApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorKey: appNavigatorKey,
       title: 'Kolom Fight Online',
       debugShowCheckedModeBanner: false,
       theme: KolomTheme.darkTheme,

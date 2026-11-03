@@ -128,8 +128,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           ),
                           onSelected: (selected) async {
                             if (selected) {
-                              await UserSession().setProfile(user.copyWith(division: div));
-                              setState(() {});
+                              try {
+                                await UserSession().updateDivision(div);
+                                if (mounted) setState(() {});
+                              } catch (error) {
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text(error.toString()), backgroundColor: AppColors.crimsonStrike),
+                                  );
+                                }
+                              }
                             }
                           },
                         );
@@ -251,10 +259,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     return InkWell(
       onTap: () async {
-        await AppLocale().setRegion(code, flag);
-        final user = UserSession().profile;
-        await UserSession().setProfile(user.copyWith(region: code, flagEmoji: flag));
-        setState(() {});
+        try {
+          await UserSession().updateRegion(region: code, flagEmoji: flag);
+          await AppLocale().setRegion(code, flag);
+          if (mounted) setState(() {});
+        } catch (error) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(error.toString()), backgroundColor: AppColors.crimsonStrike),
+            );
+          }
+        }
       },
       borderRadius: BorderRadius.circular(12),
       child: Container(
