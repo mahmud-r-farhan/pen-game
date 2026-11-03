@@ -46,7 +46,28 @@ export interface SimPen {
   w: number; // angular velocity
   h: number; // half length
   r: number; // radius
+  // Optional server-owned loadout/surface tuning. Missing values preserve the
+  // original shared-vector physics used by makePen() and regression fixtures.
+  m?: number;
+  i?: number;
+  visc?: number;
+  coul?: number;
+  avisc?: number;
+  acoul?: number;
+  rest?: number;
   fall: number; // 0 if on table, > 0 if fallen
+}
+
+export interface SimPenPhysics {
+  h?: number;
+  r?: number;
+  m?: number;
+  i?: number;
+  visc?: number;
+  coul?: number;
+  avisc?: number;
+  acoul?: number;
+  rest?: number;
 }
 
 export interface SimShot {
@@ -91,8 +112,32 @@ export interface TurnSimulationResult {
   duration: number;
 }
 
-export function makePen(owner: number, x: number, y: number, a: number): SimPen {
-  return { owner, x, y, a, vx: 0, vy: 0, w: 0, h: PEN_H, r: PEN_R, fall: 0 };
+export function makePen(
+  owner: number,
+  x: number,
+  y: number,
+  a: number,
+  physics: SimPenPhysics = {},
+): SimPen {
+  return {
+    owner,
+    x,
+    y,
+    a,
+    vx: 0,
+    vy: 0,
+    w: 0,
+    h: physics.h ?? PEN_H,
+    r: physics.r ?? PEN_R,
+    m: physics.m,
+    i: physics.i,
+    visc: physics.visc,
+    coul: physics.coul,
+    avisc: physics.avisc,
+    acoul: physics.acoul,
+    rest: physics.rest,
+    fall: 0,
+  };
 }
 
 export function clonePen(p: SimPen): SimPen {
@@ -165,7 +210,11 @@ export function segSeg(
   o.y2 = p2y + d2y * t;
 }
 
-export function collide(A: SimPen, B: SimPen, onHit?: (x: number, y: number, impact: number) => void) {
+export function collide(
+  A: SimPen,
+  B: SimPen,
+  onHit?: (x: number, y: number, impact: number) => void,
+) {
   const rs = A.r + B.r;
   const cdx = B.x - A.x, cdy = B.y - A.y;
   const reach = A.h + B.h + rs;
@@ -210,10 +259,15 @@ export function collide(A: SimPen, B: SimPen, onHit?: (x: number, y: number, imp
   }
 
   const pen = rs - d;
-  A.x -= nx * pen * 0.5;
-  A.y -= ny * pen * 0.5;
-  B.x += nx * pen * 0.5;
-  B.y += ny * pen * 0.5;
+  const invMA = 1 / (A.m ?? PEN_M);
+  const invMB = 1 / (B.m ?? PEN_M);
+  const invIA = 1 / (A.i ?? PEN_I);
+  const invIB = 1 / (B.i ?? PEN_I);
+  const totalInvMass = invMA + invMB;
+  A.x -= nx * pen * invMA / totalInvMass;
+  A.y -= ny * pen * invMA / totalInvMass;
+  B.x += nx * pen * invMB / totalInvMass;
+  B.y += ny * pen * invMB / totalInvMass;
 
   const rax = cx - A.x, ray = cy - A.y;
   const rbx = cx - B.x, rby = cy - B.y;
@@ -228,19 +282,18 @@ export function collide(A: SimPen, B: SimPen, onHit?: (x: number, y: number, imp
   const vn = rvx * nx + rvy * ny;
   if (vn > 0) return;
 
-  const invM = 1 / PEN_M;
-  const invI = 1 / PEN_I;
   const raN = rax * ny - ray * nx;
   const rbN = rbx * ny - rby * nx;
-  const kN = 2 * invM + raN * raN * invI + rbN * rbN * invI;
-  const j = -(1 + REST) * vn / kN;
+  const kN = invMA + invMB + raN * raN * invIA + rbN * rbN * invIB;
+  const restitution = ((A.rest ?? REST) + (B.rest ?? REST)) / 2;
+  const j = -(1 + restitution) * vn / kN;
 
-  A.vx -= j * nx * invM;
-  A.vy -= j * ny * invM;
-  A.w -= raN * j * invI;
-  B.vx += j * nx * invM;
-  B.vy += j * ny * invM;
-  B.w += rbN * j * invI;
+  A.vx -= j * nx * invMA;
+  A.vy -= j * ny * invMA;
+  A.w -= raN * j * invIA;
+  B.vx += j * nx * invMB;
+  B.vy += j * ny * invMB;
+  B.w += rbN * j * invIB;
 
   // Tangential friction
   const vax2 = A.vx - A.w * ray;
@@ -254,29 +307,33 @@ export function collide(A: SimPen, B: SimPen, onHit?: (x: number, y: number, imp
   const vt = rvx2 * tx + rvy2 * ty;
   const raT = rax * ty - ray * tx;
   const rbT = rbx * ty - rby * tx;
-  const kT = 2 * invM + raT * raT * invI + rbT * rbT * invI;
+  const kT = invMA + invMB + raT * raT * invIA + rbT * rbT * invIB;
   let jt = -vt / kT;
   const lim = MU * j;
   jt = clamp(jt, -lim, lim);
 
-  A.vx -= jt * tx * invM;
-  A.vy -= jt * ty * invM;
-  A.w -= raT * jt * invI;
-  B.vx += jt * tx * invM;
-  B.vy += jt * ty * invM;
-  B.w += rbT * jt * invI;
+  A.vx -= jt * tx * invMA;
+  A.vy -= jt * ty * invMA;
+  A.w -= raT * jt * invIA;
+  B.vx += jt * tx * invMB;
+  B.vy += jt * ty * invMB;
+  B.w += rbT * jt * invIB;
 
   if (onHit) onHit(cx, cy, -vn);
 }
 
 export function applyShot(p: SimPen, shot: SimShot) {
-  const v = shot.power * MAXV;
+  const mass = p.m ?? PEN_M;
+  const inertia = p.i ?? PEN_I;
+  // Equal flick impulse: heavier pens launch more slowly but carry their mass
+  // into collisions, matching the offline Forge2D loadout behavior.
+  const v = shot.power * MAXV * PEN_M / mass;
   const dx = Math.cos(shot.ang);
   const dy = Math.sin(shot.ang);
   p.vx += dx * v;
   p.vy += dy * v;
   if (shot.rx || shot.ry) {
-    p.w += (shot.rx * dy * v - shot.ry * dx * v) / (PEN_I / PEN_M) * SPIN_K;
+    p.w += (shot.rx * dy * v - shot.ry * dx * v) / (inertia / mass) * SPIN_K;
   }
 }
 
@@ -302,7 +359,9 @@ export function stepPhysics(
 
     const sp = Math.hypot(p.vx, p.vy);
     if (sp > 0) {
-      const ns = Math.max(0, sp * Math.exp(-VISC * dt) - COUL * dt);
+      const visc = p.visc ?? VISC;
+      const coul = p.coul ?? COUL;
+      const ns = Math.max(0, sp * Math.exp(-visc * dt) - coul * dt);
       if (ns < 6) {
         p.vx = 0;
         p.vy = 0;
@@ -314,7 +373,9 @@ export function stepPhysics(
     }
 
     if (p.w !== 0) {
-      let nw = Math.max(0, Math.abs(p.w) * Math.exp(-AVISC * dt) - ACOUL * dt);
+      const avisc = p.avisc ?? AVISC;
+      const acoul = p.acoul ?? ACOUL;
+      let nw = Math.max(0, Math.abs(p.w) * Math.exp(-avisc * dt) - acoul * dt);
       if (nw < 0.08) nw = 0;
       p.w = Math.sign(p.w) * nw;
     }
@@ -337,16 +398,21 @@ export function stepPhysics(
 }
 
 export function settled(S: SimState): boolean {
-  return S.pens.every((p) => p.fall > 0 || (p.vx === 0 && p.vy === 0 && p.w === 0));
+  return S.pens.every((p) =>
+    p.fall > 0 || (p.vx === 0 && p.vy === 0 && p.w === 0)
+  );
 }
 
-export function createInitialMatchState(): SimState {
+export function createInitialMatchState(
+  p1Physics: SimPenPhysics = {},
+  p2Physics: SimPenPhysics = {},
+): SimState {
   const y = H / 2 + rand(-90, 90);
   const a = rand(-0.55, 0.55);
   return {
     pens: [
-      makePen(0, W * 0.22, y, a),
-      makePen(1, W - W * 0.22, H - y, a + Math.PI),
+      makePen(0, W * 0.22, y, a, p1Physics),
+      makePen(1, W - W * 0.22, H - y, a + Math.PI, p2Physics),
     ],
     ended: false,
     winner: -1,
@@ -470,8 +536,8 @@ export function simulateTurn(
 
 // Bot AI Monte Carlo shot planner
 const BOT_CFG = [
-  { n: 12, sig: 0.18, psig: 0.18, ref: 0 },  // EASY
-  { n: 45, sig: 0.07, psig: 0.08, ref: 0 },  // NORMAL
+  { n: 12, sig: 0.18, psig: 0.18, ref: 0 }, // EASY
+  { n: 45, sig: 0.07, psig: 0.08, ref: 0 }, // NORMAL
   { n: 120, sig: 0.025, psig: 0.035, ref: 12 }, // HARD
   { n: 240, sig: 0.003, psig: 0.008, ref: 36 }, // INSANE
 ];

@@ -19,6 +19,7 @@ class GarageShopScreen extends StatefulWidget {
 class _GarageShopScreenState extends State<GarageShopScreen> {
   late KolomSpec _selectedPen;
   final double _previewAngle = -0.05;
+  bool _isBusy = false;
 
   @override
   void initState() {
@@ -27,38 +28,49 @@ class _GarageShopScreenState extends State<GarageShopScreen> {
     _selectedPen = KolomSpec.getById(profile.equippedPen);
   }
 
-  void _equipPen(KolomSpec pen) {
-    UserSession().equipPen(pen.id);
-    SoundEffects().playCoin();
-    setState(() {});
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('${pen.nameEn} equipped!'),
-        backgroundColor: AppColors.emeraldTurn,
-      ),
-    );
+  Future<void> _equipPen(KolomSpec pen) async {
+    if (_isBusy) return;
+    setState(() => _isBusy = true);
+    try {
+      await UserSession().equipPen(pen.id);
+      SoundEffects().playFlick();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('${pen.nameEn} equipped!'), backgroundColor: AppColors.emeraldTurn),
+        );
+      }
+    } catch (error) {
+      _showError(error);
+    } finally {
+      if (mounted) setState(() => _isBusy = false);
+    }
   }
 
-  void _buyPen(KolomSpec pen) {
-    final profile = UserSession().profile;
-    if (profile.coins < pen.unlockPrice) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Not enough coins! Win matches to earn more.'),
-          backgroundColor: AppColors.crimsonStrike,
-        ),
-      );
-      return;
+  Future<void> _buyPen(KolomSpec pen) async {
+    if (_isBusy) return;
+    setState(() => _isBusy = true);
+    try {
+      await UserSession().purchasePen(pen.id);
+      SoundEffects().playVictory();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${pen.nameEn} unlocked and equipped!'),
+            backgroundColor: AppColors.emeraldTurn,
+          ),
+        );
+      }
+    } catch (error) {
+      _showError(error);
+    } finally {
+      if (mounted) setState(() => _isBusy = false);
     }
+  }
 
-    UserSession().unlockPen(pen.id, pen.unlockPrice);
-    SoundEffects().playVictory();
-    setState(() {});
+  void _showError(Object error) {
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('${pen.nameEn} unlocked and equipped!'),
-        backgroundColor: AppColors.emeraldTurn,
-      ),
+      SnackBar(content: Text(error.toString()), backgroundColor: AppColors.crimsonStrike),
     );
   }
 
@@ -176,7 +188,7 @@ class _GarageShopScreenState extends State<GarageShopScreen> {
                 child: SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: isEquipped
+                    onPressed: _isBusy || isEquipped
                         ? null
                         : isUnlocked
                             ? () => _equipPen(_selectedPen)

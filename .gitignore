@@ -1,0 +1,5 @@
+# Local Deno KV integration-test databases
+*.sqlite3
+*.sqlite3-shm
+*.sqlite3-wal
+.arena-test-*

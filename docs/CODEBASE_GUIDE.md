@@ -1,193 +1,196 @@
-# Kolom Fight (কলম খেলা): Complete Technical & Architectural Guide
+# Kolom Fight technical guide
 
-## 1. Executive Summary & Philosophy
-**Kolom Fight** is an authoritative, high-fidelity physics-based digital recreation of the beloved South Asian classroom desktop tabletop battle ("কলম খেলা"). Players flick customized pens across simulated authentic school benches (from weathered tin-shed primary school desks to mirror-smooth university seminar tables) to knock opponent pens off the table while maintaining balance.
+## 1. Architecture and trust boundaries
 
-The project is structured into two cleanly decoupled modular domains:
-1. **Frontend Client (`client_flutter/`)**: Built with Flutter 3.x, Flame Engine, and Forge2D (Box2D physics port), delivering 60 FPS rigid-body mechanics, rich haptic vibration feedback, procedural vector pen rendering, 44 predefined webp avatars, and dynamic tri-language localization (`en`, `bn`, `hi`).
-2. **Backend Server (`server_deno/`)**: Built on Deno with TypeScript, Deno KV ACID transactions, WebSockets (`/ws`), and REST endpoints. Features an authoritative turn-timer clock (30s), escrow coin locking, forfeit/disconnect winner auto-resolution, and cached global/regional leaderboards ranked by Player XP/RP.
+Kolom Fight has two runtime components:
 
----
+1. **Flutter client** — authentication UI, local practice, rendering, input, localization, and playback of authoritative online results.
+2. **Deno service** — account identity, sessions, REST validation, human matchmaking, online physics, timers, economy, social state, and static hosting for the compiled web client.
 
-## 2. Directory & Module Topology
+The backend is the source of truth for every online outcome. In particular, the client cannot assign its own user ID to an existing account, set a coin balance, unlock a pen, report a knockout, select a winner, or settle a rematch without new escrow.
 
+There are two deliberately separate gameplay paths:
+
+| Path | Physics owner | Economy/rating | Opponent |
+|---|---|---|---|
+| Online multiplayer | Deno deterministic simulation | Persistent, backend-owned | Another authenticated human |
+| Offline practice | Flutter/Forge2D | None | Clearly labeled local bot |
+
+Online clients do not run an independent Forge2D outcome. They render `MATCH_START.initialState` and interpolate `SHOT_RESULT.frames`; local practice never sends its result to the backend.
+
+## 2. Client modules
+
+### Authentication and state
+
+- `core/auth/auth_service.dart` initializes optional Firebase Google sign-in, creates guests, validates saved sessions, links identities, and logs out.
+- `core/auth/user_session.dart` holds the latest backend-confirmed profile. The bearer token is stored with `flutter_secure_storage`; a non-sensitive profile cache is stored in shared preferences for rendering only.
+- Startup calls `/api/auth/session`. A stale cached profile is not sufficient to enter an authenticated session.
+- A transport failure is shown to the user. It is not converted into a successful purchase, reward, profile update, or leaderboard response.
+
+### Networking
+
+- `core/network/network_config.dart` resolves debug, native-release, custom-host, and same-origin web URLs.
+- `core/network/api_service.dart` adds the bearer token, validates status/JSON, and returns typed `ApiException` failures.
+- `core/network/ws_client.dart` obtains a one-time `/api/auth/ws-ticket`, opens `/ws?ticket=...`, parses protocol DTOs, and reconnects with bounded backoff.
+- WebSocket tickets are short-lived and single-use. Persistent bearer tokens are not put in the WebSocket URL.
+
+### Match navigation
+
+`core/navigation/app_navigation.dart` is the single owner of `MATCH_START` navigation. Quick play, private rooms, friend challenges, reconnects, and rematches therefore converge on one game-screen route instead of pushing duplicate matches from every subscribed screen.
+
+### Game engine
+
+`game/kolom_game_engine.dart` has explicit modes:
+
+- `onlineMultiplayer`: transforms authoritative simulation coordinates into each player's local view, renders keyframes, and locks input during playback.
+- `offlineBot`: runs local Forge2D bodies and the offline bot.
+
+Each online player sees their own pen on the left. Player two's flick and aiming vectors are rotated between local and authoritative coordinate systems; physics positions and shot frames remain server-owned.
+
+`models/match_packet.dart` contains transport DTOs. `models/user_profile.dart` maps backend profiles. Arena stakes shown in the client match `server_deno/arena_config.ts`; shop prices and unlock rules are enforced from `server_deno/catalog.ts`, not trusted from client models.
+
+## 3. Backend modules
+
+| File | Responsibility |
+|---|---|
+| `server.ts` | HTTP routing, JSON limits, CORS/security headers, WebSocket upgrade, static files |
+| `auth.ts` | Random sessions/tickets, SHA-256 token hashes, TTLs, Firebase Google JWT verification |
+| `validation.ts` | Bounds, finite-number checks, enum/catalog validation, safe text, typed HTTP errors |
+| `db.ts` | Deno KV accounts, aliases, wallets, escrow, ledger, rewards, inventory, clubs, friends, rankings |
+| `game_manager.ts` | Human queues, room codes, challenges, turns, reconnect grace, shots, surrender, rematches |
+| `physics_sim.ts` | Deterministic 240 Hz simulation sampled into 60 Hz playback frames |
+| `arena_config.ts` | Authoritative arena stakes, payout configuration, and surface metadata |
+| `catalog.ts` | Authoritative pen prices, minimum levels, starter inventory, reward timing |
+
+### Authentication records
+
+A session response contains a random bearer token and expiry. Deno KV stores only a SHA-256 hash of that token. WebSocket tickets are independently random, expire after 60 seconds, and are deleted when consumed.
+
+Google sign-in is not a client-provided UID flow. The backend fetches Google's signing keys and verifies:
+
+- RS256 signature and token expiry;
+- audience equal to `FIREBASE_PROJECT_ID`;
+- Firebase Secure Token issuer;
+- a Firebase user subject and `google.com` provider.
+
+Public friend/leaderboard DTOs omit email, provider IDs, unlocked inventory, and private friend-ID lists. Remote avatars are limited to the user's verified Google photo or bundled avatar IDs.
+
+### Economy and persistence
+
+Deno KV atomic operations protect:
+
+- account/tag creation;
+- entry escrow for both participants;
+- idempotent settlement keyed by match room;
+- coin ledger entries and wallet mirrors;
+- pen purchase/equip rules;
+- one daily reward per cooldown;
+- club creation/membership and friend mutations.
+
+A ranked match pays 95% of its pot to the winner. Rating changes, career stats, and club trophy totals are committed with settlement. The returned `MATCH_OVER` payload is personalized: each player receives their own balance, payout, actual trophy delta, and full own-profile snapshot.
+
+The in-memory leaderboard cache is only a read optimization and is cleared on settlement. Deno KV remains authoritative.
+
+### Runtime topology
+
+Durable account/economy state is in KV; active sockets, rooms, queues, challenges, and timers are in `GameManager` memory. Deploy one logical authoritative process unless an external coordinator and sticky room routing are added. Restarting that process interrupts active matches, so production deployments should drain matches before replacement.
+
+## 4. REST surface
+
+All request bodies are JSON and limited to 32 KiB. Except for the marked public routes, private routes require `Authorization: Bearer <sessionToken>`.
+
+| Method and path | Auth | Result |
+|---|---|---|
+| `GET /health` | Public | Service and KV health |
+| `GET /arenas` | Public | Server arena configuration |
+| `GET /api/shop/catalog` | Public | Server shop configuration |
+| `POST /api/auth/guest` | Public | New backend identity and session |
+| `GET /api/auth/session` | Required | Validated current profile |
+| `POST /api/auth/google` | Optional current session | Verified Google login or guest link |
+| `POST /api/auth/ws-ticket` | Required | One-time WebSocket ticket |
+| `POST /api/auth/logout` | Required | Revoke current session |
+| `GET /api/user/profile` | Required | Current own profile |
+| `POST /api/user/update-profile` | Required | Safe profile fields only |
+| `POST /api/shop/purchase` | Required | Atomic price/level/balance validation |
+| `POST /api/shop/equip` | Required | Equip an owned pen |
+| `POST /api/rewards/daily` | Required | Idempotent cooldown-based claim |
+| `GET /api/leaderboard` | Public except friends view | Sanitized ranked DTOs |
+| `GET /api/clubs` | Public | Persistent club listing |
+| `POST /api/clubs/create` | Required | Paid club creation |
+| `POST /api/clubs/join` | Required | Atomic club join |
+| `POST /api/clubs/leave` | Required | Leave/delete or transfer club |
+| `GET /api/friends` | Required | Sanitized friend profiles |
+| `POST /api/friends/add` | Required | Mutual add by tag or player ID |
+| `POST /api/friends/remove` | Required | Mutual removal |
+
+Errors use HTTP status plus a stable machine code:
+
+```json
+{
+  "error": {
+    "code": "INSUFFICIENT_COINS",
+    "message": "Not enough coins for this pen."
+  }
+}
 ```
-kolomkhela/
-├── client_flutter/                      # Cross-Platform Flutter Client
-│   ├── assets/
-│   │   ├── arenas/                      # 3D Isometric Glowing Diorama Emblems
-│   │   │   ├── room_primary.webp        # Tin-shed primary school bench
-│   │   │   ├── room_highschool.webp     # Red-brick clocktower high school
-│   │   │   ├── room_polytechnic.webp    # Engineering drafting workshop
-│   │   │   ├── room_medical.webp        # Stainless steel dissection lab
-│   │   │   ├── room_college.webp        # Cha & Samosa adda canteen
-│   │   │   └── room_university.webp     # Golden dome pillars esports academy
-│   │   ├── avatars/                     # 44 WebP Predefined Avatars
-│   │   │   ├── avatar_boy_*.webp        # Cartoon human players
-│   │   │   ├── avatar_girl_*.webp       # Cartoon human players
-│   │   │   ├── avatar_fox.webp          # Cute mascot animals
-│   │   │   └── avatar_shuvo.webp        # Pixel art champions
-│   │   └── audio/                       # Sound effect catalog
-│   ├── lib/
-│   │   ├── core/
-│   │   │   ├── audio/sound_effects.dart # Sound pool & haptics controller
-│   │   │   ├── auth/user_session.dart   # Reactive ChangeNotifier user state
-│   │   │   ├── constants/               # Color tokens, themes, typography
-│   │   │   ├── localization/app_strings.dart # Pure English, Bengali & Hindi engine
-│   │   │   └── network/                 # WsClient & ApiService
-│   │   ├── game/
-│   │   │   ├── bot/offline_bot_ai.dart  # Heuristic trajectory aiming & spin bot
-│   │   │   ├── components/              # PenBodyComponent, TableSurfaceComponent
-│   │   │   ├── kolom_physics_world.dart # Forge2D simulation world & boundaries
-│   │   │   └── rendering/               # Procedural vector pen painter
-│   │   ├── models/
-│   │   │   ├── arena_room.dart          # 7 Educational system tables & physics
-│   │   │   ├── kolom_spec.dart          # 5 Pen models & mass/spin specs
-│   │   │   └── user_profile.dart        # User profile, avatars catalog, stats
-│   │   └── ui/
-│   │       ├── screens/
-│   │       │   ├── auth_screen.dart     # Guest, Google & Facebook sign-in
-│   │       │   ├── clubs_screen.dart    # Guilds & clan wars
-│   │       │   ├── friends_screen.dart  # Facebook friends & tag search
-│   │       │   ├── game_screen.dart     # In-game HUD, turn clock & physics canvas
-│   │       │   ├── garage_shop_screen.dart # Pen tuning & cosmetics shop
-│   │       │   ├── leaderboard_screen.dart # Regional & Global XP/RP standings
-│   │       │   ├── main_lobby_screen.dart  # Interactive hub & pen display
-│   │       │   ├── profile_screen.dart  # Avatar picker & Google photo restore
-│   │       │   ├── room_selection_screen.dart # Swipeable 3D diorama card carousel
-│   │       │   └── settings_screen.dart # Audio, vibration & language switcher
-│   │       └── widgets/                 # Reusable avatars, badges & chips
-│   └── pubspec.yaml
-│
-├── server_deno/                         # High-Speed Deno Backend
-│   ├── arena_config.ts                  # Authoritative physics table constants
-│   ├── db.ts                            # Atomic escrow, Kv persistence & cached leaderboards
-│   ├── game_manager.ts                  # 1v1 Matchmaking, 30s timers & disconnect resolution
-│   ├── server.ts                        # WebSocket handler & REST API routes
-│   └── types.ts                         # Shared TypeScript interfaces & WS packets
-└── docs/
-    └── CODEBASE_GUIDE.md                # This document
-```
 
----
+## 5. WebSocket protocol
 
-## 3. Core Game Mechanics & Real-World Logic
+Connect to `/ws` with a valid one-time ticket. On open, the service sends `AUTH_SUCCESS` and `WALLET_SYNC`. JSON messages over 16 KiB are ignored, and actions are rate-limited.
 
-### 3.1 Room Selection Swipe Carousel (`RoomSelectionScreen`)
-- **Swipeable Horizontal Carousel**: Built with `PageView.builder` featuring dynamic page scaling ($0.88\times$ to $1.0\times$) and opacity shifts ($0.65$ to $1.0$).
-- **Vertical Diorama Card Style**:
-  - **Top**: High-resolution 3D isometric diorama emblem (`Image.asset('assets/arenas/room_*.webp')`) with ambient radial glow matching the arena's neon signature color.
-  - **Header Badges**: Educational tier tag (e.g. `PRIMARY`, `COLLEGE`, `UNIVERSITY`) and specific institution badge (e.g. `Medical DMC/SSMC`, `DU / BUET`).
-  - **Localized Information**: Name and description strictly localized based on the user's selected language (`en`, `bn`, `hi`).
-  - **Center Coins & Pot**: High-contrast gold coin badge displaying both Entry Coins and Potential Pot Winnings.
-  - **Table Physics Meter**: Displays live linear friction (drift vs control) and restitution percentage (% bounce).
-  - **Bottom Action**: Direct "PLAY 1v1 DUEL" or "PLAY WITH BOT" button. Tapping either the card or the button immediately opens/selects the match.
+### Client actions
 
-### 3.2 Pure 1v1 Online Matchmaking & Skill Rating
-- **Elimination of 2v2 and 4v4**: All teamup/squad formats have been removed from matchmaking in favor of high-stakes, hyper-focused 1v1 duels.
-- **Skill-Based Matchmaking**: Opponents are matched by **Trophy Rating Points (RP)** within the selected arena tier.
-- **4.5s Seamless Ghost Bot Fallback**: If no human player within range is found after 4.5 seconds, an authoritative Ghost Bot seamlessly fills the match with simulated aiming and whip-spin flicking.
-- **Authoritative 30s Turn Clock**:
-  - Each player gets 30 seconds to aim and flick.
-  - Periodic countdown ticks are broadcast to keep both clients synchronized.
-  - A timeout automatically passes the turn; two consecutive timeouts trigger an automatic forfeit.
-- **Forfeit & Disconnect Handling**:
-  - If a player disconnects or leaves an active match, the server automatically awards the knockout victory to the remaining player.
-  - The winner receives the pot payout ($90\%$ of pot coins, $10\%$ platform sink) and $+25$ RP.
-  - The forfeiting player loses their locked entry fee and $-15$ RP.
+| Action | Purpose |
+|---|---|
+| `QUEUE_JOIN`, `QUEUE_LEAVE` | Enter/leave human-only arena matchmaking |
+| `ROOM_CODE_CREATE`, `ROOM_CODE_JOIN`, `ROOM_CODE_CANCEL` | Manage six-digit private rooms |
+| `FRIEND_CHALLENGE_SEND`, `FRIEND_CHALLENGE_RESPOND` | Challenge an online mutual friend |
+| `FLICK_SUBMIT` | Submit local drag impulse and strike offset |
+| `SHOT_SUBMIT` | Submit normalized angle/power/spin shot parameters |
+| `AIMING_UPDATE` | Send bounded aim preview to the opponent |
+| `PASS_TURN` | Voluntarily pass the active turn |
+| `EMOJI_CHAT` | Send one server-approved quick-chat ID |
+| `SURRENDER` | Forfeit to the opponent |
+| `REMATCH_REQUEST`, `REMATCH_RESPOND` | Negotiate a newly escrowed match |
 
-### 3.3 Strict Language Purity & Localization
-- **English Mode**: Guarantees pure English text throughout the game with zero leaked Bengali characters or mixed subtitles.
-- **Bengali & Hindi Modes**: Fully native, culturally authentic translations covering all menus, arenas, game alerts, and cups.
-- **Dynamic Live Switching**: All screens utilize `ValueListenableBuilder<String>` tied to `AppLocale.currentCode`, ensuring instantaneous UI updates upon changing language in Settings without requiring app restarts.
+Unknown actions—including obsolete client knockout/winner reports—receive `ERROR` and cannot affect the result.
 
-### 3.4 Leaderboard Ranked by XP / RP (Not Coins)
-- Leaderboard ranking is strictly governed by **Trophy Rating Points (RP)** and user Level/XP, **NOT coins**.
-- **Supported Filter Views**:
-  - **Global**: Worldwide top ranked players.
-  - **Regional / Division**: Bangladeshi divisions (`Dhaka`, `Chattogram`, `Rajshahi`, `Khulna`, `Sylhet`, `Barishal`, `Rangpur`, `Mymensingh`) and international hubs (`Delhi`, `Kolkata`, `Lahore`, `International`).
-  - **Friends**: Leaderboard among linked Facebook and tag friends.
-- **High-Speed Cache**: In-memory 30-second TTL cache in Deno KV ensures sub-2ms response times.
+### Important server events
 
-### 3.5 Predefined Avatar Catalog & Google Account Sync
-- **44 Built-in WebP Avatars**:
-  - 24 Cartoon Humans: Diverse styles, headsets, caps, and outfits.
-  - 10 Cute Mascot Animals: Fox, polar bear, penguin, red panda, shiba, etc.
-  - 10 Pixel Art Champions: Retro pixel warriors.
-- **Account Creation**: Guests and new players receive a randomly selected avatar.
-- **Google Sign-In & Restore**:
-  - When signing in with Google, the user's Google account picture URL (`googlePhotoUrl`) is preserved.
-  - Users can switch to any predefined avatar anytime and revert back to their Google profile picture with one tap.
-  - Only the avatar identifier (or photo URL) is transmitted to the cloud database.
+- `QUEUE_WAITING`: real queue state; there is no fake wait estimate or bot fallback.
+- `MATCH_START`: room, participants, first turn, initial simulation state, verified loadouts, and reconnect input-lock state.
+- `TURN_TIMER_TICK`, `TURN_TIMEOUT`: server turn clock and pass/timeout transitions.
+- `AIMING_SYNC`: opponent aim preview.
+- `SHOT_RESULT`: actor, keyframes, collision events, fall/result metadata, next turn, and duration.
+- `MATCH_OVER`: winner plus recipient-specific settlement/profile.
+- `ROOM_CODE_CREATED`, `FRIEND_CHALLENGE_RECEIVED`, `REMATCH_OFFER`: social/match negotiation.
+- `ERROR`: stable code and user-safe failure message.
 
----
+The server validates turn ownership and input locks before simulating. It broadcasts identical frames to both clients and waits for playback duration before unlocking the next turn. Two consecutive timeouts forfeit. A double knockout is resolved against the striker so the match remains decisive. Surrender and disconnect settlement use the same idempotent database path as a physics win.
 
-## 4. Physics Engine Specifications (`client_flutter/lib/game/`)
+## 6. Physics verification
 
-The table physics model simulates real-world desk materials via Forge2D rigid bodies:
+`server_deno/physics_sim.ts` and `client_flutter/lib/game/kolom_physics_sim.dart` share fixtures in `test_vectors/shared_physics_vectors.json`. The deterministic simulation uses a 240 Hz internal step and emits 60 Hz keyframes. Live rooms configure each pen from the server-owned catalog and selected arena: dimensions, mass, inertia, linear/angular damping, and restitution affect shots and collisions. Unconfigured simulations preserve the shared-vector defaults. Offline Forge2D practice is intentionally separate from online authoritative playback.
 
-| Arena Room | Surface Material | Linear Friction | Angular Damping | Restitution (Bounce) |
-|---|---|---|---|---|
-| Primary School | Wood Scratched | 2.6 | 2.2 | 0.60 |
-| High School | Varnished Teak | 2.4 | 2.0 | 0.62 |
-| Polytechnic | Drafting Green | 2.1 | 1.8 | 0.55 |
-| Medical College | Stainless Steel | 1.7 | 1.4 | 0.70 |
-| College Canteen | Exam Mahogany | 2.3 | 1.9 | 0.58 |
-| Cadet College | Military Cherry | 1.9 | 1.6 | 0.65 |
-| Public University | Executive Glass | 1.3 | 1.1 | 0.75 |
+Run:
 
-### Strike Mechanics:
-- **Center Push ($0.0\times$)**: Pure linear thrust without rotational torque.
-- **Tip Whip-Spin ($+0.65\times$)**: Off-center strike inducing high counter-clockwise spin for curve drift.
-- **Back-Cap Power Smash ($-0.65\times$)**: Heavy blunt impact imparting clockwise spin and maximum forward momentum.
-
----
-
-## 5. Network WebSocket Protocol (`server_deno/`)
-
-### Client Actions (`WsClientAction`)
-- `AUTH`: Registers user session with UID, tag, division, and region.
-- `QUEUE_JOIN`: Enqueues player for 1v1 skill-based matchmaking (`roomTypeId`, `penModel`).
-- `QUEUE_LEAVE`: Withdraws player from the matchmaking queue.
-- `AIMING_UPDATE`: Broadcasts real-time pull vectors (`pullX`, `pullY`, `strikeOffset`) for live opponent aim feedback.
-- `FLICK_EXECUTE`: Sends authoritative impulse vectors (`impulseX`, `impulseY`, `strikeOffset`).
-- `KNOCKOUT_EVENT`: Signals that a pen fell off the table boundary.
-- `EMOJI_CHAT`: Transmits classroom voice/chat reactions.
-
-### Server Events
-- `AUTH_SUCCESS`: Confirms session registration with full user profile.
-- `QUEUE_WAITING`: Informs player they are queued with estimated wait time ($4.5$s).
-- `MATCH_START`: Spawns live 1v1 match with room ID, pot, public player metadata, and initial turn.
-- `TURN_TIMER_TICK`: Authoritative 30s countdown updates.
-- `TURN_TIMEOUT`: Notifies players that 30s elapsed with automatic turn switch.
-- `MATCH_OVER`: Settle match with winner UID, coin payout, new balance, trophy delta, and updated cup tier.
-
----
-
-## 6. How to Build & Run Locally
-
-### Prerequisites
-- Flutter SDK 3.x+
-- Deno 2.x+
-- Python 3.x with PIL (for asset generation scripts)
-
-### Running the Backend Server
 ```bash
 cd server_deno
-deno task start
-# Listening on http://localhost:8080/
+deno task check
+deno task test
+
+cd ../client_flutter
+flutter test test/physics_sim_test.dart
 ```
 
-### Running the Client
-```bash
-cd client_flutter
-flutter pub get
-flutter run -d chrome
-```
+`server_deno/integration_test.ts` additionally exercises the real HTTP/KV/WebSocket stack with two authenticated clients. Always run it against an isolated KV database.
 
-### Building Production Web Bundle
-```bash
-cd client_flutter
-flutter build web --release
-```
-The compiled output is located in `client_flutter/build/web/`.
+## 7. Android and web release controls
+
+- Android release uses `android/key.properties`; it never falls back to debug signing.
+- Main Android network config allows platform CAs and HTTPS only, with backup disabled.
+- Debug-only network config permits local cleartext development and user CAs.
+- Release web derives REST and WebSocket URLs from `Uri.base`, so a browser never needs to call a backend on the developer's localhost.
+- Static file serving rejects traversal, serves SPA fallback only for extensionless routes, sets MIME/security headers, and uses no-cache for `index.html`.
+
+See the root `README.md` for exact build variables, Firebase setup, signing steps, deployment constraints, and verification commands.

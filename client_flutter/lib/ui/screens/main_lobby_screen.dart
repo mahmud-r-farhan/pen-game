@@ -6,6 +6,7 @@ import '../../core/auth/user_session.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_theme.dart';
 import '../../core/localization/app_strings.dart';
+import '../../core/navigation/app_navigation.dart';
 import '../../core/network/ws_client.dart';
 import '../../game/rendering/procedural_kolom_painter.dart';
 import '../../models/arena_room.dart';
@@ -30,21 +31,42 @@ class MainLobbyScreen extends StatefulWidget {
 
 class _MainLobbyScreenState extends State<MainLobbyScreen> {
   int _currentNavIndex = 0;
+  bool _isClaimingDaily = false;
   StreamSubscription? _challengeSub;
+  StreamSubscription? _matchStartSub;
+  StreamSubscription? _authSub;
+  StreamSubscription? _matchOverSub;
+  StreamSubscription? _errorSub;
 
   @override
   void initState() {
     super.initState();
     UserSession().addListener(_onUserSessionUpdated);
-
-    // Connect to WebSocket on lobby entry
-    final profile = UserSession().profile;
-    KolomWsClient().connect(profile);
-
-    // Listen for incoming friend challenge invites!
-    _challengeSub = KolomWsClient().onChallengeReceived.listen((data) {
-      _showChallengeDialog(data);
+    final client = KolomWsClient();
+    _challengeSub = client.onChallengeReceived.listen(_showChallengeDialog);
+    _matchStartSub = client.onMatchStart.listen(AppNavigation.openMatch);
+    _authSub = client.onAuthSuccess.listen((profile) => UserSession().setProfile(profile));
+    _matchOverSub = client.onMatchOver.listen((result) {
+      if (result.profile != null) UserSession().setProfile(result.profile!);
     });
+    _errorSub = client.onError.listen(_showLiveError);
+    _connectLiveServer();
+  }
+
+  Future<void> _connectLiveServer() async {
+    try {
+      await KolomWsClient().connect(UserSession().profile);
+    } catch (_) {
+      // The typed error stream shows the real failure and auto-reconnect runs.
+    }
+  }
+
+  void _showLiveError(String message) {
+    if (!mounted || message.isEmpty) return;
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: AppColors.crimsonStrike),
+    );
   }
 
   void _onUserSessionUpdated() {
@@ -107,93 +129,14 @@ class _MainLobbyScreenState extends State<MainLobbyScreen> {
     );
   }
 
-  void _watchAdForCoins() {
-    SoundEffects().playCoin();
-    final isBn = AppLocale.isBengali;
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.glassSurfaceHeavy,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Row(
-          children: [
-            const Icon(Icons.video_library_rounded, color: AppColors.goldTiffinCoin),
-            const SizedBox(width: 8),
-            Text(
-              isBn ? 'ফ্রি কয়েন পান' : 'Watch Ad for Coins',
-              style: const TextStyle(color: Colors.white, fontSize: 18),
-            ),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              isBn
-                  ? 'একটি সংক্ষিপ্ত ভিডিও বিজ্ঞাপন দেখে ২৫০ কয়েন বিনামূল্যে অর্জন করুন!'
-                  : 'Watch a short sponsored video ad to earn 250 Free Coins!',
-              style: const TextStyle(color: Colors.white70, fontSize: 13),
-            ),
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: AppColors.goldTiffinCoin.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: AppColors.goldTiffinCoin.withValues(alpha: 0.4)),
-              ),
-              child: const Row(
-                children: [
-                  Icon(Icons.monetization_on_rounded, color: AppColors.goldTiffinCoin, size: 18),
-                  SizedBox(width: 8),
-                  Text(
-                    '+250 Coins Reward',
-                    style: TextStyle(color: AppColors.goldTiffinCoin, fontWeight: FontWeight.bold, fontSize: 13),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: Text(AppLocale.tr('cancel'), style: const TextStyle(color: Colors.white60)),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.of(ctx).pop();
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    isBn ? 'গেমটি বেটা মোডে আছে, সাথেই থাকুন! 🚀' : 'Game in beta mode, stay tuned! 🚀',
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  backgroundColor: AppColors.cyanSpin,
-                  duration: const Duration(seconds: 3),
-                ),
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.goldTiffinCoin,
-              foregroundColor: Colors.black,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            ),
-            child: Text(
-              isBn ? 'কয়েন পান' : 'Earn Coins',
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   @override
   void dispose() {
     UserSession().removeListener(_onUserSessionUpdated);
     _challengeSub?.cancel();
+    _matchStartSub?.cancel();
+    _authSub?.cancel();
+    _matchOverSub?.cancel();
+    _errorSub?.cancel();
     super.dispose();
   }
 
@@ -265,10 +208,7 @@ class _MainLobbyScreenState extends State<MainLobbyScreen> {
                           ],
                         ),
                       ),
-                      CoinBadge(
-                        coins: profile.coins,
-                        onAddTap: _watchAdForCoins,
-                      ),
+                      CoinBadge(coins: profile.coins),
                       const SizedBox(width: 8),
                       IconButton(
                         onPressed: () {
@@ -506,32 +446,34 @@ class _MainLobbyScreenState extends State<MainLobbyScreen> {
     final isBn = langCode == 'bn';
     return InkWell(
       onTap: () async {
-        final reward = await UserSession().claimDailyTiffin();
-        if (!mounted) return;
-        if (reward != null) {
-          SoundEffects().playCoin();
+        if (_isClaimingDaily) return;
+        setState(() => _isClaimingDaily = true);
+        try {
+          final reward = await UserSession().claimDailyTiffin();
+          if (!mounted) return;
+          if (reward != null) SoundEffects().playCoin();
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                isBn
-                    ? '🎉 অভিনন্দন! টিফিন বাবদ +$reward কয়েন যোগ হয়েছে!'
-                    : '🎉 Congratulations! +$reward Daily Tiffin Coins added!',
-                style: const TextStyle(fontWeight: FontWeight.bold),
+                reward != null
+                    ? (isBn
+                        ? '🎉 অভিনন্দন! টিফিন বাবদ +$reward কয়েন যোগ হয়েছে!'
+                        : '🎉 +$reward Daily Tiffin coins added!')
+                    : (isBn
+                        ? 'আজকের টিফিন ইতোমধ্যে নিয়েছেন! পরে আবার চেষ্টা করুন। 🎒'
+                        : 'Daily Tiffin is not ready yet. Please come back later. 🎒'),
               ),
-              backgroundColor: AppColors.emeraldTurn,
+              backgroundColor: reward != null ? AppColors.emeraldTurn : AppColors.cyanSpin,
             ),
           );
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                isBn
-                    ? 'আজকের টিফিন ইতোমধ্যে নিয়েছেন! পরবর্তী টিফিন আগামীকাল পাবেন। 🎒'
-                    : 'Already claimed today! Next tiffin allowance ready tomorrow. 🎒',
-              ),
-              backgroundColor: AppColors.cyanSpin,
-            ),
-          );
+        } catch (error) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(error.toString()), backgroundColor: AppColors.crimsonStrike),
+            );
+          }
+        } finally {
+          if (mounted) setState(() => _isClaimingDaily = false);
         }
       },
       borderRadius: BorderRadius.circular(16),

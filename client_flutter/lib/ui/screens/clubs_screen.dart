@@ -17,6 +17,8 @@ class _ClubsScreenState extends State<ClubsScreen> with SingleTickerProviderStat
   late TabController _tabController;
   List<ClubData> _clubs = [];
   bool _isLoading = true;
+  bool _isMutating = false;
+  String? _loadError;
 
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _tagController = TextEditingController();
@@ -30,13 +32,17 @@ class _ClubsScreenState extends State<ClubsScreen> with SingleTickerProviderStat
   }
 
   Future<void> _loadClubs() async {
-    setState(() => _isLoading = true);
-    final list = await ApiService().getClubs();
-    if (mounted) {
-      setState(() {
-        _clubs = list;
-        _isLoading = false;
-      });
+    setState(() {
+      _isLoading = true;
+      _loadError = null;
+    });
+    try {
+      final list = await ApiService().getClubs();
+      if (mounted) setState(() => _clubs = list);
+    } catch (error) {
+      if (mounted) setState(() => _loadError = error.toString());
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -56,104 +62,85 @@ class _ClubsScreenState extends State<ClubsScreen> with SingleTickerProviderStat
   ];
 
   Future<void> _handleCreateClub() async {
+    if (_isMutating) return;
     final name = _nameController.text.trim();
     final tag = _tagController.text.trim().toUpperCase();
     final desc = _descController.text.trim();
-
-    final user = UserSession().profile;
-    if (user.clubId != null && user.clubId!.isNotEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('You are already a member of "${user.clubName}". Leave your current club first!'),
-          backgroundColor: AppColors.crimsonStrike,
-        ),
-      );
+    if (name.length < 2 || !RegExp(r'^[A-Z0-9]{3,4}$').hasMatch(tag)) {
+      _showError('Enter a club name and a 3-4 character alphanumeric tag.');
       return;
     }
-
-    if (user.coins < 20000) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Founding a club requires 20,000 Coins. (Current balance: ${user.coins} Coins)'),
-          backgroundColor: AppColors.crimsonStrike,
-        ),
+    setState(() => _isMutating = true);
+    try {
+      final region = _clubRegions.firstWhere((item) => item['name'] == _selectedClubRegion);
+      final result = await ApiService().createClub(
+        name: name,
+        tag: tag,
+        description: desc,
+        badgeIcon: _selectedBadge,
+        region: region['code']!,
+        flagEmoji: region['flag']!,
       );
-      return;
-    }
-
-    if (name.isEmpty || tag.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter club name and tag.')),
-      );
-      return;
-    }
-
-    final created = await ApiService().createClub(
-      leaderId: user.id,
-      name: name,
-      tag: tag,
-      description: desc,
-      region: _selectedClubRegion,
-      flagEmoji: '$_selectedBadge $_selectedClubFlag',
-    );
-
-    if (created != null) {
-      await UserSession().setProfile(user.copyWith(
-        coins: user.coins - 20000,
-        clubId: created.id,
-        clubName: created.name,
-        clubTag: created.tag,
-        clubRole: 'leader',
-      ));
+      await UserSession().setProfile(result.profile);
       _nameController.clear();
       _tagController.clear();
       _descController.clear();
       _tabController.animateTo(0);
-      _loadClubs();
+      await _loadClubs();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Club "${created.name}" founded successfully for 20,000 Coins! 🛡️'),
+            content: Text('Club "${result.club.name}" founded for 20,000 coins! 🛡️'),
             backgroundColor: AppColors.emeraldTurn,
           ),
         );
       }
+    } catch (error) {
+      _showError(error);
+    } finally {
+      if (mounted) setState(() => _isMutating = false);
     }
   }
 
   Future<void> _handleLeaveClub() async {
-    final user = UserSession().profile;
-    await UserSession().setProfile(user.copyWith(
-      clubId: null,
-      clubName: null,
-      clubTag: null,
-      clubRole: null,
-    ));
-    _loadClubs();
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Left club successfully.')),
-      );
+    if (_isMutating) return;
+    setState(() => _isMutating = true);
+    try {
+      final profile = await ApiService().leaveClub();
+      await UserSession().setProfile(profile);
+      await _loadClubs();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Left club successfully.')));
+      }
+    } catch (error) {
+      _showError(error);
+    } finally {
+      if (mounted) setState(() => _isMutating = false);
     }
   }
 
   Future<void> _handleJoinClub(ClubData club) async {
-    final user = UserSession().profile;
-    final updated = await ApiService().joinClub(userId: user.id, clubId: club.id);
-    if (updated != null) {
-      await UserSession().setProfile(user.copyWith(
-        clubId: updated.id,
-        clubName: updated.name,
-        clubTag: updated.tag,
-        clubRole: 'member',
-      ));
-      _loadClubs();
+    if (_isMutating) return;
+    setState(() => _isMutating = true);
+    try {
+      final result = await ApiService().joinClub(club.id);
+      await UserSession().setProfile(result.profile);
+      await _loadClubs();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Joined club "${club.name}"!')),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Joined club "${club.name}"!')));
       }
+    } catch (error) {
+      _showError(error);
+    } finally {
+      if (mounted) setState(() => _isMutating = false);
     }
+  }
+
+  void _showError(Object error) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(error.toString()), backgroundColor: AppColors.crimsonStrike),
+    );
   }
 
   @override
@@ -199,7 +186,23 @@ class _ClubsScreenState extends State<ClubsScreen> with SingleTickerProviderStat
           // Tab 1: Browse Clubs
           _isLoading
               ? const Center(child: CircularProgressIndicator(color: AppColors.goldTiffinCoin))
-              : _clubs.isEmpty
+              : _loadError != null
+                  ? Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.cloud_off_rounded, size: 48, color: AppColors.crimsonStrike),
+                            const SizedBox(height: 12),
+                            Text(_loadError!, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white70)),
+                            const SizedBox(height: 12),
+                            ElevatedButton(onPressed: _loadClubs, child: const Text('Retry')),
+                          ],
+                        ),
+                      ),
+                    )
+                  : _clubs.isEmpty
                   ? Center(
                       child: Column(
                         mainAxisSize: MainAxisSize.min,

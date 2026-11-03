@@ -54,8 +54,6 @@ class AppLocale {
       'play_as_guest': 'Play as Guest',
       'google_sign_in': 'Sign in with Google (+120 Coins)',
       'sign_in_google': 'Sign in with Google',
-      'facebook_sign_in': 'Sign in with Facebook',
-      'sign_in_facebook': 'Sign in with Facebook',
       'link_google': 'Link Google Account',
       'merge_success': 'Account linked! Progress and coins merged.',
       'loading': 'Loading...',
@@ -69,7 +67,7 @@ class AppLocale {
 
       // Lobby & Modes
       'quick_play': 'Quick Match',
-      'quick_play_sub': 'Real-Time Multiplayer (4.5s Ghost Bot Fallback)',
+      'quick_play_sub': 'Human-only real-time 1v1 duels',
       'arenas': 'Select Arena',
       'arenas_sub': '7 Bangladeshi Educational System Benches',
       'bot_practice': 'Bot Practice',
@@ -78,17 +76,17 @@ class AppLocale {
       'private_match': 'Private Room & Matches',
       'private_room_sub': 'Play with Friends via 6-Digit Code',
       'friends': 'Friends & Social',
-      'friends_sub': 'Facebook Friends & Tag Search',
+      'friends_sub': 'Tag search, friends & direct challenges',
       'garage': 'Stationery',
       'pen_garage': 'Stationery Shop & Pens',
-      'garage_sub': 'Buy, Inspect & Tune Pens',
+      'garage_sub': 'Buy, inspect & equip pens',
       'leaderboard': 'Leaderboard',
       'leaderboard_sub': 'Global, Division & Trophy Rankings',
       'global_standings': 'Global Standings',
       'regional_division': 'Regional Division',
       'empty_leaderboard': 'No standings yet. Play matches to climb!',
       'clubs': 'Clubs & Guilds',
-      'clubs_sub': 'Club Wars & Guild Leaderboards',
+      'clubs_sub': 'Create, join & compare clubs',
       'profile': 'Profile',
 
       // In-Game
@@ -134,7 +132,7 @@ class AppLocale {
       'sound_effects': 'Sound Effects',
       'vibration': 'Haptic Vibration',
       'region': 'Region / Flag',
-      'version': 'Version 0.0.1 (Global Esports Edition)',
+      'version': 'Version 1.0.0',
     },
 
     'bn': {
@@ -144,8 +142,6 @@ class AppLocale {
       'play_as_guest': 'গেস্ট হিসেবে খেলুন',
       'google_sign_in': 'গুগল দিয়ে সাইন ইন (+১২০ কয়েন)',
       'sign_in_google': 'গুগল দিয়ে সাইন ইন',
-      'facebook_sign_in': 'ফেসবুক দিয়ে সাইন ইন',
-      'sign_in_facebook': 'ফেসবুক দিয়ে সাইন ইন',
       'link_google': 'গুগল অ্যাকাউন্ট লিংক করুন',
       'merge_success': 'অ্যাকাউন্ট মার্জ সফল! কয়েন ও প্রগ্রেস সুরক্ষিত।',
       'loading': 'লোড হচ্ছে...',
@@ -159,7 +155,7 @@ class AppLocale {
 
       // Lobby & Modes
       'quick_play': 'কুইক ম্যাচ',
-      'quick_play_sub': 'অনলাইন মাল্টিপ্লেয়ার (৪.৫ সেকেন্ড ঘোস্ট বট)',
+      'quick_play_sub': 'শুধু মানুষের সঙ্গে রিয়েল-টাইম ১ বনাম ১ ম্যাচ',
       'arenas': 'অ্যারেনা বাছুন',
       'arenas_sub': '৭টি ক্লাসরুম কাঠের বেঞ্চ',
       'bot_practice': 'বট প্র্যাকটিস',
@@ -168,17 +164,17 @@ class AppLocale {
       'private_match': 'প্রাইভেট ম্যাচ রুম',
       'private_room_sub': '৬ ডিজিট কোড দিয়ে খেলুন',
       'friends': 'বন্ধুমহল',
-      'friends_sub': 'ফেসবুক ফ্রেন্ডস ও ট্যাগ সার্চ',
+      'friends_sub': 'ট্যাগ সার্চ, বন্ধু ও সরাসরি চ্যালেঞ্জ',
       'garage': 'স্টেশনারি',
       'pen_garage': 'স্টেশনারি শপ ও কলমের দোকান',
-      'garage_sub': 'নতুন কলম কিনুন ও টিউনিং করুন',
+      'garage_sub': 'কলম কিনুন, দেখুন ও ব্যবহার করুন',
       'leaderboard': 'লিডারবোর্ড',
       'leaderboard_sub': 'গ্লোবাল, বিভাগ ও ট্রফি র‍্যাংকিং',
       'global_standings': 'গ্লোবাল তালিকা',
       'regional_division': 'বিভাগীয় তালিকা',
       'empty_leaderboard': 'কোনো রেকর্ড নেই। ম্যাচ খেলে লিডারবোর্ডে উঠুন!',
       'clubs': 'ক্লাব ও গিল্ড',
-      'clubs_sub': 'ক্লাব যুদ্ধ ও গিল্ড লিডারবোর্ড',
+      'clubs_sub': 'ক্লাব তৈরি, যোগ ও তুলনা করুন',
       'profile': 'প্রোফাইল',
 
       // In-Game
@@ -224,7 +220,7 @@ class AppLocale {
       'sound_effects': 'সাউন্ড ইফেক্টস',
       'vibration': 'ভাইব্রেশন / হ্যাপটিক্স',
       'region': 'অঞ্চল ও পতাকা',
-      'version': 'ভার্সন ০.০.১',
+      'version': 'ভার্সন ১.০.০',
     },
 
     'hi': {
@@ -234,8 +230,6 @@ class AppLocale {
       'play_as_guest': 'गेस्ट के रूप में खेलें',
       'google_sign_in': 'गूगल से लॉगिन करें (+120 कॉइन्स)',
       'sign_in_google': 'गूगल से लॉगिन करें',
-      'facebook_sign_in': 'फेसबुक से लॉगिन करें',
-      'sign_in_facebook': 'फेसबुक से लॉगिन करें',
       'link_google': 'गूगल खाता लिंक करें',
       'merge_success': 'खाता लिंक हो गया! कॉइन्स सुरक्षित हैं।',
       'loading': 'लोड हो रहा है...',
@@ -249,7 +243,7 @@ class AppLocale {
 
       // Lobby & Modes
       'quick_play': 'क्विक मैच',
-      'quick_play_sub': 'ऑनलाइन मल्टीप्लेयर (4.5 सेकंड घोस्ट बॉट)',
+      'quick_play_sub': 'केवल मनुष्यों के साथ रीयल-टाइम 1v1 मुकाबले',
       'arenas': 'अखाड़ा चुनें',
       'arenas_sub': '7 क्लासरूम लकड़ी के बेंच',
       'bot_practice': 'बॉट प्रैक्टिस',
@@ -258,17 +252,17 @@ class AppLocale {
       'private_match': 'प्राइवेट मैच रूम',
       'private_room_sub': '6 अंकों के कोड से खेलें',
       'friends': 'दोस्त और सोशल',
-      'friends_sub': 'फेसबुक दोस्त और टैग खोज',
+      'friends_sub': 'टैग खोज, दोस्त और सीधी चुनौतियाँ',
       'garage': 'स्टेशनरी',
       'pen_garage': 'स्टेशनरी दुकान और पेन',
-      'garage_sub': 'पेन खरीदें और ट्यून करें',
+      'garage_sub': 'पेन खरीदें, देखें और चुनें',
       'leaderboard': 'लीडरबोर्ड',
       'leaderboard_sub': 'ग्लोबल और ट्रॉफी रैंकिंग',
       'global_standings': 'ग्लोबल स्टैंडिंग्स',
       'regional_division': 'क्षेत्रीय प्रभाग',
       'empty_leaderboard': 'अभी कोई रिकॉर्ड नहीं है। आगे बढ़ें!',
       'clubs': 'क्लब और गिल्ड',
-      'clubs_sub': 'क्लब वॉर और गिल्ड लीडरबोर्ड',
+      'clubs_sub': 'क्लब बनाएं, जुड़ें और तुलना करें',
       'profile': 'प्रोफाइल',
 
       // In-Game
@@ -314,7 +308,7 @@ class AppLocale {
       'sound_effects': 'ध्वनि प्रभाव',
       'vibration': 'कंपन (Vibration)',
       'region': 'क्षेत्र और ध्वज',
-      'version': 'संस्करण 0.0.1',
+      'version': 'संस्करण 1.0.0',
     },
   };
 }

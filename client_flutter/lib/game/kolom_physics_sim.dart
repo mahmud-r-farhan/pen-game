@@ -138,6 +138,9 @@ class SimState {
 
   factory SimState.fromJson(Map<String, dynamic> json) {
     final pensRaw = json['pens'] as List<dynamic>? ?? [];
+    if (pensRaw.length != 2) {
+      throw const FormatException('An authoritative match must contain exactly two pens.');
+    }
     return SimState(
       pens: pensRaw.map((p) => SimPen.fromJson(p as Map<String, dynamic>)).toList(),
       ended: json['ended'] as bool? ?? false,

@@ -1,0 +1,6 @@
+# Copy to android/key.properties and supply your private release credentials.
+# Keep key.properties and the referenced keystore out of version control.
+storeFile=/absolute/path/to/kolom-release.jks
+storePassword=replace-with-the-keystore-password
+keyAlias=kolom-release
+keyPassword=replace-with-the-key-password

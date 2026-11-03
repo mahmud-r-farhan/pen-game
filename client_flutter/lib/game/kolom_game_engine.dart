@@ -12,6 +12,7 @@ import '../models/kolom_spec.dart';
 import 'bot/offline_bot_ai.dart';
 import 'components/pen_body_component.dart';
 import 'components/table_bench_component.dart';
+import 'kolom_physics_sim.dart';
 
 enum GameMode { offlineBot, passAndPlay, onlineMultiplayer }
 
@@ -63,6 +64,10 @@ class KolomGameEngine extends Forge2DGame with DragCallbacks {
   final void Function(Vector2 impulse, double strikeOffset)? onOnlineFlickSubmit;
   final void Function(bool isAiming, double pullX, double pullY, double strikeOffset)? onOnlineAimingUpdate;
   final VoidCallback? onTurnPassed;
+  final SimState? onlineInitialState;
+  final int localSide;
+  final bool onlinePlayerFirst;
+  final bool onlineInputLocked;
 
   KolomGameEngine({
     required this.room,
@@ -74,6 +79,10 @@ class KolomGameEngine extends Forge2DGame with DragCallbacks {
     this.onOnlineFlickSubmit,
     this.onOnlineAimingUpdate,
     this.onTurnPassed,
+    this.onlineInitialState,
+    this.localSide = 0,
+    this.onlinePlayerFirst = true,
+    this.onlineInputLocked = false,
   }) : super(world: Forge2DWorld(gravity: Vector2.zero()));
 
   // Table bounds in physics meters (22.0m wide x 13.0m tall)
@@ -109,6 +118,15 @@ class KolomGameEngine extends Forge2DGame with DragCallbacks {
   final List<SparkParticle> _sparks = [];
   final List<HitPopup> _hitPopups = [];
 
+  SimState? _pendingOnlineState;
+  KeyframeInterpolator? _onlinePlayback;
+  double _onlinePlaybackTime = 0.0;
+  bool _onlineNextPlayerTurn = false;
+  final SimPen _framePen0 = SimPen(owner: 0, x: 0, y: 0, a: 0);
+  final SimPen _framePen1 = SimPen(owner: 1, x: 0, y: 0, a: 0);
+
+  bool get isOnlineShotPlaying => _onlinePlayback != null;
+
   @override
   Future<void> onLoad() async {
     await super.onLoad();
@@ -122,6 +140,15 @@ class KolomGameEngine extends Forge2DGame with DragCallbacks {
 
     // 2. Spawn Match Pens (priority 10)
     _spawnPens();
+    if (mode == GameMode.onlineMultiplayer) {
+      isPlayerTurn = onlinePlayerFirst && !onlineInputLocked;
+      turnStatus.value = onlineInputLocked
+          ? 'Restoring authoritative shot…'
+          : isPlayerTurn
+              ? AppLocale.tr('your_turn')
+              : AppLocale.tr('opponent_turn');
+      _pendingOnlineState = onlineInitialState;
+    }
   }
 
   void _updateCameraView() {
@@ -161,7 +188,9 @@ class KolomGameEngine extends Forge2DGame with DragCallbacks {
     world.addAll([playerPen, opponentPen]);
   }
 
-  bool get areAllPensStopped => playerPen.isStopped && opponentPen.isStopped;
+  bool get areAllPensStopped => mode == GameMode.onlineMultiplayer
+      ? _onlinePlayback == null && _pendingOnlineState == null
+      : playerPen.isStopped && opponentPen.isStopped;
 
   /// Trigger high-impact juice: screen shake, hit-stop, popups, and sparks
   void triggerImpact({
@@ -288,7 +317,14 @@ class KolomGameEngine extends Forge2DGame with DragCallbacks {
       }
     }
 
-    super.update(dt * timeScale);
+    if (mode == GameMode.onlineMultiplayer) {
+      _updateOnlinePlayback(dt);
+      // Online bodies are transforms driven by authoritative keyframes, not a
+      // second local physics simulation.
+      super.update(0.0);
+    } else {
+      super.update(dt * timeScale);
+    }
   }
 
   @override
@@ -332,11 +368,13 @@ class KolomGameEngine extends Forge2DGame with DragCallbacks {
         final double force = math.min(pull.length * 7.4, 44.0);
         final Vector2 impulse = pull.normalized() * force;
 
-        SoundEffects().playFlick(pull.length / 4.0);
-        playerPen.flick(
-          impulse: impulse,
-          strikeOffsetNormalized: strikeOffset,
-        );
+        if (mode != GameMode.onlineMultiplayer) {
+          SoundEffects().playFlick(pull.length / 4.0);
+          playerPen.flick(
+            impulse: impulse,
+            strikeOffsetNormalized: strikeOffset,
+          );
+        }
 
         if (mode == GameMode.onlineMultiplayer) {
           isPlayerTurn = false;
@@ -358,6 +396,11 @@ class KolomGameEngine extends Forge2DGame with DragCallbacks {
 
   void passTurnDueToTimeout() {
     if (matchEnded) return;
+    if (mode == GameMode.onlineMultiplayer) {
+      turnStatus.value = 'Waiting for server…';
+      onTurnPassed?.call();
+      return;
+    }
     if (isPlayerTurn) {
       isPlayerTurn = false;
       turnStatus.value = AppLocale.tr('turn_passed');
@@ -395,8 +438,95 @@ class KolomGameEngine extends Forge2DGame with DragCallbacks {
     required double strikeOffset,
   }) {
     isRemoteAiming = isAiming;
-    remotePullVector = Vector2(pullX, pullY);
+    // Both online clients render their own pen on the left. The opponent's
+    // drag therefore arrives in a coordinate space rotated by 180 degrees.
+    remotePullVector = mode == GameMode.onlineMultiplayer
+        ? Vector2(-pullX, -pullY)
+        : Vector2(pullX, pullY);
     remoteStrikeOffset = strikeOffset;
+  }
+
+  /// Plays only server-produced keyframes. [localSide] is the authoritative
+  /// simulation index for the player holding this device (0 for p1, 1 for p2).
+  void playOnlineShot(List<SimKeyframe> frames, {required bool isNowPlayerTurn}) {
+    if (mode != GameMode.onlineMultiplayer || frames.isEmpty) return;
+    SoundEffects().playFlick();
+    _onlinePlaybackTime = 0.0;
+    _onlineNextPlayerTurn = isNowPlayerTurn;
+    _onlinePlayback = KeyframeInterpolator(frames);
+    isPlayerTurn = false;
+    turnStatus.value = 'Resolving shot…';
+    isRemoteAiming = false;
+  }
+
+  void setOnlineTurn(bool playerTurn) {
+    if (mode != GameMode.onlineMultiplayer || _onlinePlayback != null) return;
+    isPlayerTurn = playerTurn;
+    turnStatus.value = playerTurn ? AppLocale.tr('your_turn') : AppLocale.tr('opponent_turn');
+  }
+
+  void endOnlineMatch() {
+    matchEnded = true;
+    _onlinePlayback = null;
+    dragStartWorld = null;
+    dragCurrentWorld = null;
+    isRemoteAiming = false;
+  }
+
+  Vector2 _onlineWorldPoint(double x, double y) {
+    final mirror = localSide == 1 ? -1.0 : 1.0;
+    return Vector2(
+      (x - simW / 2.0) * (benchBounds.width / simW) * mirror,
+      (y - simH / 2.0) * (benchBounds.height / simH) * mirror,
+    );
+  }
+
+  void _applyOnlinePen(PenBodyComponent component, SimPen pen) {
+    final position = _onlineWorldPoint(pen.x, pen.y);
+    final angle = pen.a + (localSide == 1 ? math.pi : 0.0);
+    component.body.setTransform(position, Rot.fromAngle(angle));
+    component.body.linearVelocity = Vector2.zero();
+    component.body.angularVelocity = 0.0;
+    component.isEliminated = pen.fall > 0.0;
+    component.fallScale = (1.0 - pen.fall * 0.8).clamp(0.2, 1.0);
+  }
+
+  void _applyOnlineFrame() {
+    if (localSide == 0) {
+      _applyOnlinePen(playerPen, _framePen0);
+      _applyOnlinePen(opponentPen, _framePen1);
+    } else {
+      _applyOnlinePen(playerPen, _framePen1);
+      _applyOnlinePen(opponentPen, _framePen0);
+    }
+  }
+
+  void _updateOnlinePlayback(double dt) {
+    final pending = _pendingOnlineState;
+    if (pending != null && playerPen.isMounted && opponentPen.isMounted) {
+      _framePen0.x = pending.pens[0].x;
+      _framePen0.y = pending.pens[0].y;
+      _framePen0.a = pending.pens[0].a;
+      _framePen0.fall = pending.pens[0].fall;
+      _framePen1.x = pending.pens[1].x;
+      _framePen1.y = pending.pens[1].y;
+      _framePen1.a = pending.pens[1].a;
+      _framePen1.fall = pending.pens[1].fall;
+      _applyOnlineFrame();
+      _pendingOnlineState = null;
+    }
+
+    final playback = _onlinePlayback;
+    if (playback == null) return;
+    _onlinePlaybackTime += dt;
+    playback.sample(_onlinePlaybackTime, _framePen0, _framePen1);
+    _applyOnlineFrame();
+    if (_onlinePlaybackTime >= playback.totalDuration) {
+      playback.sample(playback.totalDuration, _framePen0, _framePen1);
+      _applyOnlineFrame();
+      _onlinePlayback = null;
+      setOnlineTurn(_onlineNextPlayerTurn);
+    }
   }
 
   void _scheduleOfflineBotTurn() async {
@@ -444,6 +574,8 @@ class KolomGameEngine extends Forge2DGame with DragCallbacks {
 
   void resetRound() {
     world.removeAll([playerPen, opponentPen]);
+    _onlinePlayback = null;
+    _pendingOnlineState = null;
     matchEnded = false;
     timeScale = 1.0;
     isPlayerTurn = true;
