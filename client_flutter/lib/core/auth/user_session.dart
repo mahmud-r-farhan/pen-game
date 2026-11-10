@@ -40,13 +40,52 @@ class UserSession with ChangeNotifier {
       _sessionToken = await _secureStorage.read(key: _secureKeyToken);
       final raw = prefs.getString(_prefKeyProfile);
       if (raw != null) _currentProfile = UserProfile.fromJson(jsonDecode(raw) as Map<String, dynamic>);
-      if (_sessionToken == null) _currentProfile = null;
     } catch (_) {
       _sessionToken = null;
-      _currentProfile = null;
     }
     ApiService().configureSessionToken(_sessionToken);
     notifyListeners();
+  }
+
+  Future<UserProfile> createLocalGuestProfile({
+    String? desiredName,
+    String division = 'Dhaka',
+    String region = 'BD',
+    String flagEmoji = '🇧🇩',
+  }) async {
+    final digits = (DateTime.now().millisecondsSinceEpoch % 900000 + 100000).toString();
+    final profile = UserProfile(
+      id: 'local_guest_${DateTime.now().millisecondsSinceEpoch}',
+      tag: '#KLM-$digits',
+      username: (desiredName != null && desiredName.trim().isNotEmpty)
+          ? desiredName.trim()
+          : 'Guest_$digits',
+      avatar: 'avatar_shuvo',
+      coins: 100,
+      trophyPoints: 100,
+      cupTier: 'bronze',
+      region: region,
+      flagEmoji: flagEmoji,
+      clubId: null,
+      clubName: null,
+      clubTag: null,
+      clubRole: null,
+      equippedPen: 'hiSchoolClassic',
+      unlockedPens: const ['hiSchoolClassic', 'econoStriker'],
+      isGuest: true,
+      division: division,
+      friends: const [],
+      stats: const UserStats(
+        totalMatches: 0,
+        wins: 0,
+        losses: 0,
+        winStreak: 0,
+        highestStreak: 0,
+      ),
+      createdAt: DateTime.now().millisecondsSinceEpoch,
+    );
+    await setProfile(profile);
+    return profile;
   }
 
   Future<void> setAuthenticatedSession(AuthSessionData session) async {

@@ -29,10 +29,12 @@ class _PrivateRoomScreenState extends State<PrivateRoomScreen> {
   void initState() {
     super.initState();
     _roomCodeSub = KolomWsClient().onRoomCodeCreated.listen((code) {
-      if (mounted) setState(() {
-        _generatedCode = code;
-        _isBusy = false;
-      });
+      if (mounted) {
+        setState(() {
+          _generatedCode = code;
+          _isBusy = false;
+        });
+      }
     });
     _errorSub = KolomWsClient().onError.listen((message) {
       if (!mounted) return;

@@ -232,7 +232,9 @@ class _GameScreenState extends State<GameScreen> {
     _matchOverSub = client.onMatchOver.listen((result) async {
       if (!mounted ||
           (result.roomId.isNotEmpty && result.roomId != widget.match?.roomId) ||
-          _matchOverRoomId == widget.match?.roomId) return;
+          _matchOverRoomId == widget.match?.roomId) {
+        return;
+      }
       _matchOverRoomId = widget.match?.roomId;
       _stopTurnTimer();
       _gameEngine.endOnlineMatch();

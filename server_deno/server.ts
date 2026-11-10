@@ -48,7 +48,7 @@ import {
 const gameManager = new GameManager();
 const PORT = Number(Deno.env.get("PORT") ?? 8080);
 const WEB_ROOT = Deno.env.get("WEB_ROOT") ??
-  new URL("../client_flutter/build/web", import.meta.url).pathname;
+  new URL("../client_flutter/build/web", import.meta.url);
 const ALLOWED_ORIGINS = (Deno.env.get("ALLOWED_ORIGINS") ?? "*")
   .split(",").map((origin) => origin.trim()).filter(Boolean);
 const MAX_JSON_BYTES = 32 * 1024;
@@ -415,7 +415,13 @@ async function serveStatic(
   const relative = decoded === "/" ? "index.html" : decoded.replace(/^\/+/, "");
   let filePath = `${root}/${relative}`;
   let resolved = await Deno.realPath(filePath).catch(() => null);
-  if (!resolved || (!resolved.startsWith(`${root}/`) && resolved !== root)) {
+  const isWithin = (p: string | null) => {
+    if (!p) return false;
+    const nP = p.replaceAll("\\", "/");
+    const nR = root.replaceAll("\\", "/");
+    return nP === nR || nP.startsWith(`${nR}/`);
+  };
+  if (!isWithin(resolved)) {
     // SPA fallback applies only to extensionless application routes.
     if (relative.includes(".")) {
       throw new HttpError(404, "NOT_FOUND", "File not found.");
@@ -423,7 +429,7 @@ async function serveStatic(
     filePath = `${root}/index.html`;
     resolved = await Deno.realPath(filePath).catch(() => null);
   }
-  if (!resolved || !resolved.startsWith(`${root}/`)) {
+  if (!isWithin(resolved) || !resolved) {
     throw new HttpError(404, "NOT_FOUND", "File not found.");
   }
   const file = request.method === "HEAD"

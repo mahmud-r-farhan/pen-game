@@ -130,13 +130,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             if (selected) {
                               try {
                                 await UserSession().updateDivision(div);
-                                if (mounted) setState(() {});
+                                if (!mounted) return;
+                                setState(() {});
                               } catch (error) {
-                                if (mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text(error.toString()), backgroundColor: AppColors.crimsonStrike),
-                                  );
-                                }
+                                if (!mounted) return;
+                                ScaffoldMessenger.of(this.context).showSnackBar(
+                                  SnackBar(content: Text(error.toString()), backgroundColor: AppColors.crimsonStrike),
+                                );
                               }
                             }
                           },

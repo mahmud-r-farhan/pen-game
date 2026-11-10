@@ -79,7 +79,7 @@ class _ClubsScreenState extends State<ClubsScreen> with SingleTickerProviderStat
         description: desc,
         badgeIcon: _selectedBadge,
         region: region['code']!,
-        flagEmoji: region['flag']!,
+        flagEmoji: _selectedClubFlag,
       );
       await UserSession().setProfile(result.profile);
       _nameController.clear();

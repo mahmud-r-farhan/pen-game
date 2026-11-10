@@ -8,6 +8,7 @@ import '../../core/constants/app_colors.dart';
 import '../../core/network/ws_client.dart';
 import '../../models/arena_room.dart';
 import '../../models/kolom_spec.dart';
+import 'game_screen.dart';
 
 /// Waits for a real MATCH_START packet; no opponent or match state is invented.
 class MatchmakingScreen extends StatefulWidget {
@@ -23,6 +24,8 @@ class MatchmakingScreen extends StatefulWidget {
 class _MatchmakingScreenState extends State<MatchmakingScreen> {
   StreamSubscription<String>? _errorSub;
   StreamSubscription<WsConnectionState>? _stateSub;
+  Timer? _searchTimer;
+  int _searchSeconds = 0;
   String? _error;
   bool _queued = false;
   bool _cancelled = false;
@@ -57,16 +60,26 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
       penModel: widget.playerPen.id,
     );
     _queued = true;
+    _searchTimer?.cancel();
+    _searchTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (mounted) {
+        setState(() => _searchSeconds++);
+      } else {
+        timer.cancel();
+      }
+    });
   }
 
   void _cancel() {
     _cancelled = true;
+    _searchTimer?.cancel();
     if (KolomWsClient().isConnected) KolomWsClient().leaveQueue();
     Navigator.of(context).pop();
   }
 
   @override
   void dispose() {
+    _searchTimer?.cancel();
     if (!_cancelled && KolomWsClient().isConnected) KolomWsClient().leaveQueue();
     _errorSub?.cancel();
     _stateSub?.cancel();
@@ -131,6 +144,48 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
                         textAlign: TextAlign.center,
                         style: TextStyle(color: AppColors.slateMuted, fontSize: 12, height: 1.4),
                       ),
+                      if (_searchSeconds >= 6) ...[
+                        const SizedBox(height: 20),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          decoration: BoxDecoration(
+                            color: AppColors.glassSurfaceHeavy,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: AppColors.glassBorder),
+                          ),
+                          child: Column(
+                            children: [
+                              const Text(
+                                'Opponent search is taking longer than usual.',
+                                style: TextStyle(color: Colors.white70, fontSize: 12),
+                              ),
+                              const SizedBox(height: 10),
+                              ElevatedButton.icon(
+                                onPressed: () {
+                                  _cancel();
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (_) => GameScreen(
+                                        room: widget.room,
+                                        playerPen: widget.playerPen,
+                                        isOnline: false,
+                                      ),
+                                    ),
+                                  );
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.cyanSpin,
+                                  foregroundColor: Colors.black,
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                ),
+                                icon: const Icon(Icons.smart_toy_rounded, size: 18),
+                                label: const Text('Play vs AI Bot Now', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ] else ...[
                       const Icon(Icons.cloud_off_rounded, color: AppColors.crimsonStrike, size: 42),
                       const SizedBox(height: 14),

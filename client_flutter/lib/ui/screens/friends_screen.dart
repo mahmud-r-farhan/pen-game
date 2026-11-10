@@ -123,7 +123,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
     final profile = UserSession().profile;
     return ValueListenableBuilder<String>(
       valueListenable: AppLocale.currentCode,
-      builder: (context, _, __) => Scaffold(
+      builder: (context, _, _) => Scaffold(
         backgroundColor: AppColors.bgObsidian,
         appBar: AppBar(
           backgroundColor: AppColors.bgSurfaceDark,

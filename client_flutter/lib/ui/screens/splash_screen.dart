@@ -1,6 +1,7 @@
 // lib/ui/screens/splash_screen.dart
 import 'package:flutter/material.dart';
 import '../../core/auth/auth_service.dart';
+import '../../core/auth/user_session.dart';
 import '../../core/constants/app_colors.dart';
 import '../../game/rendering/procedural_kolom_painter.dart';
 import '../../models/kolom_spec.dart';
@@ -54,14 +55,21 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
         Future<void>.delayed(const Duration(milliseconds: 1200)),
       ]);
       if (!mounted) return;
-      final restored = results[0] != null;
+      final restored = results[0] != null || UserSession().hasProfile;
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
           builder: (_) => restored ? const MainLobbyScreen() : const AuthScreen(),
         ),
       );
     } catch (error) {
-      if (mounted) setState(() => _startupError = error.toString());
+      if (!mounted) return;
+      if (UserSession().hasProfile) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const MainLobbyScreen()),
+        );
+        return;
+      }
+      setState(() => _startupError = error.toString());
     } finally {
       if (mounted) setState(() => _isRetrying = false);
     }
@@ -172,6 +180,18 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                       onPressed: _isRetrying ? null : _initApp,
                       icon: const Icon(Icons.refresh_rounded),
                       label: const Text('Retry server connection'),
+                    ),
+                    const SizedBox(height: 10),
+                    OutlinedButton.icon(
+                      onPressed: () async {
+                        await UserSession().createLocalGuestProfile();
+                        if (!context.mounted) return;
+                        Navigator.of(context).pushReplacement(
+                          MaterialPageRoute(builder: (_) => const MainLobbyScreen()),
+                        );
+                      },
+                      icon: const Icon(Icons.offline_bolt_rounded),
+                      label: const Text('Play Offline (Guest Mode)'),
                     ),
                   ],
                 ),
