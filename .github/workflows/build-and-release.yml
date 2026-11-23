@@ -24,7 +24,7 @@ jobs:
       release_tag: ${{ steps.version.outputs.release_tag }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Extract version from pubspec.yaml
         id: version
@@ -54,10 +54,10 @@ jobs:
     needs: get-version
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Java 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v6
         with:
           distribution: 'zulu'
           java-version: '17'
@@ -95,10 +95,22 @@ jobs:
       - name: Build release APK
         working-directory: ./client_flutter
         run: |
+          # Capture the build output so that if R8 (the release shrinker) fails,
+          # the exact "Missing class ..." list and the keep rules it asks for are
+          # printed in the log instead of being buried in the Gradle output.
+          set +e
           flutter build apk --release \
             --dart-define=SERVER_HOST=game.example.com \
             --build-name=${{ needs.get-version.outputs.version }} \
-            --build-number=${{ needs.get-version.outputs.build_number }}
+            --build-number=${{ needs.get-version.outputs.build_number }} 2>&1 | tee /tmp/apk-build.log
+          BUILD_STATUS=${PIPESTATUS[0]}
+          if [ "$BUILD_STATUS" -ne 0 ]; then
+            echo "=== Suggested R8 keep rules (missing_rules.txt) ==="
+            find build/app/outputs/mapping -name 'missing_rules.txt' -exec cat {} \; 2>/dev/null || true
+            echo "=== R8 / Gradle failure excerpt ==="
+            grep -i -E "ERROR: R8|Missing class|minifyReleaseWithR8|Compilation failed|What went wrong" -A 3 /tmp/apk-build.log || tail -n 200 /tmp/apk-build.log
+            exit "$BUILD_STATUS"
+          fi
 
       - name: Verify APK was produced
         run: |
@@ -106,7 +118,7 @@ jobs:
           test -f client_flutter/build/app/outputs/flutter-apk/app-release.apk
 
       - name: Upload APK artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: android-apk
           path: client_flutter/build/app/outputs/flutter-apk/app-release.apk
@@ -121,7 +133,7 @@ jobs:
     needs: get-version
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -146,7 +158,7 @@ jobs:
           zip -r ../../kolom-fight-${{ needs.get-version.outputs.version }}-web.zip web/
 
       - name: Upload Web artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: web-build
           path: kolom-fight-${{ needs.get-version.outputs.version }}-web.zip
@@ -161,7 +173,7 @@ jobs:
     needs: get-version
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -210,7 +222,7 @@ jobs:
           Compress-Archive -Path "$($releaseDir.FullName)\*" -DestinationPath "../kolom-fight-${{ needs.get-version.outputs.version }}-windows.zip" -Force
 
       - name: Upload Windows artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: windows-build
           path: kolom-fight-${{ needs.get-version.outputs.version }}-windows.zip
@@ -225,7 +237,7 @@ jobs:
     needs: get-version
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -258,26 +270,35 @@ jobs:
         run: |
           echo "=== Checking iOS build output ==="
           ls -la client_flutter/build/ios/iphoneos/ || echo "Directory not found"
-          find client_flutter/build/ios -name "*.app" -type d 2>/dev/null || echo "No .app found"
+          find client_flutter/build/ios -maxdepth 3 -name "*.app" -type d 2>/dev/null || echo "No .app found"
 
       - name: Package unsigned iOS app as zip
         run: |
-          # Find the .app file (might be Runner.app or have a different name)
-          APP_PATH=$(find client_flutter/build/ios/iphoneos -name "*.app" -type d | head -1)
+          # The .app directory can be Runner.app or have another name, and it can
+          # live in build/ios/iphoneos or build/ios/Release-iphoneos depending on
+          # the Flutter/Xcode version. Resolve it to an absolute path up front so
+          # it still resolves after we cd into the staging directory.
+          APP_PATH=$(find "$PWD/client_flutter/build/ios" -maxdepth 3 -name "*.app" -type d \
+            -not -path "*/ipa-staging/*" | head -1)
           if [ -z "$APP_PATH" ]; then
-            echo "Error: No .app file found in build output"
+            echo "::error::No .app file found in client_flutter/build/ios"
             exit 1
           fi
           echo "Found app at: $APP_PATH"
-          
-          cd client_flutter/build/ios/iphoneos
-          mkdir -p Payload
-          cp -r "$APP_PATH" Payload/
-          cd ..
-          zip -r ../../../kolom-fight-${{ needs.get-version.outputs.version }}-ios.zip Payload/
+
+          # Stage an .ipa-style layout: Payload/<AppName>.app
+          STAGING_DIR="$PWD/client_flutter/build/ios/ipa-staging"
+          rm -rf "$STAGING_DIR"
+          mkdir -p "$STAGING_DIR/Payload"
+          cp -R "$APP_PATH" "$STAGING_DIR/Payload/"
+
+          ZIP_PATH="$PWD/kolom-fight-${{ needs.get-version.outputs.version }}-ios.zip"
+          rm -f "$ZIP_PATH"
+          (cd "$STAGING_DIR" && zip -r -q "$ZIP_PATH" Payload)
+          ls -lh "$ZIP_PATH"
 
       - name: Upload iOS artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ios-build
           path: kolom-fight-${{ needs.get-version.outputs.version }}-ios.zip
@@ -294,7 +315,7 @@ jobs:
       contents: write
     steps:
       - name: Download all artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: ./artifacts
 
