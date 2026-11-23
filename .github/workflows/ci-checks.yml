@@ -55,4 +55,19 @@ jobs:
         run: flutter analyze --no-fatal-infos
 
       - name: Run tests
-        run: flutter test
+        run: |
+          set +e
+          flutter test --reporter expanded > "$RUNNER_TEMP/flutter-tests.log" 2>&1
+          status=$?
+          cat "$RUNNER_TEMP/flutter-tests.log"
+          if [ "$status" -ne 0 ]; then
+            python3 - <<'PYCODE'
+          import os
+          from pathlib import Path
+          text = Path(os.environ['RUNNER_TEMP'], 'flutter-tests.log').read_text(errors='replace')
+          # An annotation keeps the failure visible even when job logs are inaccessible.
+          text = text[-12000:].replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
+          print(f'::error title=Flutter test output::{text}')
+          PYCODE
+          fi
+          exit "$status"
