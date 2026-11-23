@@ -33,14 +33,17 @@ Flutter is pinned to `3.44.9` to match the project's SDK constraint, and the SDK
 
 ### 2. Release — `release.yml`
 
-**Triggers:** push of a `v*` tag, or manual dispatch.
+**Triggers:** push of a `v*` tag, a pull request that changes `release.yml`, or manual dispatch.
 
-Manual dispatch accepts two optional inputs:
+Manual dispatch accepts three optional inputs:
 
 | Input | Type | Meaning |
 |---|---|---|
 | `tag` | string | Release tag to publish, e.g. `v1.3.0`. Empty = derive `v<pubspec version>`. |
 | `prerelease` | boolean | Mark the GitHub Release as a pre-release. |
+| `publish` | boolean | Create the GitHub Release. Off = build and upload artifacts only. Defaults to on. |
+
+The `pull_request` trigger exists so the whole pipeline is exercised before it is trusted with a real tag. Publishing is gated on `startsWith(github.ref, 'refs/tags/') || inputs.publish == true`, so a PR run — or a manual run with `publish=false` — builds every platform and leaves the artifacts on the run without ever creating a release.
 
 #### Job graph
 
@@ -84,11 +87,13 @@ A debug APK is used as the unsigned fallback rather than an unsigned release APK
 
 #### `windows`
 
-Generates the Windows platform folder with `flutter create . --platforms=windows` when it is missing, builds with the same version and Firebase defines, then zips the `Release` directory as `kolom-fight-<version>-windows.zip`.
+Generates the Windows platform folder with `flutter create . --platforms=windows` when it is missing, builds with the same version and Firebase defines, then zips the `Release` directory as `kolom-fight-<version>-windows.zip`. The archive is written with `System.IO.Compression.ZipFile` rather than `Compress-Archive`, which can complete without error yet produce no file; packaging fails loudly if the archive is missing.
+
+Both desktop jobs anchor their archive to `$GITHUB_WORKSPACE`, because `upload-artifact` resolves relative paths against the workspace and a wrong relative depth otherwise fails only at the upload step.
 
 #### `linux`
 
-Installs `ninja-build`, `libgtk-3-dev`, `clang`, `cmake` and `pkg-config`, generates the Linux platform folder when missing, builds, and tars the bundle as `kolom-fight-<version>-linux-x64.tar.gz`.
+Installs Flutter's documented Linux build dependencies plus the ones this project's plugins need: `audioplayers` plays through GStreamer (`libgstreamer1.0-dev`, `libgstreamer-plugins-base1.0-dev`, `gstreamer1.0-plugins-base`) and `flutter_secure_storage` links against `libsecret-1-dev`. Generates the Linux platform folder when missing, builds, and tars the bundle as `kolom-fight-<version>-linux-x64.tar.gz`.
 
 #### `checksums`
 
@@ -183,6 +188,21 @@ flutter test
 | Google button is disabled | Firebase secrets absent | Build is compiled with `FIREBASE_ENABLED=false` by design. |
 | `deploy-web` fails at deploy | Pages not enabled | Settings → Pages → Source: GitHub Actions. |
 | Windows/Linux job failed | Desktop toolchain | Non-blocking by design; Android and Web still publish. |
+| `No files were found with the provided path` | Archive written somewhere other than `$GITHUB_WORKSPACE` | Anchor packaging output to `$GITHUB_WORKSPACE`; the upload resolves relative paths against it. |
+| `required packages were not found: gstreamer-1.0` / `libsecret-1` | Missing Linux plugin dependencies | Install `libgstreamer1.0-dev`, `libgstreamer-plugins-base1.0-dev` and `libsecret-1-dev`. |
+
+## Validated state
+
+The pipeline has been run end to end on a pull request with **no secrets configured**. All four platforms built and the checksums job produced a combined bundle:
+
+| Artifact | Size (no Firebase) |
+|---|---|
+| `android-apk` (debug-signed) | ~90 MB |
+| `web-build` | ~19 MB |
+| `windows-build` | ~21 MB |
+| `linux-build` | ~16 MB |
+
+With signing and Firebase secrets configured the Android artifact becomes a signed release APK plus an AAB, and all builds gain Google sign-in.
 
 ## Design notes
 

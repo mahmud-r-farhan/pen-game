@@ -234,7 +234,7 @@ Workflows live in `.github/workflows/`:
 | Workflow | Trigger | Purpose |
 |---|---|---|
 | `ci-checks.yml` | Push/PR to `main` | `deno task check` + `deno task test`, then `flutter analyze` + `flutter test`. |
-| `release.yml` | Tag `v*`, or manual | Builds Android APK (+AAB), Web, Windows and Linux, then publishes a GitHub Release with `SHA256SUMS.txt`. |
+| `release.yml` | Tag `v*`, PR touching the workflow, or manual | Builds Android APK (+AAB), Web, Windows and Linux, then publishes a GitHub Release with `SHA256SUMS.txt`. PR runs build but never publish. |
 | `deploy-web.yml` | Push to `main`, or manual | Builds the web bundle and deploys it to GitHub Pages. |
 
 To cut a release:
@@ -243,6 +243,8 @@ To cut a release:
 2. Tag and push: `git tag v1.3.0 && git push origin v1.3.0`.
 
 The workflow refuses to publish when the tag does not match `pubspec.yaml`. The in-app version badge is fed from the same values through `--dart-define=APP_VERSION` / `APP_BUILD`, so it can never drift from the shipped build.
+
+Publishing is restricted to a real `v*` tag. A pull request that changes `release.yml` runs the entire pipeline as a dry run, and a manual dispatch with `publish=false` does the same — both leave the artifacts downloadable from the run without creating a release. The pipeline is known-good with **zero secrets configured**: all four platforms build and are checksummed.
 
 ## Operational requirements
 

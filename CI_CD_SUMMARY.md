@@ -5,7 +5,7 @@ Kolom Fight ships from GitHub Actions. Three workflows live in `.github/workflow
 | Workflow | Trigger | What it does |
 |---|---|---|
 | `ci-checks.yml` | Push or pull request to `main`, manual | `deno task check` + `deno task test` for the server; `flutter analyze` + `flutter test` for the client. |
-| `release.yml` | Tag `v*`, manual | Builds Android (APK + AAB), Web, Windows and Linux, then publishes a GitHub Release with `SHA256SUMS.txt`. |
+| `release.yml` | Tag `v*`, PR touching the workflow, manual | Builds Android (APK + AAB), Web, Windows and Linux, then publishes a GitHub Release with `SHA256SUMS.txt`. PR runs build everything but never publish. |
 | `deploy-web.yml` | Push to `main` touching `client_flutter/**`, manual | Builds the web bundle and deploys it to GitHub Pages. |
 
 ## Releases are tag-driven
@@ -33,6 +33,8 @@ The workflow refuses to publish when the tag does not match `pubspec.yaml`, so a
 | Checksums | `SHA256SUMS.txt` |
 
 Windows and Linux are best-effort: they run with `continue-on-error` so a desktop toolchain problem can never block the Android and Web release.
+
+A pull request that changes `release.yml` runs the whole pipeline as a dry run, and a manual dispatch with `publish=false` does the same. Publishing itself is restricted to a real `v*` tag (or an explicit `publish=true`), so neither path can create a release by accident.
 
 ## No secrets are required
 
