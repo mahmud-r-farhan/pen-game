@@ -105,5 +105,76 @@ jobs:
           sys.exit(1 if (errors or warnings) else 0)
           PYCODE
 
+      # Same treatment for tests: `--machine` is a JSON event stream, so failures
+      # can be re-emitted as annotations instead of dying inside the raw log.
       - name: Run tests
-        run: flutter test --reporter expanded
+        run: |
+          set +e
+          flutter test --machine > "$RUNNER_TEMP/tests.jsonl" 2>&1
+          status=$?
+          set -e
+          python3 - "$RUNNER_TEMP/tests.jsonl" "$status" <<'PYCODE'
+          import json
+          import sys
+
+          path = sys.argv[1]
+          status = int(sys.argv[2]) if len(sys.argv) > 2 else 0
+          names = {}
+          # Keyed by test ID so an `error` event and its matching `testDone`
+          # do not report the same failure twice.
+          failures = {}
+          passed = skipped = 0
+
+          with open(path, encoding='utf-8', errors='replace') as handle:
+              for raw in handle:
+                  raw = raw.strip()
+                  if not raw.startswith('{'):
+                      continue
+                  try:
+                      event = json.loads(raw)
+                  except ValueError:
+                      continue
+                  kind = event.get('type')
+                  if kind == 'testStart':
+                      test = event.get('test') or {}
+                      names[test.get('id')] = test.get('name') or 'unnamed test'
+                  elif kind == 'error':
+                      test_id = event.get('testID')
+                      message = (event.get('error') or '').strip().splitlines()
+                      failures[test_id] = (
+                          names.get(test_id, 'unknown test'),
+                          message[0] if message else 'test raised an error',
+                      )
+                  elif kind == 'testDone':
+                      if event.get('skipped'):
+                          skipped += 1
+                      elif event.get('result') == 'success':
+                          if not event.get('hidden'):
+                              passed += 1
+                      elif event.get('result') in ('failure', 'error'):
+                          test_id = event.get('testID')
+                          failures.setdefault(
+                              test_id,
+                              (names.get(test_id, 'unknown test'), 'assertion failed'),
+                          )
+
+          def clean(text):
+              return (text or '').replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')[:500]
+
+          for name, message in failures.values():
+              print('::error title=Flutter test failed::%s - %s' % (clean(name), clean(message)))
+
+          if status != 0 and not failures:
+              # Compilation or harness errors produce no per-test events.
+              tail = []
+              with open(path, encoding='utf-8', errors='replace') as handle:
+                  for line in handle:
+                      if line.strip() and not line.startswith('{'):
+                          tail.append(line.rstrip())
+              print('::error title=Flutter test run failed::%s' % clean(' | '.join(tail[-12:])))
+
+          print('::notice title=Flutter test summary::passed=%d skipped=%d failed=%d'
+                % (passed, skipped, len(failures)))
+          sys.exit(1 if failures else 0)
+          PYCODE
+          exit $status
