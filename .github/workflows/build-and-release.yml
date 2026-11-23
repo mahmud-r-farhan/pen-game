@@ -1,0 +1,347 @@
+name: Build and Release
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+env:
+  FLUTTER_CHANNEL: 'stable'
+
+jobs:
+  # ──────────────────────────────────────────────
+  # Extract version info from pubspec.yaml
+  # ──────────────────────────────────────────────
+  get-version:
+    name: Get Version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      build_number: ${{ steps.version.outputs.build_number }}
+      release_tag: ${{ steps.version.outputs.release_tag }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Extract version from pubspec.yaml
+        id: version
+        run: |
+          VERSION=$(grep '^version:' client_flutter/pubspec.yaml | sed 's/version: *//' | tr -d '\r\n')
+          VERSION_NAME=$(echo "$VERSION" | cut -d'+' -f1)
+          BUILD_NUMBER=$(echo "$VERSION" | cut -d'+' -f2)
+          
+          # For tag pushes, use the tag; otherwise generate a build tag
+          if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            TAG="${{ github.ref_name }}"
+          else
+            TAG="v${VERSION_NAME}-build.${BUILD_NUMBER}"
+          fi
+          
+          echo "version=$VERSION_NAME" >> $GITHUB_OUTPUT
+          echo "build_number=$BUILD_NUMBER" >> $GITHUB_OUTPUT
+          echo "release_tag=$TAG" >> $GITHUB_OUTPUT
+          echo "Version: $VERSION_NAME  Build: $BUILD_NUMBER  Tag: $TAG"
+
+  # ──────────────────────────────────────────────
+  # Build Android APK (signed with CI key)
+  # ──────────────────────────────────────────────
+  build-android:
+    name: Build Android APK
+    runs-on: ubuntu-latest
+    needs: get-version
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: ${{ env.FLUTTER_CHANNEL }}
+          cache: true
+
+      - name: Get Flutter dependencies
+        working-directory: ./client_flutter
+        run: flutter pub get
+
+      - name: Generate CI signing keystore
+        run: |
+          keytool -genkeypair -v \
+            -keystore client_flutter/android/app/ci-release.jks \
+            -storetype JKS -keyalg RSA -keysize 2048 -validity 10000 \
+            -alias ci-key \
+            -storepass 'CI_RELEASE_PASS' \
+            -keypass 'CI_RELEASE_PASS' \
+            -dname "CN=Kolom Fight CI, OU=CI, O=Pen Fight, L=Dhaka, ST=Dhaka, C=BD"
+
+      - name: Write key.properties for signing
+        working-directory: ./client_flutter/android
+        run: |
+          cat > key.properties <<'EOF'
+          storeFile=app/ci-release.jks
+          storePassword=CI_RELEASE_PASS
+          keyAlias=ci-key
+          keyPassword=CI_RELEASE_PASS
+          EOF
+
+      - name: Build release APK
+        working-directory: ./client_flutter
+        run: |
+          flutter build apk --release \
+            --dart-define=SERVER_HOST=game.example.com \
+            --build-name=${{ needs.get-version.outputs.version }} \
+            --build-number=${{ needs.get-version.outputs.build_number }}
+
+      - name: Verify APK was produced
+        run: |
+          ls -lh client_flutter/build/app/outputs/flutter-apk/
+          test -f client_flutter/build/app/outputs/flutter-apk/app-release.apk
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk
+          path: client_flutter/build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 7
+
+  # ──────────────────────────────────────────────
+  # Build Web (static files, zipped)
+  # ──────────────────────────────────────────────
+  build-web:
+    name: Build Web
+    runs-on: ubuntu-latest
+    needs: get-version
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: ${{ env.FLUTTER_CHANNEL }}
+          cache: true
+
+      - name: Get Flutter dependencies
+        working-directory: ./client_flutter
+        run: flutter pub get
+
+      - name: Build Web release
+        working-directory: ./client_flutter
+        run: |
+          flutter build web --release \
+            --build-name=${{ needs.get-version.outputs.version }} \
+            --build-number=${{ needs.get-version.outputs.build_number }}
+
+      - name: Package Web as zip
+        run: |
+          cd client_flutter/build
+          zip -r ../../kolom-fight-${{ needs.get-version.outputs.version }}-web.zip web/
+
+      - name: Upload Web artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-build
+          path: kolom-fight-${{ needs.get-version.outputs.version }}-web.zip
+          retention-days: 7
+
+  # ──────────────────────────────────────────────
+  # Build Windows desktop (zip of executables)
+  # ──────────────────────────────────────────────
+  build-windows:
+    name: Build Windows
+    runs-on: windows-latest
+    needs: get-version
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: ${{ env.FLUTTER_CHANNEL }}
+          cache: true
+
+      - name: Create Windows platform folder if missing
+        working-directory: ./client_flutter
+        shell: pwsh
+        run: |
+          if (-Not (Test-Path "windows")) {
+            Write-Host "Creating Windows platform..."
+            flutter create . --platforms=windows
+          } else {
+            Write-Host "Windows platform already exists."
+          }
+
+      - name: Get Flutter dependencies
+        working-directory: ./client_flutter
+        run: flutter pub get
+
+      - name: Build Windows release
+        working-directory: ./client_flutter
+        run: |
+          flutter build windows --release --build-name=${{ needs.get-version.outputs.version }} --build-number=${{ needs.get-version.outputs.build_number }}
+
+      - name: Find and verify build output
+        shell: pwsh
+        working-directory: ./client_flutter
+        run: |
+          # Flutter Windows output lives under build/windows/<arch>/runner/Release
+          $releaseDir = Get-ChildItem -Path "build\windows" -Recurse -Directory -Filter "Release" | Where-Object { $_.FullName -match "runner" } | Select-Object -First 1
+          if (-not $releaseDir) {
+            Write-Error "Could not find Release directory under build\windows"
+            exit 1
+          }
+          Write-Host "Release directory: $($releaseDir.FullName)"
+          Get-ChildItem -Path $releaseDir.FullName | Format-Table Name, Length
+
+      - name: Package Windows as zip
+        shell: pwsh
+        working-directory: ./client_flutter
+        run: |
+          $releaseDir = Get-ChildItem -Path "build\windows" -Recurse -Directory -Filter "Release" | Where-Object { $_.FullName -match "runner" } | Select-Object -First 1
+          Compress-Archive -Path "$($releaseDir.FullName)\*" -DestinationPath "../kolom-fight-${{ needs.get-version.outputs.version }}-windows.zip" -Force
+
+      - name: Upload Windows artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-build
+          path: kolom-fight-${{ needs.get-version.outputs.version }}-windows.zip
+          retention-days: 7
+
+  # ──────────────────────────────────────────────
+  # Build iOS (unsigned — ready for distribution)
+  # ──────────────────────────────────────────────
+  build-ios:
+    name: Build iOS
+    runs-on: macos-latest
+    needs: get-version
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: ${{ env.FLUTTER_CHANNEL }}
+          cache: true
+
+      - name: Create iOS platform folder if missing
+        working-directory: ./client_flutter
+        run: |
+          if [ ! -d "ios" ]; then
+            echo "Creating iOS platform..."
+            flutter create . --platforms=ios
+          else
+            echo "iOS platform already exists."
+          fi
+
+      - name: Get Flutter dependencies
+        working-directory: ./client_flutter
+        run: flutter pub get
+
+      - name: Build iOS (unsigned)
+        working-directory: ./client_flutter
+        run: |
+          flutter build ios --release --no-codesign \
+            --build-name=${{ needs.get-version.outputs.version }} \
+            --build-number=${{ needs.get-version.outputs.build_number }}
+
+      - name: Package unsigned iOS app as zip
+        run: |
+          cd client_flutter/build/ios/iphoneos
+          mkdir -p Payload
+          cp -r Runner.app Payload/
+          cd ..
+          zip -r ../../../kolom-fight-${{ needs.get-version.outputs.version }}-ios.zip Payload/
+
+      - name: Upload iOS artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-build
+          path: kolom-fight-${{ needs.get-version.outputs.version }}-ios.zip
+          retention-days: 7
+
+  # ──────────────────────────────────────────────
+  # Create GitHub Release with all build artifacts
+  # ──────────────────────────────────────────────
+  release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: [get-version, build-android, build-web, build-windows, build-ios]
+    permissions:
+      contents: write
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: ./artifacts
+
+      - name: List downloaded artifacts
+        run: |
+          echo "=== Downloaded artifacts ==="
+          find ./artifacts -type f -exec ls -lh {} \;
+
+      - name: Prepare release files
+        run: |
+          mkdir -p ./release-files
+          cp artifacts/android-apk/app-release.apk \
+             "release-files/kolom-fight-${{ needs.get-version.outputs.version }}-android.apk"
+          cp artifacts/web-build/kolom-fight-${{ needs.get-version.outputs.version }}-web.zip \
+             "release-files/" 2>/dev/null || true
+          cp artifacts/windows-build/kolom-fight-${{ needs.get-version.outputs.version }}-windows.zip \
+             "release-files/" 2>/dev/null || true
+          cp artifacts/ios-build/kolom-fight-${{ needs.get-version.outputs.version }}-ios.zip \
+             "release-files/" 2>/dev/null || true
+          echo "=== Release files ==="
+          ls -lh release-files/
+
+      - name: Delete existing release and tag if present
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ needs.get-version.outputs.release_tag }}"
+          
+          # Delete existing release (if any)
+          gh release delete "$TAG" --yes --cleanup-tag 2>/dev/null || true
+
+      - name: Create GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ needs.get-version.outputs.release_tag }}"
+          VERSION="${{ needs.get-version.outputs.version }}"
+          
+          gh release create "$TAG" \
+            --title "Kolom Fight (কলম খেলা) v${VERSION}" \
+            --notes "## 🎮 Kolom Fight v${VERSION}
+          
+          Download the game for your platform below!
+          
+          ### 📱 Android
+          - \`kolom-fight-${VERSION}-android.apk\` — Open on your Android device to install
+          - Enable *Install from unknown sources* if prompted
+          
+          ### 🍎 iOS
+          - \`kolom-fight-${VERSION}-ios.zip\` — Unsigned build (use Xcode/sideloading to install)
+          
+          ### 💻 Windows
+          - \`kolom-fight-${VERSION}-windows.zip\` — Unzip and run the executable
+          
+          ### 🌐 Web
+          - \`kolom-fight-${VERSION}-web.zip\` — Unzip and serve with any web server
+          
+          ---
+          **Commit**: \`${{ github.sha }}\`" \
+            release-files/*
+
+      - name: Print release URL
+        run: |
+          echo "✅ Release created at: https://github.com/${{ github.repository }}/releases/tag/${{ needs.get-version.outputs.release_tag }}"
