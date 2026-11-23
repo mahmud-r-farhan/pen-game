@@ -161,6 +161,16 @@ deno task start
 
 Release web uses same-origin REST and WebSocket URLs, avoiding browser calls to a sandbox-local address.
 
+### GitHub Pages
+
+`.github/workflows/deploy-web.yml` builds the Flutter web app and publishes it to GitHub Pages on every push to `main`:
+
+**https://mahmud-r-farhan.github.io/pen-game/**
+
+The Pages build uses `--base-href=/pen-game/` because project sites are served from `/<repository>/`. It also passes `--dart-define=SERVER_HOST=...` (default `kolom-fight.deno.dev`) so the app calls the Deno backend from the Pages origin instead of assuming a same-origin API. Override the backend host with the `SERVER_HOST` repository variable.
+
+GitHub Pages must be enabled once in **Settings → Pages → Source: GitHub Actions**. The `FIREBASE_WEB_*` secrets are optional: without them Google sign-in is disabled, but guest play and offline practice remain available. For online guest play from Pages, add `https://mahmud-r-farhan.github.io` to the backend's `ALLOWED_ORIGINS`.
+
 ### Android
 
 1. Create a private upload/release keystore.
