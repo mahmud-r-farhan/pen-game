@@ -401,16 +401,32 @@ jobs:
         run: |
           $ErrorActionPreference = "Stop"
           try {
-            $releaseDir = Get-ChildItem -Path "build\windows\x64" -Recurse -Directory -Filter "Release" |
-              Select-Object -First 1
-            if (-not $releaseDir) { throw "Could not find a Release directory under build\windows\x64." }
+            # Prefer Flutter's documented output path, then fall back to a search.
+            $candidates = @(
+              "build\windows\x64\runner\Release",
+              "build\windows\runner\Release"
+            )
+            $releaseDir = $candidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+            if (-not $releaseDir) {
+              $found = Get-ChildItem -Path "build\windows" -Recurse -Directory -Filter "Release" |
+                Select-Object -First 1
+              if ($found) { $releaseDir = $found.FullName }
+            }
+            if (-not $releaseDir) { throw "Could not find a Release directory under build\windows." }
+            $releaseDir = (Resolve-Path $releaseDir).Path
+
             # Anchor to GITHUB_WORKSPACE: the artifact upload resolves relative
             # paths against it, so both must agree on the same absolute location.
             $destination = Join-Path $env:GITHUB_WORKSPACE "kolom-fight-${{ needs.prepare.outputs.version }}-windows.zip"
             if (Test-Path $destination) { Remove-Item $destination -Force }
-            Compress-Archive -Path "$($releaseDir.FullName)\*" -DestinationPath $destination
-            if (-Not (Test-Path $destination)) { throw "Archive was not created at $destination" }
-            Write-Host "Packaged $destination ($((Get-Item $destination).Length) bytes)"
+
+            # Compress-Archive can silently produce nothing on large trees, so
+            # build the archive with the .NET zip API instead.
+            Add-Type -AssemblyName System.IO.Compression.FileSystem
+            [System.IO.Compression.ZipFile]::CreateFromDirectory($releaseDir, $destination, [System.IO.Compression.CompressionLevel]::Optimal, $false)
+
+            if (-not (Test-Path $destination)) { throw "Archive was not created at $destination" }
+            Write-Host "Packaged $releaseDir -> $destination ($((Get-Item $destination).Length) bytes)"
           } catch {
             $message = $_.Exception.Message -replace '%', '%25' -replace "`r", '%0D' -replace "`n", '%0A'
             Write-Output "::error title=Windows packaging failed::$message"
@@ -440,7 +456,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y ninja-build libgtk-3-dev clang cmake pkg-config \
             libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev gstreamer1.0-plugins-base \
-            liblzma-dev
+            liblzma-dev libsecret-1-dev
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
