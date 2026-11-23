@@ -23,6 +23,8 @@ jobs:
     name: Build Web
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    outputs:
+      pages: ${{ steps.status.outputs.enabled }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
@@ -91,14 +93,32 @@ jobs:
       - name: Add .nojekyll
         run: touch client_flutter/build/web/.nojekyll
 
+      - name: Configure Pages
+        id: pages
+        # Pages is a one-time repository setting. Keep the build green and
+        # skip deployment with a warning until it has been enabled.
+        continue-on-error: true
+        uses: actions/configure-pages@v6
+
+      - name: Report Pages status
+        id: status
+        run: |
+          if [ "${{ steps.pages.outcome }}" = "success" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::warning title=GitHub Pages not enabled::Enable it once in Settings > Pages > Source: GitHub Actions, then re-run this workflow."
+          fi
+
       - name: Upload Pages artifact
+        if: steps.status.outputs.enabled == 'true'
         uses: actions/upload-pages-artifact@v5
         with:
           path: client_flutter/build/web
 
   deploy:
     name: Deploy to GitHub Pages
-    if: github.event_name != 'pull_request'
+    if: github.event_name != 'pull_request' && needs.build.outputs.pages == 'true'
     needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -106,19 +126,6 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - name: Verify GitHub Pages is enabled
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          if ! gh api "repos/${GITHUB_REPOSITORY}/pages" >/dev/null 2>&1; then
-            echo "::error::GitHub Pages is not enabled for ${GITHUB_REPOSITORY}. Open Settings > Pages, set Source to 'GitHub Actions', then re-run this workflow."
-            exit 1
-          fi
-
-      - name: Configure Pages
-        uses: actions/configure-pages@v6
-
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v5
