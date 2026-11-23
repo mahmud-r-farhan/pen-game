@@ -211,6 +211,7 @@ class _AuthScreenState extends State<AuthScreen> {
                               child: DropdownButtonHideUnderline(
                                 child: DropdownButton<String>(
                                   value: _selectedRegion,
+                                  isExpanded: true,
                                   dropdownColor: AppColors.bgSurfaceDark,
                                   style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                                   items: _regions.map((r) {
@@ -220,7 +221,7 @@ class _AuthScreenState extends State<AuthScreen> {
                                         children: [
                                           Text(r['flag']!, style: const TextStyle(fontSize: 16)),
                                           const SizedBox(width: 8),
-                                          Text(r['name']!, style: const TextStyle(fontSize: 13)),
+                                          Expanded(child: Text(r['name']!, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 13))),
                                         ],
                                       ),
                                     );
@@ -254,10 +255,11 @@ class _AuthScreenState extends State<AuthScreen> {
                               child: DropdownButtonHideUnderline(
                                 child: DropdownButton<String>(
                                   value: _selectedDivision,
+                                  isExpanded: true,
                                   dropdownColor: AppColors.bgSurfaceDark,
                                   style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                                   items: _divisions.map((d) {
-                                    return DropdownMenuItem(value: d, child: Text(d, style: const TextStyle(fontSize: 13)));
+                                    return DropdownMenuItem(value: d, child: Text(d, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 13)));
                                   }).toList(),
                                   onChanged: (val) {
                                     if (val != null) setState(() => _selectedDivision = val);
