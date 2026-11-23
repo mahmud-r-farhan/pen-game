@@ -254,11 +254,25 @@ jobs:
             --build-name=${{ needs.get-version.outputs.version }} \
             --build-number=${{ needs.get-version.outputs.build_number }}
 
+      - name: Verify iOS build output
+        run: |
+          echo "=== Checking iOS build output ==="
+          ls -la client_flutter/build/ios/iphoneos/ || echo "Directory not found"
+          find client_flutter/build/ios -name "*.app" -type d 2>/dev/null || echo "No .app found"
+
       - name: Package unsigned iOS app as zip
         run: |
+          # Find the .app file (might be Runner.app or have a different name)
+          APP_PATH=$(find client_flutter/build/ios/iphoneos -name "*.app" -type d | head -1)
+          if [ -z "$APP_PATH" ]; then
+            echo "Error: No .app file found in build output"
+            exit 1
+          fi
+          echo "Found app at: $APP_PATH"
+          
           cd client_flutter/build/ios/iphoneos
           mkdir -p Payload
-          cp -r Runner.app Payload/
+          cp -r "$APP_PATH" Payload/
           cd ..
           zip -r ../../../kolom-fight-${{ needs.get-version.outputs.version }}-ios.zip Payload/
 
