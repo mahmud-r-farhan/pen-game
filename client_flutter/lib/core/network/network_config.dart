@@ -5,7 +5,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 class NetworkConfig {
   static const String keyCustomServerHost = 'custom_server_host_v2';
   static const String defaultProdHost = 'kolom-fight.deno.dev';
-  static const String envHost = String.fromEnvironment('SERVER_HOST', defaultValue: '');
+  static const String envHost = String.fromEnvironment(
+    'SERVER_HOST',
+    defaultValue: '',
+  );
 
   static String _activeHost = '';
   static String? _webOrigin;
@@ -27,7 +30,9 @@ class NetworkConfig {
       }
     } else if (kDebugMode) {
       // Android emulator loopback. Set SERVER_HOST for a physical device.
-      _activeHost = defaultTargetPlatform == TargetPlatform.android ? '10.0.2.2:8080' : 'localhost:8080';
+      _activeHost = defaultTargetPlatform == TargetPlatform.android
+          ? '10.0.2.2:8080'
+          : 'localhost:8080';
     } else {
       _activeHost = defaultProdHost;
     }
@@ -36,10 +41,16 @@ class NetworkConfig {
   static String get activeHost => _activeHost;
 
   static Future<void> setCustomHost(String host) async {
-    final normalized = host.trim().replaceFirst(RegExp(r'^https?://'), '').replaceAll(RegExp(r'/$'), '');
+    final normalized = host
+        .trim()
+        .replaceFirst(RegExp(r'^https?://'), '')
+        .replaceAll(RegExp(r'/$'), '');
     if (normalized.isNotEmpty &&
-        (!RegExp(r'^[a-zA-Z0-9.-]+(?::\d{1,5})?$').hasMatch(normalized) || normalized.contains('..'))) {
-      throw const FormatException('Enter a valid host, optionally followed by a port.');
+        (!RegExp(r'^[a-zA-Z0-9.-]+(?::\d{1,5})?$').hasMatch(normalized) ||
+            normalized.contains('..'))) {
+      throw const FormatException(
+        'Enter a valid host, optionally followed by a port.',
+      );
     }
     _webOrigin = null;
     _activeHost = normalized;
@@ -54,7 +65,9 @@ class NetworkConfig {
 
   static bool get _isLocal {
     final host = activeHost;
-    return host.startsWith('localhost') || host.startsWith('127.0.0.1') || host.startsWith('10.0.2.2');
+    return host.startsWith('localhost') ||
+        host.startsWith('127.0.0.1') ||
+        host.startsWith('10.0.2.2');
   }
 
   static String get httpBaseUrl {

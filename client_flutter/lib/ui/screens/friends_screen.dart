@@ -55,7 +55,9 @@ class _FriendsScreenState extends State<FriendsScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('${added.username} (${added.tag}) added to your friends.'),
+          content: Text(
+            '${added.username} (${added.tag}) added to your friends.',
+          ),
           backgroundColor: AppColors.emeraldTurn,
         ),
       );
@@ -72,7 +74,8 @@ class _FriendsScreenState extends State<FriendsScreen> {
     setState(() => _isMutating = true);
     try {
       await ApiService().removeFriend(friend.id);
-      if (mounted) setState(() => _friends.removeWhere((item) => item.id == friend.id));
+      if (mounted)
+        setState(() => _friends.removeWhere((item) => item.id == friend.id));
     } catch (error) {
       _showError(error);
     } finally {
@@ -94,7 +97,9 @@ class _FriendsScreenState extends State<FriendsScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Challenge sent to ${friend.username}. Waiting for a response…'),
+          content: Text(
+            'Challenge sent to ${friend.username}. Waiting for a response…',
+          ),
           backgroundColor: AppColors.emeraldTurn,
         ),
       );
@@ -108,7 +113,10 @@ class _FriendsScreenState extends State<FriendsScreen> {
   void _showError(Object error) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(error.toString()), backgroundColor: AppColors.crimsonStrike),
+      SnackBar(
+        content: Text(error.toString()),
+        backgroundColor: AppColors.crimsonStrike,
+      ),
     );
   }
 
@@ -128,7 +136,12 @@ class _FriendsScreenState extends State<FriendsScreen> {
         appBar: AppBar(
           backgroundColor: AppColors.bgSurfaceDark,
           title: Text(AppLocale.tr('friends')),
-          actions: [IconButton(onPressed: _loadFriends, icon: const Icon(Icons.refresh_rounded))],
+          actions: [
+            IconButton(
+              onPressed: _loadFriends,
+              icon: const Icon(Icons.refresh_rounded),
+            ),
+          ],
         ),
         body: Column(
           children: [
@@ -143,12 +156,21 @@ class _FriendsScreenState extends State<FriendsScreen> {
                       style: const TextStyle(color: Colors.white),
                       onSubmitted: (_) => _addFriend(),
                       decoration: InputDecoration(
-                        hintText: 'Player tag or ID (for example ${profile.tag})',
-                        hintStyle: const TextStyle(color: AppColors.slateMuted, fontSize: 12),
-                        prefixIcon: const Icon(Icons.search, color: AppColors.goldTiffinCoin),
+                        hintText:
+                            'Player tag or ID (for example ${profile.tag})',
+                        hintStyle: const TextStyle(
+                          color: AppColors.slateMuted,
+                          fontSize: 12,
+                        ),
+                        prefixIcon: const Icon(
+                          Icons.search,
+                          color: AppColors.goldTiffinCoin,
+                        ),
                         filled: true,
                         fillColor: AppColors.bgSurfaceDark,
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
                       ),
                     ),
                   ),
@@ -158,9 +180,15 @@ class _FriendsScreenState extends State<FriendsScreen> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.goldTiffinCoin,
                       foregroundColor: Colors.black,
-                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 18,
+                        vertical: 16,
+                      ),
                     ),
-                    child: const Text('Add', style: TextStyle(fontWeight: FontWeight.bold)),
+                    child: const Text(
+                      'Add',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
                   ),
                 ],
               ),
@@ -173,7 +201,10 @@ class _FriendsScreenState extends State<FriendsScreen> {
   }
 
   Widget _buildBody(UserProfile profile) {
-    if (_isLoading) return const Center(child: CircularProgressIndicator(color: AppColors.goldTiffinCoin));
+    if (_isLoading)
+      return const Center(
+        child: CircularProgressIndicator(color: AppColors.goldTiffinCoin),
+      );
     if (_error != null) {
       return Center(
         child: Padding(
@@ -181,11 +212,22 @@ class _FriendsScreenState extends State<FriendsScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.cloud_off_rounded, size: 48, color: AppColors.crimsonStrike),
+              const Icon(
+                Icons.cloud_off_rounded,
+                size: 48,
+                color: AppColors.crimsonStrike,
+              ),
               const SizedBox(height: 12),
-              Text(_error!, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white70)),
+              Text(
+                _error!,
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Colors.white70),
+              ),
               const SizedBox(height: 12),
-              ElevatedButton(onPressed: _loadFriends, child: const Text('Retry')),
+              ElevatedButton(
+                onPressed: _loadFriends,
+                child: const Text('Retry'),
+              ),
             ],
           ),
         ),
@@ -196,11 +238,24 @@ class _FriendsScreenState extends State<FriendsScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.group_off_rounded, size: 54, color: AppColors.slateMuted),
+            const Icon(
+              Icons.group_off_rounded,
+              size: 54,
+              color: AppColors.slateMuted,
+            ),
             const SizedBox(height: 12),
-            const Text('No friends added yet', style: TextStyle(color: Colors.white70, fontSize: 15)),
+            const Text(
+              'No friends added yet',
+              style: TextStyle(color: Colors.white70, fontSize: 15),
+            ),
             const SizedBox(height: 8),
-            Text('Share your tag: ${profile.tag}', style: const TextStyle(color: AppColors.goldTiffinCoin, fontWeight: FontWeight.bold)),
+            Text(
+              'Share your tag: ${profile.tag}',
+              style: const TextStyle(
+                color: AppColors.goldTiffinCoin,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ],
         ),
       );
@@ -228,28 +283,55 @@ class _FriendsScreenState extends State<FriendsScreen> {
       ),
       child: Row(
         children: [
-          KolomAvatar(avatar: friend.avatar, size: 42, flagEmoji: friend.flagEmoji),
+          KolomAvatar(
+            avatar: friend.avatar,
+            size: 42,
+            flagEmoji: friend.flagEmoji,
+          ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(friend.username, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                Text(
+                  friend.username,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
                 const SizedBox(height: 3),
-                Text('${friend.tag} • ${friend.trophyPoints} RP', style: const TextStyle(color: AppColors.slateMuted, fontSize: 12)),
+                Text(
+                  '${friend.tag} • ${friend.trophyPoints} RP',
+                  style: const TextStyle(
+                    color: AppColors.slateMuted,
+                    fontSize: 12,
+                  ),
+                ),
               ],
             ),
           ),
           IconButton(
             onPressed: challenging ? null : () => _challengeFriend(friend),
             icon: challenging
-                ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                : const Icon(Icons.sports_esports_rounded, color: AppColors.emeraldTurn),
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(
+                    Icons.sports_esports_rounded,
+                    color: AppColors.emeraldTurn,
+                  ),
             tooltip: 'Challenge to a match',
           ),
           IconButton(
             onPressed: _isMutating ? null : () => _removeFriend(friend),
-            icon: const Icon(Icons.person_remove_rounded, color: AppColors.slateMuted),
+            icon: const Icon(
+              Icons.person_remove_rounded,
+              color: AppColors.slateMuted,
+            ),
             tooltip: 'Remove friend',
           ),
         ],

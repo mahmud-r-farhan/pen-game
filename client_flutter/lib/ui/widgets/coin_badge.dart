@@ -7,11 +7,7 @@ class CoinBadge extends StatelessWidget {
   final int coins;
   final VoidCallback? onAddTap;
 
-  const CoinBadge({
-    super.key,
-    required this.coins,
-    this.onAddTap,
-  });
+  const CoinBadge({super.key, required this.coins, this.onAddTap});
 
   @override
   Widget build(BuildContext context) {
@@ -22,7 +18,9 @@ class CoinBadge extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.glassSurface,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.goldTiffinCoin.withValues(alpha: 0.5)),
+        border: Border.all(
+          color: AppColors.goldTiffinCoin.withValues(alpha: 0.5),
+        ),
         boxShadow: [
           BoxShadow(
             color: AppColors.goldTiffinCoin.withValues(alpha: 0.15),
@@ -34,7 +32,11 @@ class CoinBadge extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.monetization_on_rounded, color: AppColors.goldTiffinCoin, size: 18),
+          const Icon(
+            Icons.monetization_on_rounded,
+            color: AppColors.goldTiffinCoin,
+            size: 18,
+          ),
           const SizedBox(width: 6),
           Text(
             formatted,

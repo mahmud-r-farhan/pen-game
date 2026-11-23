@@ -45,7 +45,9 @@ class _MainLobbyScreenState extends State<MainLobbyScreen> {
     final client = KolomWsClient();
     _challengeSub = client.onChallengeReceived.listen(_showChallengeDialog);
     _matchStartSub = client.onMatchStart.listen(AppNavigation.openMatch);
-    _authSub = client.onAuthSuccess.listen((profile) => UserSession().setProfile(profile));
+    _authSub = client.onAuthSuccess.listen(
+      (profile) => UserSession().setProfile(profile),
+    );
     _matchOverSub = client.onMatchOver.listen((result) {
       if (result.profile != null) UserSession().setProfile(result.profile!);
     });
@@ -65,7 +67,10 @@ class _MainLobbyScreenState extends State<MainLobbyScreen> {
     if (!mounted || message.isEmpty) return;
     ScaffoldMessenger.of(context).hideCurrentSnackBar();
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: AppColors.crimsonStrike),
+      SnackBar(
+        content: Text(message),
+        backgroundColor: AppColors.crimsonStrike,
+      ),
     );
   }
 
@@ -90,7 +95,10 @@ class _MainLobbyScreenState extends State<MainLobbyScreen> {
           children: [
             Icon(Icons.sports_esports_rounded, color: AppColors.goldTiffinCoin),
             SizedBox(width: 8),
-            Text('Match Challenge!', style: TextStyle(color: Colors.white, fontSize: 18)),
+            Text(
+              'Match Challenge!',
+              style: TextStyle(color: Colors.white, fontSize: 18),
+            ),
           ],
         ),
         content: Text(
@@ -106,7 +114,10 @@ class _MainLobbyScreenState extends State<MainLobbyScreen> {
                 accept: false,
               );
             },
-            child: const Text('Decline', style: TextStyle(color: Colors.white60)),
+            child: const Text(
+              'Decline',
+              style: TextStyle(color: Colors.white60),
+            ),
           ),
           ElevatedButton(
             onPressed: () {
@@ -122,7 +133,10 @@ class _MainLobbyScreenState extends State<MainLobbyScreen> {
               backgroundColor: AppColors.emeraldTurn,
               foregroundColor: Colors.black,
             ),
-            child: const Text('Accept', style: TextStyle(fontWeight: FontWeight.bold)),
+            child: const Text(
+              'Accept',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
           ),
         ],
       ),
@@ -155,13 +169,18 @@ class _MainLobbyScreenState extends State<MainLobbyScreen> {
               children: [
                 // 1. Top Bar: Profile, Flags, Cups, Coins & Settings
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 10,
+                  ),
                   child: Row(
                     children: [
                       GestureDetector(
                         onTap: () {
                           Navigator.of(context).push(
-                            MaterialPageRoute(builder: (_) => const ProfileScreen()),
+                            MaterialPageRoute(
+                              builder: (_) => const ProfileScreen(),
+                            ),
                           );
                         },
                         child: KolomAvatar(
@@ -189,18 +208,30 @@ class _MainLobbyScreenState extends State<MainLobbyScreen> {
                               children: [
                                 Text(
                                   '${profile.tag} • ${AppLocale.tr('level_label')} ${profile.level}',
-                                  style: const TextStyle(color: AppColors.slateMuted, fontSize: 11),
+                                  style: const TextStyle(
+                                    color: AppColors.slateMuted,
+                                    fontSize: 11,
+                                  ),
                                 ),
                                 const SizedBox(width: 6),
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 5,
+                                    vertical: 1,
+                                  ),
                                   decoration: BoxDecoration(
-                                    color: profile.cupColor.withValues(alpha: 0.2),
+                                    color: profile.cupColor.withValues(
+                                      alpha: 0.2,
+                                    ),
                                     borderRadius: BorderRadius.circular(4),
                                   ),
                                   child: Text(
                                     '${profile.cupEmoji} ${profile.trophyPoints} ${AppLocale.tr('xp_label')}',
-                                    style: TextStyle(color: profile.cupColor, fontSize: 10, fontWeight: FontWeight.bold),
+                                    style: TextStyle(
+                                      color: profile.cupColor,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
                                 ),
                               ],
@@ -212,11 +243,19 @@ class _MainLobbyScreenState extends State<MainLobbyScreen> {
                       const SizedBox(width: 8),
                       IconButton(
                         onPressed: () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute(builder: (_) => const SettingsScreen()),
-                          ).then((_) => setState(() {}));
+                          Navigator.of(context)
+                              .push(
+                                MaterialPageRoute(
+                                  builder: (_) => const SettingsScreen(),
+                                ),
+                              )
+                              .then((_) => setState(() {}));
                         },
-                        icon: const Icon(Icons.settings_rounded, color: AppColors.slateMuted, size: 22),
+                        icon: const Icon(
+                          Icons.settings_rounded,
+                          color: AppColors.slateMuted,
+                          size: 22,
+                        ),
                       ),
                     ],
                   ),
@@ -224,7 +263,10 @@ class _MainLobbyScreenState extends State<MainLobbyScreen> {
 
                 // 2. Equipped Pen Hero Stage (Slender 3D Vector Preview)
                 Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                  margin: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 6,
+                  ),
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
@@ -236,7 +278,10 @@ class _MainLobbyScreenState extends State<MainLobbyScreen> {
                       ],
                     ),
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: equippedPen.accentColor.withValues(alpha: 0.4), width: 1.2),
+                    border: Border.all(
+                      color: equippedPen.accentColor.withValues(alpha: 0.4),
+                      width: 1.2,
+                    ),
                     boxShadow: [
                       BoxShadow(
                         color: Colors.black.withValues(alpha: 0.4),
@@ -253,8 +298,16 @@ class _MainLobbyScreenState extends State<MainLobbyScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                langCode == 'bn' ? 'সক্রিয় কলম' : (langCode == 'hi' ? 'सुसज्जित कलम' : 'EQUIPPED PEN'),
-                                style: const TextStyle(color: AppColors.slateMuted, fontSize: 10, letterSpacing: 1.0),
+                                langCode == 'bn'
+                                    ? 'সক্রিয় কলম'
+                                    : (langCode == 'hi'
+                                          ? 'सुसज्जित कलम'
+                                          : 'EQUIPPED PEN'),
+                                style: const TextStyle(
+                                  color: AppColors.slateMuted,
+                                  fontSize: 10,
+                                  letterSpacing: 1.0,
+                                ),
                               ),
                               Text(
                                 equippedPen.name,
@@ -269,17 +322,34 @@ class _MainLobbyScreenState extends State<MainLobbyScreen> {
                           OutlinedButton.icon(
                             onPressed: () {
                               Navigator.of(context).push(
-                                MaterialPageRoute(builder: (_) => const GarageShopScreen()),
+                                MaterialPageRoute(
+                                  builder: (_) => const GarageShopScreen(),
+                                ),
                               );
                             },
                             style: OutlinedButton.styleFrom(
                               foregroundColor: equippedPen.accentColor,
-                              side: BorderSide(color: equippedPen.accentColor.withValues(alpha: 0.6)),
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              side: BorderSide(
+                                color: equippedPen.accentColor.withValues(
+                                  alpha: 0.6,
+                                ),
+                              ),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 6,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
                             ),
-                            icon: const Icon(Icons.storefront_rounded, size: 14),
-                            label: Text(AppLocale.tr('garage'), style: const TextStyle(fontSize: 11)),
+                            icon: const Icon(
+                              Icons.storefront_rounded,
+                              size: 14,
+                            ),
+                            label: Text(
+                              AppLocale.tr('garage'),
+                              style: const TextStyle(fontSize: 11),
+                            ),
                           ),
                         ],
                       ),
@@ -290,9 +360,14 @@ class _MainLobbyScreenState extends State<MainLobbyScreen> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        langCode == 'bn' ? equippedPen.tagLineBn : equippedPen.tagLineEn,
+                        langCode == 'bn'
+                            ? equippedPen.tagLineBn
+                            : equippedPen.tagLineEn,
                         textAlign: TextAlign.center,
-                        style: TextStyle(color: equippedPen.accentColor, fontSize: 11),
+                        style: TextStyle(
+                          color: equippedPen.accentColor,
+                          fontSize: 11,
+                        ),
                       ),
                     ],
                   ),
@@ -301,7 +376,10 @@ class _MainLobbyScreenState extends State<MainLobbyScreen> {
                 // 3. Competitive Game Modes
                 Expanded(
                   child: ListView(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 6,
+                    ),
                     children: [
                       // Daily Tiffin Retention Bonus
                       _buildDailyTiffinCard(langCode),
@@ -313,7 +391,10 @@ class _MainLobbyScreenState extends State<MainLobbyScreen> {
                         accentColor: AppColors.goldTiffinCoin,
                         onTap: () {
                           Navigator.of(context).push(
-                            MaterialPageRoute(builder: (_) => const RoomSelectionScreen(isOnline: true)),
+                            MaterialPageRoute(
+                              builder: (_) =>
+                                  const RoomSelectionScreen(isOnline: true),
+                            ),
                           );
                         },
                       ),
@@ -325,7 +406,9 @@ class _MainLobbyScreenState extends State<MainLobbyScreen> {
                         accentColor: AppColors.cyanSpin,
                         onTap: () {
                           Navigator.of(context).push(
-                            MaterialPageRoute(builder: (_) => const ClubsScreen()),
+                            MaterialPageRoute(
+                              builder: (_) => const ClubsScreen(),
+                            ),
                           );
                         },
                       ),
@@ -337,7 +420,9 @@ class _MainLobbyScreenState extends State<MainLobbyScreen> {
                         accentColor: AppColors.emeraldTurn,
                         onTap: () {
                           Navigator.of(context).push(
-                            MaterialPageRoute(builder: (_) => const PrivateRoomScreen()),
+                            MaterialPageRoute(
+                              builder: (_) => const PrivateRoomScreen(),
+                            ),
                           );
                         },
                       ),
@@ -349,7 +434,10 @@ class _MainLobbyScreenState extends State<MainLobbyScreen> {
                         accentColor: AppColors.slateMuted,
                         onTap: () {
                           Navigator.of(context).push(
-                            MaterialPageRoute(builder: (_) => const RoomSelectionScreen(isOnline: false)),
+                            MaterialPageRoute(
+                              builder: (_) =>
+                                  const RoomSelectionScreen(isOnline: false),
+                            ),
                           );
                         },
                       ),
@@ -369,21 +457,44 @@ class _MainLobbyScreenState extends State<MainLobbyScreen> {
               setState(() => _currentNavIndex = index);
               if (index == 0) return;
               if (index == 1) {
-                Navigator.of(context).push(MaterialPageRoute(builder: (_) => const GarageShopScreen()));
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const GarageShopScreen()),
+                );
               } else if (index == 2) {
-                Navigator.of(context).push(MaterialPageRoute(builder: (_) => const LeaderboardScreen()));
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const LeaderboardScreen()),
+                );
               } else if (index == 3) {
-                Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ClubsScreen()));
+                Navigator.of(
+                  context,
+                ).push(MaterialPageRoute(builder: (_) => const ClubsScreen()));
               } else if (index == 4) {
-                Navigator.of(context).push(MaterialPageRoute(builder: (_) => const FriendsScreen()));
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const FriendsScreen()),
+                );
               }
             },
             items: [
-              BottomNavigationBarItem(icon: const Icon(Icons.home_rounded), label: langCode == 'bn' ? 'লবি' : 'Lobby'),
-              BottomNavigationBarItem(icon: const Icon(Icons.storefront_rounded), label: AppLocale.tr('garage')),
-              BottomNavigationBarItem(icon: const Icon(Icons.leaderboard_rounded), label: langCode == 'bn' ? 'র‍্যাংক' : 'Ranks'),
-              BottomNavigationBarItem(icon: const Icon(Icons.shield_rounded), label: langCode == 'bn' ? 'ক্লাব' : 'Clubs'),
-              BottomNavigationBarItem(icon: const Icon(Icons.people_alt_rounded), label: langCode == 'bn' ? 'বন্ধুমহল' : 'Friends'),
+              BottomNavigationBarItem(
+                icon: const Icon(Icons.home_rounded),
+                label: langCode == 'bn' ? 'লবি' : 'Lobby',
+              ),
+              BottomNavigationBarItem(
+                icon: const Icon(Icons.storefront_rounded),
+                label: AppLocale.tr('garage'),
+              ),
+              BottomNavigationBarItem(
+                icon: const Icon(Icons.leaderboard_rounded),
+                label: langCode == 'bn' ? 'র‍্যাংক' : 'Ranks',
+              ),
+              BottomNavigationBarItem(
+                icon: const Icon(Icons.shield_rounded),
+                label: langCode == 'bn' ? 'ক্লাব' : 'Clubs',
+              ),
+              BottomNavigationBarItem(
+                icon: const Icon(Icons.people_alt_rounded),
+                label: langCode == 'bn' ? 'বন্ধুমহল' : 'Friends',
+              ),
             ],
           ),
         );
@@ -430,12 +541,19 @@ class _MainLobbyScreenState extends State<MainLobbyScreen> {
                   const SizedBox(height: 2),
                   Text(
                     subtitle,
-                    style: const TextStyle(color: AppColors.slateMuted, fontSize: 11),
+                    style: const TextStyle(
+                      color: AppColors.slateMuted,
+                      fontSize: 11,
+                    ),
                   ),
                 ],
               ),
             ),
-            const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white24, size: 14),
+            const Icon(
+              Icons.arrow_forward_ios_rounded,
+              color: Colors.white24,
+              size: 14,
+            ),
           ],
         ),
       ),
@@ -457,19 +575,24 @@ class _MainLobbyScreenState extends State<MainLobbyScreen> {
               content: Text(
                 reward != null
                     ? (isBn
-                        ? '🎉 অভিনন্দন! টিফিন বাবদ +$reward কয়েন যোগ হয়েছে!'
-                        : '🎉 +$reward Daily Tiffin coins added!')
+                          ? '🎉 অভিনন্দন! টিফিন বাবদ +$reward কয়েন যোগ হয়েছে!'
+                          : '🎉 +$reward Daily Tiffin coins added!')
                     : (isBn
-                        ? 'আজকের টিফিন ইতোমধ্যে নিয়েছেন! পরে আবার চেষ্টা করুন। 🎒'
-                        : 'Daily Tiffin is not ready yet. Please come back later. 🎒'),
+                          ? 'আজকের টিফিন ইতোমধ্যে নিয়েছেন! পরে আবার চেষ্টা করুন। 🎒'
+                          : 'Daily Tiffin is not ready yet. Please come back later. 🎒'),
               ),
-              backgroundColor: reward != null ? AppColors.emeraldTurn : AppColors.cyanSpin,
+              backgroundColor: reward != null
+                  ? AppColors.emeraldTurn
+                  : AppColors.cyanSpin,
             ),
           );
         } catch (error) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(error.toString()), backgroundColor: AppColors.crimsonStrike),
+              SnackBar(
+                content: Text(error.toString()),
+                backgroundColor: AppColors.crimsonStrike,
+              ),
             );
           }
         } finally {
@@ -487,7 +610,9 @@ class _MainLobbyScreenState extends State<MainLobbyScreen> {
             ],
           ),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.goldTiffinCoin.withValues(alpha: 0.5)),
+          border: Border.all(
+            color: AppColors.goldTiffinCoin.withValues(alpha: 0.5),
+          ),
         ),
         child: Row(
           children: [
@@ -505,7 +630,9 @@ class _MainLobbyScreenState extends State<MainLobbyScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    isBn ? 'দৈনিক টিফিন ভাতা (Free Coins)' : 'Daily Tiffin Bonus (Free Coins)',
+                    isBn
+                        ? 'দৈনিক টিফিন ভাতা (Free Coins)'
+                        : 'Daily Tiffin Bonus (Free Coins)',
                     style: const TextStyle(
                       color: AppColors.goldTiffinCoin,
                       fontWeight: FontWeight.bold,
@@ -516,7 +643,10 @@ class _MainLobbyScreenState extends State<MainLobbyScreen> {
                     isBn
                         ? 'প্রতিদিন লগইন করে বিনামূল্যে +২০০ কয়েন বুঝে নিন!'
                         : 'Tap daily to collect +200 free allowance coins!',
-                    style: const TextStyle(color: AppColors.slateMuted, fontSize: 11),
+                    style: const TextStyle(
+                      color: AppColors.slateMuted,
+                      fontSize: 11,
+                    ),
                   ),
                 ],
               ),

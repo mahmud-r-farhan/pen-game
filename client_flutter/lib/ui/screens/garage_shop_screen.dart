@@ -36,7 +36,10 @@ class _GarageShopScreenState extends State<GarageShopScreen> {
       SoundEffects().playFlick();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${pen.nameEn} equipped!'), backgroundColor: AppColors.emeraldTurn),
+          SnackBar(
+            content: Text('${pen.nameEn} equipped!'),
+            backgroundColor: AppColors.emeraldTurn,
+          ),
         );
       }
     } catch (error) {
@@ -70,7 +73,10 @@ class _GarageShopScreenState extends State<GarageShopScreen> {
   void _showError(Object error) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(error.toString()), backgroundColor: AppColors.crimsonStrike),
+      SnackBar(
+        content: Text(error.toString()),
+        backgroundColor: AppColors.crimsonStrike,
+      ),
     );
   }
 
@@ -90,16 +96,28 @@ class _GarageShopScreenState extends State<GarageShopScreen> {
             backgroundColor: AppColors.bgSurfaceDark,
             elevation: 0,
             leading: IconButton(
-              icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+              icon: const Icon(
+                Icons.arrow_back_ios_new_rounded,
+                color: Colors.white,
+                size: 20,
+              ),
               onPressed: () => Navigator.of(context).pop(),
             ),
             title: Row(
               children: [
-                const Icon(Icons.storefront_rounded, color: AppColors.goldTiffinCoin, size: 22),
+                const Icon(
+                  Icons.storefront_rounded,
+                  color: AppColors.goldTiffinCoin,
+                  size: 22,
+                ),
                 const SizedBox(width: 8),
                 Text(
                   AppLocale.tr('pen_garage'),
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.white),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                    color: Colors.white,
+                  ),
                 ),
               ],
             ),
@@ -125,7 +143,10 @@ class _GarageShopScreenState extends State<GarageShopScreen> {
                     ],
                   ),
                   borderRadius: BorderRadius.circular(24),
-                  border: Border.all(color: _selectedPen.accentColor.withValues(alpha: 0.6), width: 1.5),
+                  border: Border.all(
+                    color: _selectedPen.accentColor.withValues(alpha: 0.6),
+                    width: 1.5,
+                  ),
                 ),
                 child: Stack(
                   children: [
@@ -154,7 +175,9 @@ class _GarageShopScreenState extends State<GarageShopScreen> {
                             ),
                           ),
                           Text(
-                            isBn ? _selectedPen.tagLineBn : _selectedPen.tagLineEn,
+                            isBn
+                                ? _selectedPen.tagLineBn
+                                : _selectedPen.tagLineEn,
                             style: TextStyle(
                               color: _selectedPen.accentColor,
                               fontSize: 12,
@@ -173,10 +196,26 @@ class _GarageShopScreenState extends State<GarageShopScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Column(
                   children: [
-                    _buildStatBar('Pen Mass & Weight', _selectedPen.massRating, AppColors.goldTiffinCoin),
-                    _buildStatBar('Rubber Grip Friction', _selectedPen.gripRating, AppColors.emeraldTurn),
-                    _buildStatBar('Slide Top Speed', _selectedPen.speedRating, AppColors.cyanSpin),
-                    _buildStatBar('Whip-Spin Torque', _selectedPen.whipSpinRating, AppColors.crimsonStrike),
+                    _buildStatBar(
+                      'Pen Mass & Weight',
+                      _selectedPen.massRating,
+                      AppColors.goldTiffinCoin,
+                    ),
+                    _buildStatBar(
+                      'Rubber Grip Friction',
+                      _selectedPen.gripRating,
+                      AppColors.emeraldTurn,
+                    ),
+                    _buildStatBar(
+                      'Slide Top Speed',
+                      _selectedPen.speedRating,
+                      AppColors.cyanSpin,
+                    ),
+                    _buildStatBar(
+                      'Whip-Spin Torque',
+                      _selectedPen.whipSpinRating,
+                      AppColors.crimsonStrike,
+                    ),
                   ],
                 ),
               ),
@@ -191,27 +230,32 @@ class _GarageShopScreenState extends State<GarageShopScreen> {
                     onPressed: _isBusy || isEquipped
                         ? null
                         : isUnlocked
-                            ? () => _equipPen(_selectedPen)
-                            : () => _buyPen(_selectedPen),
+                        ? () => _equipPen(_selectedPen)
+                        : () => _buyPen(_selectedPen),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: isEquipped
                           ? AppColors.glassSurface
                           : isUnlocked
-                              ? AppColors.emeraldTurn
-                              : AppColors.goldTiffinCoin,
+                          ? AppColors.emeraldTurn
+                          : AppColors.goldTiffinCoin,
                       foregroundColor: Colors.black,
                       disabledBackgroundColor: AppColors.glassBorder,
                       disabledForegroundColor: AppColors.slateMuted,
                       padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
                     ),
                     child: Text(
                       isEquipped
                           ? 'Equipped'
                           : isUnlocked
-                              ? 'Equip Pen'
-                              : 'Unlock (${NumberFormat.decimalPattern().format(_selectedPen.unlockPrice)} Coins)',
-                      style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
+                          ? 'Equip Pen'
+                          : 'Unlock (${NumberFormat.decimalPattern().format(_selectedPen.unlockPrice)} Coins)',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w900,
+                        fontSize: 16,
+                      ),
                     ),
                   ),
                 ),
@@ -221,7 +265,10 @@ class _GarageShopScreenState extends State<GarageShopScreen> {
               // 3. Pen Catalog Carousel / Grid
               Expanded(
                 child: GridView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 2,
                     childAspectRatio: 1.6,
@@ -249,8 +296,8 @@ class _GarageShopScreenState extends State<GarageShopScreen> {
                             color: isSelected
                                 ? pen.accentColor
                                 : isCurrent
-                                    ? AppColors.emeraldTurn
-                                    : AppColors.glassBorder,
+                                ? AppColors.emeraldTurn
+                                : AppColors.glassBorder,
                             width: isSelected ? 2 : 1,
                           ),
                         ),
@@ -264,15 +311,25 @@ class _GarageShopScreenState extends State<GarageShopScreen> {
                                 Text(
                                   isBn ? pen.nameBn : pen.nameEn,
                                   style: TextStyle(
-                                    color: isSelected ? Colors.white : Colors.white70,
+                                    color: isSelected
+                                        ? Colors.white
+                                        : Colors.white70,
                                     fontWeight: FontWeight.bold,
                                     fontSize: 12,
                                   ),
                                 ),
                                 if (isCurrent)
-                                  const Icon(Icons.check_circle, color: AppColors.emeraldTurn, size: 16)
+                                  const Icon(
+                                    Icons.check_circle,
+                                    color: AppColors.emeraldTurn,
+                                    size: 16,
+                                  )
                                 else if (!isOwned)
-                                  const Icon(Icons.lock, color: AppColors.slateMuted, size: 14),
+                                  const Icon(
+                                    Icons.lock,
+                                    color: AppColors.slateMuted,
+                                    size: 14,
+                                  ),
                               ],
                             ),
                             const Spacer(),
@@ -288,7 +345,9 @@ class _GarageShopScreenState extends State<GarageShopScreen> {
                                   ? 'Owned'
                                   : '${NumberFormat.compact().format(pen.unlockPrice)} Coins',
                               style: TextStyle(
-                                color: isOwned ? AppColors.emeraldTurn : AppColors.goldTiffinCoin,
+                                color: isOwned
+                                    ? AppColors.emeraldTurn
+                                    : AppColors.goldTiffinCoin,
                                 fontWeight: FontWeight.bold,
                                 fontSize: 11,
                                 fontFamily: 'monospace',
@@ -315,7 +374,10 @@ class _GarageShopScreenState extends State<GarageShopScreen> {
         children: [
           SizedBox(
             width: 150,
-            child: Text(title, style: const TextStyle(color: AppColors.slateMuted, fontSize: 12)),
+            child: Text(
+              title,
+              style: const TextStyle(color: AppColors.slateMuted, fontSize: 12),
+            ),
           ),
           Expanded(
             child: ClipRRect(

@@ -15,7 +15,11 @@ class MatchmakingScreen extends StatefulWidget {
   final ArenaRoom room;
   final KolomSpec playerPen;
 
-  const MatchmakingScreen({super.key, required this.room, required this.playerPen});
+  const MatchmakingScreen({
+    super.key,
+    required this.room,
+    required this.playerPen,
+  });
 
   @override
   State<MatchmakingScreen> createState() => _MatchmakingScreenState();
@@ -37,7 +41,8 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
       if (mounted) setState(() => _error = message);
     });
     _stateSub = KolomWsClient().onConnectionState.listen((state) {
-      if (state == WsConnectionState.connected && !_queued && !_cancelled) _joinQueue();
+      if (state == WsConnectionState.connected && !_queued && !_cancelled)
+        _joinQueue();
     });
     _connectAndJoin();
   }
@@ -80,7 +85,8 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
   @override
   void dispose() {
     _searchTimer?.cancel();
-    if (!_cancelled && KolomWsClient().isConnected) KolomWsClient().leaveQueue();
+    if (!_cancelled && KolomWsClient().isConnected)
+      KolomWsClient().leaveQueue();
     _errorSub?.cancel();
     _stateSub?.cancel();
     super.dispose();
@@ -97,7 +103,10 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
         backgroundColor: AppColors.bgObsidian,
         appBar: AppBar(
           title: const Text('Human 1v1 Matchmaking'),
-          leading: IconButton(icon: const Icon(Icons.close_rounded), onPressed: _cancel),
+          leading: IconButton(
+            icon: const Icon(Icons.close_rounded),
+            onPressed: _cancel,
+          ),
         ),
         body: SafeArea(
           child: Center(
@@ -113,41 +122,71 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
                       height: 86,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: widget.room.neonGlowColor.withValues(alpha: 0.12),
-                        border: Border.all(color: widget.room.neonGlowColor, width: 2),
+                        color: widget.room.neonGlowColor.withValues(
+                          alpha: 0.12,
+                        ),
+                        border: Border.all(
+                          color: widget.room.neonGlowColor,
+                          width: 2,
+                        ),
                       ),
-                      child: Icon(Icons.sports_esports_rounded, size: 42, color: widget.room.neonGlowColor),
+                      child: Icon(
+                        Icons.sports_esports_rounded,
+                        size: 42,
+                        color: widget.room.neonGlowColor,
+                      ),
                     ),
                     const SizedBox(height: 24),
                     Text(
                       widget.room.localizedName('en'),
                       textAlign: TextAlign.center,
-                      style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 24,
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       '${widget.room.entryCoins} coin entry • ${widget.room.payoutCoins} coin winner payout',
-                      style: const TextStyle(color: AppColors.goldTiffinCoin, fontWeight: FontWeight.bold),
+                      style: const TextStyle(
+                        color: AppColors.goldTiffinCoin,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     const SizedBox(height: 28),
                     if (_error == null) ...[
-                      const CircularProgressIndicator(color: AppColors.goldTiffinCoin),
+                      const CircularProgressIndicator(
+                        color: AppColors.goldTiffinCoin,
+                      ),
                       const SizedBox(height: 18),
                       Text(
-                        _queued ? 'Searching for a real opponent…' : 'Establishing a secure live connection…',
+                        _queued
+                            ? 'Searching for a real opponent…'
+                            : 'Establishing a secure live connection…',
                         textAlign: TextAlign.center,
-                        style: const TextStyle(color: Colors.white70, fontSize: 15),
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 15,
+                        ),
                       ),
                       const SizedBox(height: 8),
                       const Text(
                         'You can cancel anytime. Entry coins are escrowed only when both players are matched.',
                         textAlign: TextAlign.center,
-                        style: TextStyle(color: AppColors.slateMuted, fontSize: 12, height: 1.4),
+                        style: TextStyle(
+                          color: AppColors.slateMuted,
+                          fontSize: 12,
+                          height: 1.4,
+                        ),
                       ),
                       if (_searchSeconds >= 6) ...[
                         const SizedBox(height: 20),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
+                          ),
                           decoration: BoxDecoration(
                             color: AppColors.glassSurfaceHeavy,
                             borderRadius: BorderRadius.circular(16),
@@ -157,7 +196,10 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
                             children: [
                               const Text(
                                 'Opponent search is taking longer than usual.',
-                                style: TextStyle(color: Colors.white70, fontSize: 12),
+                                style: TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 12,
+                                ),
                               ),
                               const SizedBox(height: 10),
                               ElevatedButton.icon(
@@ -176,23 +218,44 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: AppColors.cyanSpin,
                                   foregroundColor: Colors.black,
-                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 10,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
                                 ),
-                                icon: const Icon(Icons.smart_toy_rounded, size: 18),
-                                label: const Text('Play vs AI Bot Now', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                                icon: const Icon(
+                                  Icons.smart_toy_rounded,
+                                  size: 18,
+                                ),
+                                label: const Text(
+                                  'Play vs AI Bot Now',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13,
+                                  ),
+                                ),
                               ),
                             ],
                           ),
                         ),
                       ],
                     ] else ...[
-                      const Icon(Icons.cloud_off_rounded, color: AppColors.crimsonStrike, size: 42),
+                      const Icon(
+                        Icons.cloud_off_rounded,
+                        color: AppColors.crimsonStrike,
+                        size: 42,
+                      ),
                       const SizedBox(height: 14),
                       Text(
                         _error!,
                         textAlign: TextAlign.center,
-                        style: const TextStyle(color: Colors.white70, height: 1.4),
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          height: 1.4,
+                        ),
                       ),
                       const SizedBox(height: 18),
                       ElevatedButton.icon(
@@ -205,7 +268,10 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
                       ),
                     ],
                     const SizedBox(height: 24),
-                    TextButton(onPressed: _cancel, child: const Text('Cancel and return')),
+                    TextButton(
+                      onPressed: _cancel,
+                      child: const Text('Cancel and return'),
+                    ),
                   ],
                 ),
               ),

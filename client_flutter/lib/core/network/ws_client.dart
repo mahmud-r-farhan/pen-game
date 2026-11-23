@@ -35,12 +35,15 @@ class KolomWsClient {
   final _matchOverController = StreamController<MatchOverData>.broadcast();
   final _roomCodeController = StreamController<String>.broadcast();
   final _walletSyncController = StreamController<int>.broadcast();
-  final _challengeController = StreamController<Map<String, dynamic>>.broadcast();
+  final _challengeController =
+      StreamController<Map<String, dynamic>>.broadcast();
   final _turnTimerController = StreamController<TurnTimerData>.broadcast();
   final _turnTimeoutController = StreamController<TurnTimeoutData>.broadcast();
-  final _rematchOfferController = StreamController<Map<String, dynamic>>.broadcast();
+  final _rematchOfferController =
+      StreamController<Map<String, dynamic>>.broadcast();
   final _rematchDeclinedController = StreamController<String>.broadcast();
-  final _queueWaitingController = StreamController<QueueWaitingData>.broadcast();
+  final _queueWaitingController =
+      StreamController<QueueWaitingData>.broadcast();
   final _authSuccessController = StreamController<UserProfile>.broadcast();
   final _errorController = StreamController<String>.broadcast();
   final _stateController = StreamController<WsConnectionState>.broadcast();
@@ -52,10 +55,12 @@ class KolomWsClient {
   Stream<MatchOverData> get onMatchOver => _matchOverController.stream;
   Stream<String> get onRoomCodeCreated => _roomCodeController.stream;
   Stream<int> get onWalletSync => _walletSyncController.stream;
-  Stream<Map<String, dynamic>> get onChallengeReceived => _challengeController.stream;
+  Stream<Map<String, dynamic>> get onChallengeReceived =>
+      _challengeController.stream;
   Stream<TurnTimerData> get onTurnTimerTick => _turnTimerController.stream;
   Stream<TurnTimeoutData> get onTurnTimeout => _turnTimeoutController.stream;
-  Stream<Map<String, dynamic>> get onRematchOffer => _rematchOfferController.stream;
+  Stream<Map<String, dynamic>> get onRematchOffer =>
+      _rematchOfferController.stream;
   Stream<String> get onRematchDeclined => _rematchDeclinedController.stream;
   Stream<QueueWaitingData> get onQueueWaiting => _queueWaitingController.stream;
   Stream<UserProfile> get onAuthSuccess => _authSuccessController.stream;
@@ -88,16 +93,23 @@ class KolomWsClient {
 
   Future<void> _openConnection({bool forceReconnect = false}) async {
     final profile = _profile;
-    if (profile == null) throw StateError('No player profile for WebSocket connection.');
+    if (profile == null)
+      throw StateError('No player profile for WebSocket connection.');
     final generation = ++_generation;
     _reconnectTimer?.cancel();
     if (forceReconnect || _channel != null) await _closeChannel();
-    _setState(_reconnectAttempt > 0 ? WsConnectionState.reconnecting : WsConnectionState.connecting);
+    _setState(
+      _reconnectAttempt > 0
+          ? WsConnectionState.reconnecting
+          : WsConnectionState.connecting,
+    );
 
     try {
       final ticket = await ApiService().createWebSocketTicket();
       if (generation != _generation || !_shouldStayConnected) return;
-      final uri = Uri.parse(_serverUrl).replace(queryParameters: {'ticket': ticket});
+      final uri = Uri.parse(
+        _serverUrl,
+      ).replace(queryParameters: {'ticket': ticket});
       final channel = WebSocketChannel.connect(uri);
       _channel = channel;
       _socketSubscription = channel.stream.listen(
@@ -105,7 +117,9 @@ class KolomWsClient {
         onError: (Object error) {
           if (generation != _generation) return;
           debugPrint('WebSocket error: $error');
-          _errorController.add('Live connection error. Attempting to reconnect…');
+          _errorController.add(
+            'Live connection error. Attempting to reconnect…',
+          );
         },
         onDone: () {
           if (generation != _generation) return;
@@ -123,7 +137,9 @@ class KolomWsClient {
       if (generation != _generation) return;
       await _closeChannel();
       _setState(WsConnectionState.disconnected);
-      final message = error is ApiException ? error.message : 'Could not connect to the live game server.';
+      final message = error is ApiException
+          ? error.message
+          : 'Could not connect to the live game server.';
       _errorController.add(message);
       _scheduleReconnect();
       throw ApiException('WEBSOCKET_UNAVAILABLE', message);
@@ -131,7 +147,8 @@ class KolomWsClient {
   }
 
   void _scheduleReconnect() {
-    if (!_shouldStayConnected || _profile == null || _reconnectTimer != null) return;
+    if (!_shouldStayConnected || _profile == null || _reconnectTimer != null)
+      return;
     _reconnectAttempt++;
     final int seconds;
     if (_reconnectAttempt == 1) {
@@ -157,7 +174,9 @@ class KolomWsClient {
       final data = jsonDecode(raw.toString()) as Map<String, dynamic>;
       switch (data['type']) {
         case 'AUTH_SUCCESS':
-          _authSuccessController.add(UserProfile.fromJson(data['profile'] as Map<String, dynamic>));
+          _authSuccessController.add(
+            UserProfile.fromJson(data['profile'] as Map<String, dynamic>),
+          );
           break;
         case 'MATCH_START':
           _matchStartController.add(MatchStartData.fromJson(data));
@@ -193,13 +212,17 @@ class KolomWsClient {
           _rematchOfferController.add(data);
           break;
         case 'REMATCH_DECLINED':
-          _rematchDeclinedController.add(data['reason'] as String? ?? 'Opponent declined the rematch.');
+          _rematchDeclinedController.add(
+            data['reason'] as String? ?? 'Opponent declined the rematch.',
+          );
           break;
         case 'QUEUE_WAITING':
           _queueWaitingController.add(QueueWaitingData.fromJson(data));
           break;
         case 'ERROR':
-          _errorController.add(data['message'] as String? ?? 'The game action failed.');
+          _errorController.add(
+            data['message'] as String? ?? 'The game action failed.',
+          );
           break;
       }
     } catch (error) {
@@ -211,7 +234,9 @@ class KolomWsClient {
   bool _send(Map<String, dynamic> packet) {
     final channel = _channel;
     if (!isConnected || channel == null) {
-      _errorController.add('The live server is still connecting. Please wait and retry.');
+      _errorController.add(
+        'The live server is still connecting. Please wait and retry.',
+      );
       return false;
     }
     channel.sink.add(jsonEncode(packet));
@@ -219,26 +244,54 @@ class KolomWsClient {
   }
 
   void joinQueue({required String roomTypeId, required String penModel}) {
-    _send({'type': 'QUEUE_JOIN', 'roomTypeId': roomTypeId, 'penModel': penModel});
+    _send({
+      'type': 'QUEUE_JOIN',
+      'roomTypeId': roomTypeId,
+      'penModel': penModel,
+    });
   }
 
   void leaveQueue() => _send({'type': 'QUEUE_LEAVE'});
 
-  void createPrivateRoom({required String roomTypeId, required String penModel}) {
-    _send({'type': 'ROOM_CODE_CREATE', 'roomTypeId': roomTypeId, 'penModel': penModel});
+  void createPrivateRoom({
+    required String roomTypeId,
+    required String penModel,
+  }) {
+    _send({
+      'type': 'ROOM_CODE_CREATE',
+      'roomTypeId': roomTypeId,
+      'penModel': penModel,
+    });
   }
 
   void joinPrivateRoom({required String roomCode, required String penModel}) {
-    _send({'type': 'ROOM_CODE_JOIN', 'roomCode': roomCode, 'penModel': penModel});
+    _send({
+      'type': 'ROOM_CODE_JOIN',
+      'roomCode': roomCode,
+      'penModel': penModel,
+    });
   }
 
   void cancelPrivateRoom() => _send({'type': 'ROOM_CODE_CANCEL'});
 
-  void sendFriendChallenge({required String targetUserId, required String roomTypeId, required String penModel}) {
-    _send({'type': 'FRIEND_CHALLENGE_SEND', 'targetUserId': targetUserId, 'roomTypeId': roomTypeId, 'penModel': penModel});
+  void sendFriendChallenge({
+    required String targetUserId,
+    required String roomTypeId,
+    required String penModel,
+  }) {
+    _send({
+      'type': 'FRIEND_CHALLENGE_SEND',
+      'targetUserId': targetUserId,
+      'roomTypeId': roomTypeId,
+      'penModel': penModel,
+    });
   }
 
-  void respondFriendChallenge({required String challengeId, required bool accept, String? penModel}) {
+  void respondFriendChallenge({
+    required String challengeId,
+    required bool accept,
+    String? penModel,
+  }) {
     _send({
       'type': 'FRIEND_CHALLENGE_RESPOND',
       'challengeId': challengeId,
@@ -247,7 +300,11 @@ class KolomWsClient {
     });
   }
 
-  void submitFlick({required double impulseX, required double impulseY, required double strikeOffset}) {
+  void submitFlick({
+    required double impulseX,
+    required double impulseY,
+    required double strikeOffset,
+  }) {
     _send({
       'type': 'FLICK_SUBMIT',
       'impulseX': impulseX,
@@ -256,11 +313,27 @@ class KolomWsClient {
     });
   }
 
-  void submitShot({required double ang, required double power, double rx = 0, double ry = 0}) {
-    _send({'type': 'SHOT_SUBMIT', 'ang': ang, 'power': power, 'rx': rx, 'ry': ry});
+  void submitShot({
+    required double ang,
+    required double power,
+    double rx = 0,
+    double ry = 0,
+  }) {
+    _send({
+      'type': 'SHOT_SUBMIT',
+      'ang': ang,
+      'power': power,
+      'rx': rx,
+      'ry': ry,
+    });
   }
 
-  void updateAiming({required bool isAiming, required double pullX, required double pullY, required double strikeOffset}) {
+  void updateAiming({
+    required bool isAiming,
+    required double pullX,
+    required double pullY,
+    required double strikeOffset,
+  }) {
     _send({
       'type': 'AIMING_UPDATE',
       'isAiming': isAiming,
@@ -272,14 +345,24 @@ class KolomWsClient {
 
   void passTurn() => _send({'type': 'PASS_TURN'});
 
-  void sendEmojiChat({required String emojiId, required String textBn, String? textEn}) {
-    _send({'type': 'EMOJI_CHAT', 'emojiId': emojiId, 'textBn': textBn, 'textEn': textEn ?? textBn});
+  void sendEmojiChat({
+    required String emojiId,
+    required String textBn,
+    String? textEn,
+  }) {
+    _send({
+      'type': 'EMOJI_CHAT',
+      'emojiId': emojiId,
+      'textBn': textBn,
+      'textEn': textEn ?? textBn,
+    });
   }
 
   void surrender() => _send({'type': 'SURRENDER'});
   void forfeitMatch() => surrender();
   void sendRematchRequest() => _send({'type': 'REMATCH_REQUEST'});
-  void respondRematch({required bool accept}) => _send({'type': 'REMATCH_RESPOND', 'accept': accept});
+  void respondRematch({required bool accept}) =>
+      _send({'type': 'REMATCH_RESPOND', 'accept': accept});
 
   Future<void> _closeChannel() async {
     await _socketSubscription?.cancel();

@@ -32,7 +32,8 @@ class VictoryDialog extends StatefulWidget {
   State<VictoryDialog> createState() => _VictoryDialogState();
 }
 
-class _VictoryDialogState extends State<VictoryDialog> with SingleTickerProviderStateMixin {
+class _VictoryDialogState extends State<VictoryDialog>
+    with SingleTickerProviderStateMixin {
   late AnimationController _animController;
   final List<_RibbonPiece> _ribbons = [];
   final math.Random _random = math.Random();
@@ -64,16 +65,18 @@ class _VictoryDialogState extends State<VictoryDialog> with SingleTickerProvider
           ];
 
     for (int i = 0; i < 28; i++) {
-      _ribbons.add(_RibbonPiece(
-        x: _random.nextDouble(),
-        y: _random.nextDouble() * -1.0, // Start above dialog
-        length: 12.0 + _random.nextDouble() * 20.0,
-        width: 3.0 + _random.nextDouble() * 4.0,
-        speed: 0.15 + _random.nextDouble() * 0.35,
-        rotationSpeed: (_random.nextDouble() - 0.5) * 6.0,
-        color: colors[_random.nextInt(colors.length)],
-        isRibbonStrip: i % 2 == 0,
-      ));
+      _ribbons.add(
+        _RibbonPiece(
+          x: _random.nextDouble(),
+          y: _random.nextDouble() * -1.0, // Start above dialog
+          length: 12.0 + _random.nextDouble() * 20.0,
+          width: 3.0 + _random.nextDouble() * 4.0,
+          speed: 0.15 + _random.nextDouble() * 0.35,
+          rotationSpeed: (_random.nextDouble() - 0.5) * 6.0,
+          color: colors[_random.nextInt(colors.length)],
+          isRibbonStrip: i % 2 == 0,
+        ),
+      );
     }
 
     // Play celebratory sound on win, motivational chime on loss
@@ -129,13 +132,18 @@ class _VictoryDialogState extends State<VictoryDialog> with SingleTickerProvider
               color: AppColors.glassSurfaceHeavy,
               borderRadius: BorderRadius.circular(24),
               border: Border.all(
-                color: widget.isWinner ? AppColors.emeraldTurn : AppColors.goldTiffinCoin,
+                color: widget.isWinner
+                    ? AppColors.emeraldTurn
+                    : AppColors.goldTiffinCoin,
                 width: 2.0,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: (widget.isWinner ? AppColors.emeraldTurn : AppColors.crimsonStrike)
-                      .withValues(alpha: 0.35),
+                  color:
+                      (widget.isWinner
+                              ? AppColors.emeraldTurn
+                              : AppColors.crimsonStrike)
+                          .withValues(alpha: 0.35),
                   blurRadius: 32,
                   spreadRadius: 2,
                 ),
@@ -167,13 +175,19 @@ class _VictoryDialogState extends State<VictoryDialog> with SingleTickerProvider
                             ],
                     ),
                     border: Border.all(
-                      color: widget.isWinner ? AppColors.goldTiffinCoin : Colors.amber,
+                      color: widget.isWinner
+                          ? AppColors.goldTiffinCoin
+                          : Colors.amber,
                       width: 1.5,
                     ),
                   ),
                   child: Icon(
-                    widget.isWinner ? Icons.emoji_events_rounded : Icons.auto_awesome_rounded,
-                    color: widget.isWinner ? AppColors.goldTiffinCoin : Colors.amberAccent,
+                    widget.isWinner
+                        ? Icons.emoji_events_rounded
+                        : Icons.auto_awesome_rounded,
+                    color: widget.isWinner
+                        ? AppColors.goldTiffinCoin
+                        : Colors.amberAccent,
                     size: 52,
                   ),
                 ),
@@ -185,7 +199,9 @@ class _VictoryDialogState extends State<VictoryDialog> with SingleTickerProvider
                       ? 'দারুণ খেলেছো! Magnificent Strike!'
                       : 'Never Give Up! Keep Training!',
                   style: TextStyle(
-                    color: widget.isWinner ? AppColors.emeraldTurn : Colors.amberAccent,
+                    color: widget.isWinner
+                        ? AppColors.emeraldTurn
+                        : Colors.amberAccent,
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
                   ),
@@ -196,7 +212,10 @@ class _VictoryDialogState extends State<VictoryDialog> with SingleTickerProvider
                       ? AppLocale.tr('knockout_win')
                       : 'প্রতিটি পরাজয়ই নতুন বিজয়ের প্রস্তুতি! ঘুরে দাঁড়াও বীরের মতো।',
                   textAlign: TextAlign.center,
-                  style: const TextStyle(color: AppColors.slateMuted, fontSize: 13),
+                  style: const TextStyle(
+                    color: AppColors.slateMuted,
+                    fontSize: 13,
+                  ),
                 ),
                 const SizedBox(height: 18),
 
@@ -206,18 +225,33 @@ class _VictoryDialogState extends State<VictoryDialog> with SingleTickerProvider
                   children: [
                     // Coins badge
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 8,
+                      ),
                       decoration: BoxDecoration(
                         color: AppColors.glassSurface,
                         borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: AppColors.goldTiffinCoin.withValues(alpha: 0.4)),
+                        border: Border.all(
+                          color: AppColors.goldTiffinCoin.withValues(
+                            alpha: 0.4,
+                          ),
+                        ),
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.monetization_on_rounded, color: AppColors.goldTiffinCoin, size: 20),
+                          const Icon(
+                            Icons.monetization_on_rounded,
+                            color: AppColors.goldTiffinCoin,
+                            size: 20,
+                          ),
                           const SizedBox(width: 6),
                           Text(
-                            widget.isPractice ? 'No coins' : (widget.isWinner ? '+${widget.payout} Coins' : '-Stake Coins'),
+                            widget.isPractice
+                                ? 'No coins'
+                                : (widget.isWinner
+                                      ? '+${widget.payout} Coins'
+                                      : '-Stake Coins'),
                             style: KolomTheme.monoNumeric(
                               color: AppColors.goldTiffinCoin,
                               fontSize: 14,
@@ -230,26 +264,37 @@ class _VictoryDialogState extends State<VictoryDialog> with SingleTickerProvider
 
                     // Trophy Points badge
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 8,
+                      ),
                       decoration: BoxDecoration(
                         color: AppColors.glassSurface,
                         borderRadius: BorderRadius.circular(14),
                         border: Border.all(
-                          color: widget.isWinner ? AppColors.emeraldTurn : AppColors.crimsonStrike,
+                          color: widget.isWinner
+                              ? AppColors.emeraldTurn
+                              : AppColors.crimsonStrike,
                         ),
                       ),
                       child: Row(
                         children: [
                           Icon(
                             Icons.military_tech_rounded,
-                            color: widget.isWinner ? AppColors.emeraldTurn : AppColors.crimsonStrike,
+                            color: widget.isWinner
+                                ? AppColors.emeraldTurn
+                                : AppColors.crimsonStrike,
                             size: 20,
                           ),
                           const SizedBox(width: 6),
                           Text(
-                            widget.isPractice ? 'No RP change' : '${displayedTrophyDelta >= 0 ? '+' : ''}$displayedTrophyDelta RP',
+                            widget.isPractice
+                                ? 'No RP change'
+                                : '${displayedTrophyDelta >= 0 ? '+' : ''}$displayedTrophyDelta RP',
                             style: KolomTheme.monoNumeric(
-                              color: widget.isWinner ? AppColors.emeraldTurn : AppColors.crimsonStrike,
+                              color: widget.isWinner
+                                  ? AppColors.emeraldTurn
+                                  : AppColors.crimsonStrike,
                               fontSize: 14,
                             ),
                           ),
@@ -262,11 +307,16 @@ class _VictoryDialogState extends State<VictoryDialog> with SingleTickerProvider
 
                 // Achievement Cup Tier Status
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.bgObsidian.withValues(alpha: 0.7),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: user.cupColor.withValues(alpha: 0.5)),
+                    border: Border.all(
+                      color: user.cupColor.withValues(alpha: 0.5),
+                    ),
                   ),
                   child: Text(
                     'Achievement Cup: ${user.cupTitle} (${user.trophyPoints} RP)',
@@ -289,9 +339,15 @@ class _VictoryDialogState extends State<VictoryDialog> with SingleTickerProvider
                           foregroundColor: AppColors.chalkWhite,
                           side: const BorderSide(color: AppColors.glassBorder),
                           padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
-                        child: Text(widget.isPractice ? AppLocale.tr('back') : AppLocale.tr('lobby')),
+                        child: Text(
+                          widget.isPractice
+                              ? AppLocale.tr('back')
+                              : AppLocale.tr('lobby'),
+                        ),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -299,10 +355,14 @@ class _VictoryDialogState extends State<VictoryDialog> with SingleTickerProvider
                       child: ElevatedButton(
                         onPressed: widget.onRematch,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: widget.isWinner ? AppColors.emeraldTurn : AppColors.goldTiffinCoin,
+                          backgroundColor: widget.isWinner
+                              ? AppColors.emeraldTurn
+                              : AppColors.goldTiffinCoin,
                           foregroundColor: Colors.black,
                           padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
                         child: Text(
                           AppLocale.tr('rematch'),
@@ -335,10 +395,20 @@ class _VictoryDialogState extends State<VictoryDialog> with SingleTickerProvider
                         ),
                       );
                     },
-                    icon: const Icon(Icons.share_rounded, size: 16, color: AppColors.goldTiffinCoin),
+                    icon: const Icon(
+                      Icons.share_rounded,
+                      size: 16,
+                      color: AppColors.goldTiffinCoin,
+                    ),
                     label: Text(
-                      AppLocale.isBengali ? 'চ্যালেঞ্জ শেয়ার করুন (Messenger/FB)' : 'Share Match Card (Messenger/FB)',
-                      style: const TextStyle(color: AppColors.goldTiffinCoin, fontSize: 12, fontWeight: FontWeight.bold),
+                      AppLocale.isBengali
+                          ? 'চ্যালেঞ্জ শেয়ার করুন (Messenger/FB)'
+                          : 'Share Match Card (Messenger/FB)',
+                      style: const TextStyle(
+                        color: AppColors.goldTiffinCoin,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ),
@@ -484,7 +554,10 @@ class _RibbonConfettiPainter extends CustomPainter {
           width: ribbon.width * 2.0,
           height: ribbon.length * 0.7,
         );
-        canvas.drawRRect(RRect.fromRectAndRadius(rect, const Radius.circular(2)), paint);
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(rect, const Radius.circular(2)),
+          paint,
+        );
       }
 
       canvas.restore();

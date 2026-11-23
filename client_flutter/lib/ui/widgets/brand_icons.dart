@@ -9,10 +9,7 @@ class GoogleGLogo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return CustomPaint(
-      size: Size(size, size),
-      painter: _GoogleGPainter(),
-    );
+    return CustomPaint(size: Size(size, size), painter: _GoogleGPainter());
   }
 }
 
@@ -36,7 +33,10 @@ class _GoogleGPainter extends CustomPainter {
       ..strokeWidth = strokeWidth
       ..strokeCap = StrokeCap.butt;
 
-    final Rect arcRect = Rect.fromCircle(center: center, radius: radius - strokeWidth / 2);
+    final Rect arcRect = Rect.fromCircle(
+      center: center,
+      radius: radius - strokeWidth / 2,
+    );
 
     // 1. Red Arc (Top left to top right: -220° to -135°)
     arcPaint.color = googleRed;

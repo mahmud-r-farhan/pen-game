@@ -8,11 +8,7 @@ class StrikeSlider extends StatelessWidget {
   final double value;
   final ValueChanged<double> onChanged;
 
-  const StrikeSlider({
-    super.key,
-    required this.value,
-    required this.onChanged,
-  });
+  const StrikeSlider({super.key, required this.value, required this.onChanged});
 
   bool get isCapSmash => value < -0.30;
   bool get isTipSpin => value > 0.30;
@@ -116,7 +112,9 @@ class StrikeSlider extends StatelessWidget {
           duration: const Duration(milliseconds: 180),
           padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 4),
           decoration: BoxDecoration(
-            color: isSelected ? color.withValues(alpha: 0.22) : Colors.transparent,
+            color: isSelected
+                ? color.withValues(alpha: 0.22)
+                : Colors.transparent,
             borderRadius: BorderRadius.circular(10),
             border: Border.all(
               color: isSelected ? color : Colors.white12,
@@ -135,7 +133,9 @@ class StrikeSlider extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: isSelected ? Colors.white : Colors.white60,
-                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                    fontWeight: isSelected
+                        ? FontWeight.bold
+                        : FontWeight.normal,
                     fontSize: 10,
                   ),
                 ),

@@ -9,14 +9,62 @@ class EmojiPickerOverlay extends StatelessWidget {
   const EmojiPickerOverlay({super.key, required this.onSelect});
 
   static const List<Map<String, String>> classroomChats = [
-    {'emoji': '💥', 'id': 'hit', 'textEn': 'What a wicked shot!', 'textBn': 'কী শট ছিল রে ভাই!', 'textHi': 'क्या शॉट था भाई!'},
-    {'emoji': '😱', 'id': 'shock', 'textEn': 'It fell off the bench!', 'textBn': 'পড়ে গেল রে টেবিল থেকে!', 'textHi': 'गिर गया टेबल से!'},
-    {'emoji': '🤫', 'id': 'quiet', 'textEn': 'Teacher is looking!', 'textBn': 'স্যার আসছেন, আস্তে!', 'textHi': 'टीचर देख रहे हैं!'},
-    {'emoji': '🚫', 'id': 'nocap', 'textEn': 'No cap flick allowed!', 'textBn': 'ক্যাপ খুলে মারিস না!', 'textHi': 'कैप हटा के मत मारो!'},
-    {'emoji': '🔥', 'id': 'fire', 'textEn': 'Absolute clutch fire!', 'textBn': 'সাবাশ টাইগার আগুন!', 'textHi': 'क्या बात है आग लगा दी!'},
-    {'emoji': '🤦‍♂️', 'id': 'facepalm', 'textEn': 'Ugh, missed by a hair!', 'textBn': 'ধুররর! অল্পের জন্য মিস!', 'textHi': 'धत! बाल-बाल बचा!'},
-    {'emoji': '👑', 'id': 'king', 'textEn': 'King of the classroom!', 'textBn': 'ক্লাসরুমের বস আমি!', 'textHi': 'क्लासरूम का किंग!'},
-    {'emoji': '🔄', 'id': 'rematch', 'textEn': 'One more rematch?', 'textBn': 'আরেক ম্যাচ হয়ে যাক?', 'textHi': 'एक और मैच हो जाए?'},
+    {
+      'emoji': '💥',
+      'id': 'hit',
+      'textEn': 'What a wicked shot!',
+      'textBn': 'কী শট ছিল রে ভাই!',
+      'textHi': 'क्या शॉट था भाई!',
+    },
+    {
+      'emoji': '😱',
+      'id': 'shock',
+      'textEn': 'It fell off the bench!',
+      'textBn': 'পড়ে গেল রে টেবিল থেকে!',
+      'textHi': 'गिर गया टेबल से!',
+    },
+    {
+      'emoji': '🤫',
+      'id': 'quiet',
+      'textEn': 'Teacher is looking!',
+      'textBn': 'স্যার আসছেন, আস্তে!',
+      'textHi': 'टीचर देख रहे हैं!',
+    },
+    {
+      'emoji': '🚫',
+      'id': 'nocap',
+      'textEn': 'No cap flick allowed!',
+      'textBn': 'ক্যাপ খুলে মারিস না!',
+      'textHi': 'कैप हटा के मत मारो!',
+    },
+    {
+      'emoji': '🔥',
+      'id': 'fire',
+      'textEn': 'Absolute clutch fire!',
+      'textBn': 'সাবাশ টাইগার আগুন!',
+      'textHi': 'क्या बात है आग लगा दी!',
+    },
+    {
+      'emoji': '🤦‍♂️',
+      'id': 'facepalm',
+      'textEn': 'Ugh, missed by a hair!',
+      'textBn': 'ধুররর! অল্পের জন্য মিস!',
+      'textHi': 'धत! बाल-बाल बचा!',
+    },
+    {
+      'emoji': '👑',
+      'id': 'king',
+      'textEn': 'King of the classroom!',
+      'textBn': 'ক্লাসরুমের বস আমি!',
+      'textHi': 'क्लासरूम का किंग!',
+    },
+    {
+      'emoji': '🔄',
+      'id': 'rematch',
+      'textEn': 'One more rematch?',
+      'textBn': 'আরেক ম্যাচ হয়ে যাক?',
+      'textHi': 'एक और मैच हो जाए?',
+    },
   ];
 
   @override
@@ -46,7 +94,11 @@ class EmojiPickerOverlay extends StatelessWidget {
                   fontSize: 14,
                 ),
               ),
-              const Icon(Icons.forum_rounded, size: 16, color: AppColors.goldTiffinCoin),
+              const Icon(
+                Icons.forum_rounded,
+                size: 16,
+                color: AppColors.goldTiffinCoin,
+              ),
             ],
           ),
           const SizedBox(height: 12),
@@ -57,14 +109,17 @@ class EmojiPickerOverlay extends StatelessWidget {
               final text = isBn
                   ? chat['textBn']!
                   : isHi
-                      ? chat['textHi']!
-                      : chat['textEn']!;
+                  ? chat['textHi']!
+                  : chat['textEn']!;
 
               return InkWell(
                 onTap: () => onSelect(chat['id']!, text),
                 borderRadius: BorderRadius.circular(12),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.bgSurfaceDark,
                     borderRadius: BorderRadius.circular(12),
@@ -73,11 +128,18 @@ class EmojiPickerOverlay extends StatelessWidget {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(chat['emoji']!, style: const TextStyle(fontSize: 16)),
+                      Text(
+                        chat['emoji']!,
+                        style: const TextStyle(fontSize: 16),
+                      ),
                       const SizedBox(width: 6),
                       Text(
                         text,
-                        style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w500),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ],
                   ),

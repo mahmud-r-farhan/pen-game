@@ -31,7 +31,8 @@ class AuthSessionData {
     required this.expiresAt,
   });
 
-  factory AuthSessionData.fromJson(Map<String, dynamic> json) => AuthSessionData(
+  factory AuthSessionData.fromJson(Map<String, dynamic> json) =>
+      AuthSessionData(
         profile: UserProfile.fromJson(json['profile'] as Map<String, dynamic>),
         sessionToken: json['sessionToken'] as String,
         expiresAt: (json['expiresAt'] as num?)?.toInt() ?? 0,
@@ -43,7 +44,11 @@ class DailyRewardData {
   final int reward;
   final int nextClaimAt;
 
-  const DailyRewardData({required this.profile, required this.reward, required this.nextClaimAt});
+  const DailyRewardData({
+    required this.profile,
+    required this.reward,
+    required this.nextClaimAt,
+  });
 }
 
 class ClubMutationData {
@@ -79,17 +84,17 @@ class ClubData {
   });
 
   factory ClubData.fromJson(Map<String, dynamic> json) => ClubData(
-        id: json['id'] as String? ?? '',
-        name: json['name'] as String? ?? 'Club',
-        tag: json['tag'] as String? ?? '',
-        badgeIcon: json['badgeIcon'] as String? ?? '🛡️',
-        description: json['description'] as String? ?? '',
-        leaderName: json['leaderName'] as String? ?? 'Leader',
-        membersCount: (json['membersCount'] as num?)?.toInt() ?? 0,
-        totalTrophies: (json['totalTrophies'] as num?)?.toInt() ?? 0,
-        region: json['region'] as String? ?? 'GLOBAL',
-        flagEmoji: json['flagEmoji'] as String? ?? '🌐',
-      );
+    id: json['id'] as String? ?? '',
+    name: json['name'] as String? ?? 'Club',
+    tag: json['tag'] as String? ?? '',
+    badgeIcon: json['badgeIcon'] as String? ?? '🛡️',
+    description: json['description'] as String? ?? '',
+    leaderName: json['leaderName'] as String? ?? 'Leader',
+    membersCount: (json['membersCount'] as num?)?.toInt() ?? 0,
+    totalTrophies: (json['totalTrophies'] as num?)?.toInt() ?? 0,
+    region: json['region'] as String? ?? 'GLOBAL',
+    flagEmoji: json['flagEmoji'] as String? ?? '🌐',
+  );
 }
 
 /// Typed backend gateway. Transport failures are never converted into fake
@@ -130,14 +135,27 @@ class ApiService {
       final request = http.Request(method, uri)
         ..headers.addAll(headers)
         ..body = body == null ? '' : jsonEncode(body);
-      final streamed = await _client.send(request).timeout(const Duration(seconds: 12));
-      response = await http.Response.fromStream(streamed).timeout(const Duration(seconds: 12));
+      final streamed = await _client
+          .send(request)
+          .timeout(const Duration(seconds: 12));
+      response = await http.Response.fromStream(
+        streamed,
+      ).timeout(const Duration(seconds: 12));
     } on TimeoutException {
-      throw const ApiException('NETWORK_TIMEOUT', 'The server took too long to respond. Check your connection and retry.');
+      throw const ApiException(
+        'NETWORK_TIMEOUT',
+        'The server took too long to respond. Check your connection and retry.',
+      );
     } on http.ClientException catch (error) {
-      throw ApiException('NETWORK_UNAVAILABLE', 'Cannot reach the game server. ${error.message}');
+      throw ApiException(
+        'NETWORK_UNAVAILABLE',
+        'Cannot reach the game server. ${error.message}',
+      );
     } catch (_) {
-      throw const ApiException('NETWORK_UNAVAILABLE', 'Cannot reach the game server. Check your connection and retry.');
+      throw const ApiException(
+        'NETWORK_UNAVAILABLE',
+        'Cannot reach the game server. Check your connection and retry.',
+      );
     }
 
     dynamic decoded;
@@ -145,13 +163,21 @@ class ApiService {
       try {
         decoded = jsonDecode(utf8.decode(response.bodyBytes));
       } catch (_) {
-        throw ApiException('INVALID_SERVER_RESPONSE', 'The server returned an unreadable response.', response.statusCode);
+        throw ApiException(
+          'INVALID_SERVER_RESPONSE',
+          'The server returned an unreadable response.',
+          response.statusCode,
+        );
       }
     }
     if (response.statusCode < 200 || response.statusCode >= 300) {
       final error = decoded is Map<String, dynamic> ? decoded['error'] : null;
-      final code = error is Map<String, dynamic> ? error['code'] as String? : null;
-      final message = error is Map<String, dynamic> ? error['message'] as String? : null;
+      final code = error is Map<String, dynamic>
+          ? error['code'] as String?
+          : null;
+      final message = error is Map<String, dynamic>
+          ? error['message'] as String?
+          : null;
       throw ApiException(
         code ?? 'HTTP_${response.statusCode}',
         message ?? 'The request failed (${response.statusCode}).',
@@ -167,29 +193,45 @@ class ApiService {
     required String region,
     required String flagEmoji,
   }) async {
-    final data = await _request('POST', '/api/auth/guest', body: {
-      if (username != null && username.trim().isNotEmpty) 'username': username.trim(),
-      'division': division,
-      'region': region,
-      'flagEmoji': flagEmoji,
-    }, requiresAuth: false) as Map<String, dynamic>;
+    final data =
+        await _request(
+              'POST',
+              '/api/auth/guest',
+              body: {
+                if (username != null && username.trim().isNotEmpty)
+                  'username': username.trim(),
+                'division': division,
+                'region': region,
+                'flagEmoji': flagEmoji,
+              },
+              requiresAuth: false,
+            )
+            as Map<String, dynamic>;
     return AuthSessionData.fromJson(data);
   }
 
   Future<UserProfile> restoreSession() async {
-    final data = await _request('GET', '/api/auth/session') as Map<String, dynamic>;
+    final data =
+        await _request('GET', '/api/auth/session') as Map<String, dynamic>;
     return UserProfile.fromJson(data['profile'] as Map<String, dynamic>);
   }
 
   Future<AuthSessionData> loginWithGoogle(String firebaseIdToken) async {
-    final data = await _request('POST', '/api/auth/google', body: {
-      'idToken': firebaseIdToken,
-    }, requiresAuth: false) as Map<String, dynamic>;
+    final data =
+        await _request(
+              'POST',
+              '/api/auth/google',
+              body: {'idToken': firebaseIdToken},
+              requiresAuth: false,
+            )
+            as Map<String, dynamic>;
     return AuthSessionData.fromJson(data);
   }
 
   Future<String> createWebSocketTicket() async {
-    final data = await _request('POST', '/api/auth/ws-ticket', body: const {}) as Map<String, dynamic>;
+    final data =
+        await _request('POST', '/api/auth/ws-ticket', body: const {})
+            as Map<String, dynamic>;
     return data['ticket'] as String;
   }
 
@@ -198,21 +240,38 @@ class ApiService {
   }
 
   Future<UserProfile> getOwnProfile() async {
-    final data = await _request('GET', '/api/user/profile') as Map<String, dynamic>;
+    final data =
+        await _request('GET', '/api/user/profile') as Map<String, dynamic>;
     return UserProfile.fromJson(data['profile'] as Map<String, dynamic>);
   }
 
-  Future<List<UserProfile>> getLeaderboard({String filter = 'global', String? division}) async {
-    final data = await _request('GET', '/api/leaderboard', query: {
-      'filter': filter,
-      if (division != null) 'division': division,
-    }, requiresAuth: filter == 'friends') as List<dynamic>;
-    return data.map((item) => UserProfile.fromJson(item as Map<String, dynamic>)).toList();
+  Future<List<UserProfile>> getLeaderboard({
+    String filter = 'global',
+    String? division,
+  }) async {
+    final data =
+        await _request(
+              'GET',
+              '/api/leaderboard',
+              query: {
+                'filter': filter,
+                if (division != null) 'division': division,
+              },
+              requiresAuth: filter == 'friends',
+            )
+            as List<dynamic>;
+    return data
+        .map((item) => UserProfile.fromJson(item as Map<String, dynamic>))
+        .toList();
   }
 
   Future<List<ClubData>> getClubs() async {
-    final data = await _request('GET', '/api/clubs', requiresAuth: false) as List<dynamic>;
-    return data.map((item) => ClubData.fromJson(item as Map<String, dynamic>)).toList();
+    final data =
+        await _request('GET', '/api/clubs', requiresAuth: false)
+            as List<dynamic>;
+    return data
+        .map((item) => ClubData.fromJson(item as Map<String, dynamic>))
+        .toList();
   }
 
   Future<ClubMutationData> createClub({
@@ -223,14 +282,20 @@ class ApiService {
     String region = 'BD',
     String flagEmoji = '🇧🇩',
   }) async {
-    final data = await _request('POST', '/api/clubs/create', body: {
-      'name': name,
-      'tag': tag,
-      'description': description,
-      'badgeIcon': badgeIcon,
-      'region': region,
-      'flagEmoji': flagEmoji,
-    }) as Map<String, dynamic>;
+    final data =
+        await _request(
+              'POST',
+              '/api/clubs/create',
+              body: {
+                'name': name,
+                'tag': tag,
+                'description': description,
+                'badgeIcon': badgeIcon,
+                'region': region,
+                'flagEmoji': flagEmoji,
+              },
+            )
+            as Map<String, dynamic>;
     return ClubMutationData(
       club: ClubData.fromJson(data['club'] as Map<String, dynamic>),
       profile: UserProfile.fromJson(data['profile'] as Map<String, dynamic>),
@@ -238,7 +303,9 @@ class ApiService {
   }
 
   Future<ClubMutationData> joinClub(String clubId) async {
-    final data = await _request('POST', '/api/clubs/join', body: {'clubId': clubId}) as Map<String, dynamic>;
+    final data =
+        await _request('POST', '/api/clubs/join', body: {'clubId': clubId})
+            as Map<String, dynamic>;
     return ClubMutationData(
       club: ClubData.fromJson(data['club'] as Map<String, dynamic>),
       profile: UserProfile.fromJson(data['profile'] as Map<String, dynamic>),
@@ -246,17 +313,23 @@ class ApiService {
   }
 
   Future<UserProfile> leaveClub() async {
-    final data = await _request('POST', '/api/clubs/leave', body: const {}) as Map<String, dynamic>;
+    final data =
+        await _request('POST', '/api/clubs/leave', body: const {})
+            as Map<String, dynamic>;
     return UserProfile.fromJson(data['profile'] as Map<String, dynamic>);
   }
 
   Future<List<UserProfile>> getFriends() async {
     final data = await _request('GET', '/api/friends') as List<dynamic>;
-    return data.map((item) => UserProfile.fromJson(item as Map<String, dynamic>)).toList();
+    return data
+        .map((item) => UserProfile.fromJson(item as Map<String, dynamic>))
+        .toList();
   }
 
   Future<UserProfile> addFriend(String query) async {
-    final data = await _request('POST', '/api/friends/add', body: {'query': query}) as Map<String, dynamic>;
+    final data =
+        await _request('POST', '/api/friends/add', body: {'query': query})
+            as Map<String, dynamic>;
     return UserProfile.fromJson(data['friend'] as Map<String, dynamic>);
   }
 
@@ -271,28 +344,40 @@ class ApiService {
     String? flagEmoji,
     String? division,
   }) async {
-    final data = await _request('POST', '/api/user/update-profile', body: {
-      if (avatar != null) 'avatar': avatar,
-      if (username != null) 'username': username,
-      if (region != null) 'region': region,
-      if (flagEmoji != null) 'flagEmoji': flagEmoji,
-      if (division != null) 'division': division,
-    }) as Map<String, dynamic>;
+    final data =
+        await _request(
+              'POST',
+              '/api/user/update-profile',
+              body: {
+                if (avatar != null) 'avatar': avatar,
+                if (username != null) 'username': username,
+                if (region != null) 'region': region,
+                if (flagEmoji != null) 'flagEmoji': flagEmoji,
+                if (division != null) 'division': division,
+              },
+            )
+            as Map<String, dynamic>;
     return UserProfile.fromJson(data['profile'] as Map<String, dynamic>);
   }
 
   Future<UserProfile> purchasePen(String penId) async {
-    final data = await _request('POST', '/api/shop/purchase', body: {'penId': penId}) as Map<String, dynamic>;
+    final data =
+        await _request('POST', '/api/shop/purchase', body: {'penId': penId})
+            as Map<String, dynamic>;
     return UserProfile.fromJson(data['profile'] as Map<String, dynamic>);
   }
 
   Future<UserProfile> equipPen(String penId) async {
-    final data = await _request('POST', '/api/shop/equip', body: {'penId': penId}) as Map<String, dynamic>;
+    final data =
+        await _request('POST', '/api/shop/equip', body: {'penId': penId})
+            as Map<String, dynamic>;
     return UserProfile.fromJson(data['profile'] as Map<String, dynamic>);
   }
 
   Future<DailyRewardData> claimDailyReward() async {
-    final data = await _request('POST', '/api/rewards/daily', body: const {}) as Map<String, dynamic>;
+    final data =
+        await _request('POST', '/api/rewards/daily', body: const {})
+            as Map<String, dynamic>;
     return DailyRewardData(
       profile: UserProfile.fromJson(data['profile'] as Map<String, dynamic>),
       reward: (data['reward'] as num?)?.toInt() ?? 0,
