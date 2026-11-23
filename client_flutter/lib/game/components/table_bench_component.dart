@@ -1,4 +1,6 @@
 // lib/game/components/table_bench_component.dart
+import 'dart:ui' as ui;
+
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 import '../../models/arena_room.dart';
@@ -13,8 +15,30 @@ class TableBenchComponent extends Component {
     super.priority = 0,
   });
 
+  ui.Picture? _tablePicture;
+
+  /// The bench is completely static. Record its display list once and replay
+  /// it every frame instead of rebuilding gradients, paths and text layouts.
   @override
   void render(Canvas canvas) {
+    final picture = _tablePicture ??= _recordTable();
+    canvas.drawPicture(picture);
+  }
+
+  ui.Picture _recordTable() {
+    final recorder = ui.PictureRecorder();
+    _paintTable(Canvas(recorder));
+    return recorder.endRecording();
+  }
+
+  @override
+  void onRemove() {
+    _tablePicture?.dispose();
+    _tablePicture = null;
+    super.onRemove();
+  }
+
+  void _paintTable(Canvas canvas) {
     canvas.save();
     // 1. Dark Classroom Floor around the bench
     final floorPaint = Paint()..color = const Color(0xFF0A0C10);
@@ -45,7 +69,12 @@ class TableBenchComponent extends Component {
     );
 
     // 3. 3D Front Desk Lip (Thickness perspective from HTML prototype)
-    final lipRect = Rect.fromLTRB(bounds.left, bounds.bottom, bounds.right, bounds.bottom + 0.55);
+    final lipRect = Rect.fromLTRB(
+      bounds.left,
+      bounds.bottom,
+      bounds.right,
+      bounds.bottom + 0.55,
+    );
     final lipGradient = LinearGradient(
       begin: Alignment.topCenter,
       end: Alignment.bottomCenter,
@@ -162,7 +191,12 @@ class TableBenchComponent extends Component {
     canvas.drawPath(heartPath, carvePaint);
 
     // Carved graffiti text painter
-    void drawCarvedText(String text, Offset pos, double size, [double angle = 0.0]) {
+    void drawCarvedText(
+      String text,
+      Offset pos,
+      double size, [
+      double angle = 0.0,
+    ]) {
       canvas.save();
       canvas.translate(pos.dx, pos.dy);
       if (angle != 0.0) canvas.rotate(angle);
@@ -193,10 +227,26 @@ class TableBenchComponent extends Component {
     final tGrid = Paint()
       ..color = Colors.white.withValues(alpha: 0.08)
       ..strokeWidth = 0.035;
-    canvas.drawLine(const Offset(tX - 0.4, tY - 0.2), const Offset(tX + 0.8, tY - 0.2), tGrid);
-    canvas.drawLine(const Offset(tX - 0.4, tY + 0.2), const Offset(tX + 0.8, tY + 0.2), tGrid);
-    canvas.drawLine(const Offset(tX, tY - 0.5), const Offset(tX, tY + 0.5), tGrid);
-    canvas.drawLine(const Offset(tX + 0.4, tY - 0.5), const Offset(tX + 0.4, tY + 0.5), tGrid);
+    canvas.drawLine(
+      const Offset(tX - 0.4, tY - 0.2),
+      const Offset(tX + 0.8, tY - 0.2),
+      tGrid,
+    );
+    canvas.drawLine(
+      const Offset(tX - 0.4, tY + 0.2),
+      const Offset(tX + 0.8, tY + 0.2),
+      tGrid,
+    );
+    canvas.drawLine(
+      const Offset(tX, tY - 0.5),
+      const Offset(tX, tY + 0.5),
+      tGrid,
+    );
+    canvas.drawLine(
+      const Offset(tX + 0.4, tY - 0.5),
+      const Offset(tX + 0.4, tY + 0.5),
+      tGrid,
+    );
 
     // 3. Compass puncture circular scratches
     final compassPaint = Paint()
@@ -204,10 +254,15 @@ class TableBenchComponent extends Component {
       ..style = PaintingStyle.stroke
       ..strokeWidth = 0.03;
     canvas.drawCircle(const Offset(6.2, -1.8), 0.9, compassPaint);
-    canvas.drawCircle(const Offset(6.2, -1.8), 0.04, Paint()..color = Colors.white.withValues(alpha: 0.18));
+    canvas.drawCircle(
+      const Offset(6.2, -1.8),
+      0.04,
+      Paint()..color = Colors.white.withValues(alpha: 0.18),
+    );
 
     // 4. Folklore Ink Leak Stains (Blue & Black Ink Blots)
-    final blueInk = Paint()..color = const Color(0xFF0D47A1).withValues(alpha: 0.16);
+    final blueInk = Paint()
+      ..color = const Color(0xFF0D47A1).withValues(alpha: 0.16);
     final blackInk = Paint()..color = Colors.black.withValues(alpha: 0.24);
 
     // Primary ink blot
@@ -228,7 +283,11 @@ class TableBenchComponent extends Component {
           ..strokeWidth = 0.05;
         // Compass arc
         canvas.drawArc(
-          Rect.fromCenter(center: const Offset(-5, -2), width: 3.5, height: 3.5),
+          Rect.fromCenter(
+            center: const Offset(-5, -2),
+            width: 3.5,
+            height: 3.5,
+          ),
           0.2,
           2.4,
           false,
@@ -245,7 +304,11 @@ class TableBenchComponent extends Component {
           ..color = Colors.black.withValues(alpha: 0.10)
           ..strokeWidth = 0.06;
         for (double y = bounds.top + 1.0; y < bounds.bottom; y += 1.8) {
-          canvas.drawLine(Offset(bounds.left, y), Offset(bounds.right, y + 0.3), grainPaint);
+          canvas.drawLine(
+            Offset(bounds.left, y),
+            Offset(bounds.right, y + 0.3),
+            grainPaint,
+          );
         }
         final gloss = Paint()
           ..color = Colors.white.withValues(alpha: 0.07)
@@ -262,10 +325,18 @@ class TableBenchComponent extends Component {
           ..color = Colors.white.withValues(alpha: 0.09)
           ..strokeWidth = 0.035;
         for (double x = bounds.left + 1.0; x < bounds.right; x += 1.5) {
-          canvas.drawLine(Offset(x, bounds.top), Offset(x, bounds.bottom), gridPaint);
+          canvas.drawLine(
+            Offset(x, bounds.top),
+            Offset(x, bounds.bottom),
+            gridPaint,
+          );
         }
         for (double y = bounds.top + 1.0; y < bounds.bottom; y += 1.5) {
-          canvas.drawLine(Offset(bounds.left, y), Offset(bounds.right, y), gridPaint);
+          canvas.drawLine(
+            Offset(bounds.left, y),
+            Offset(bounds.right, y),
+            gridPaint,
+          );
         }
         break;
 
@@ -282,7 +353,13 @@ class TableBenchComponent extends Component {
           ..color = const Color(0xFF00E5FF).withValues(alpha: 0.08)
           ..style = PaintingStyle.stroke
           ..strokeWidth = 0.15;
-        canvas.drawRRect(RRect.fromRectAndRadius(bounds.deflate(0.3), const Radius.circular(0.2)), labTint);
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(
+            bounds.deflate(0.3),
+            const Radius.circular(0.2),
+          ),
+          labTint,
+        );
         break;
 
       case TableTextureType.examMahogany:
@@ -301,7 +378,14 @@ class TableBenchComponent extends Component {
         _drawLBracket(canvas, bounds.topLeft, cornerSize, 1, 1, brassPaint);
         _drawLBracket(canvas, bounds.topRight, cornerSize, -1, 1, brassPaint);
         _drawLBracket(canvas, bounds.bottomLeft, cornerSize, 1, -1, brassPaint);
-        _drawLBracket(canvas, bounds.bottomRight, cornerSize, -1, -1, brassPaint);
+        _drawLBracket(
+          canvas,
+          bounds.bottomRight,
+          cornerSize,
+          -1,
+          -1,
+          brassPaint,
+        );
         break;
 
       case TableTextureType.executiveGlass:
@@ -310,7 +394,10 @@ class TableBenchComponent extends Component {
           ..style = PaintingStyle.stroke
           ..strokeWidth = 0.10
           ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 0.25);
-        canvas.drawRRect(RRect.fromRectAndRadius(bounds, const Radius.circular(0.35)), neonEdge);
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(bounds, const Radius.circular(0.35)),
+          neonEdge,
+        );
 
         final glassStreak = Paint()
           ..color = Colors.white.withValues(alpha: 0.08)
