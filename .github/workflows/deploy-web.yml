@@ -1,0 +1,124 @@
+name: Deploy Web
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: deploy-web
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build Web
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: '3.44.9'
+          cache: true
+          cache-key: 'flutter-3.44.9-${{ runner.os }}'
+
+      - name: Get Flutter dependencies
+        working-directory: ./client_flutter
+        run: flutter pub get
+
+      - name: Build Web release
+        working-directory: ./client_flutter
+        env:
+          # Host of the authoritative Deno backend. Override with a repository
+          # variable named SERVER_HOST (Settings > Secrets and variables >
+          # Actions > Variables). The Pages origin is not the API origin, so a
+          # same-origin build would point REST/WebSocket calls at GitHub Pages.
+          SERVER_HOST: ${{ vars.SERVER_HOST || 'kolom-fight.deno.dev' }}
+          FIREBASE_API_KEY: ${{ secrets.FIREBASE_WEB_API_KEY }}
+          FIREBASE_APP_ID: ${{ secrets.FIREBASE_WEB_APP_ID }}
+          FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.FIREBASE_WEB_MESSAGING_SENDER_ID }}
+          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_WEB_PROJECT_ID }}
+          FIREBASE_AUTH_DOMAIN: ${{ secrets.FIREBASE_WEB_AUTH_DOMAIN }}
+        run: |
+          set -euo pipefail
+
+          # GitHub Pages project sites are served from /<repository>/, so the
+          # base href has to match. Flutter replaces the $FLUTTER_BASE_HREF
+          # placeholder in client_flutter/web/index.html with this value.
+          base_href="/${GITHUB_REPOSITORY#*/}/"
+
+          dart_defines=(
+            --dart-define="SERVER_HOST=${SERVER_HOST}"
+          )
+
+          # Firebase is optional on the web. Without these values Google
+          # sign-in is disabled, but guest play and offline practice still work.
+          if [[ -n "${FIREBASE_API_KEY}" && -n "${FIREBASE_APP_ID}" && \
+                -n "${FIREBASE_MESSAGING_SENDER_ID}" && -n "${FIREBASE_PROJECT_ID}" && \
+                -n "${FIREBASE_AUTH_DOMAIN}" ]]; then
+            dart_defines+=(
+              --dart-define="FIREBASE_API_KEY=${FIREBASE_API_KEY}"
+              --dart-define="FIREBASE_APP_ID=${FIREBASE_APP_ID}"
+              --dart-define="FIREBASE_MESSAGING_SENDER_ID=${FIREBASE_MESSAGING_SENDER_ID}"
+              --dart-define="FIREBASE_PROJECT_ID=${FIREBASE_PROJECT_ID}"
+              --dart-define="FIREBASE_AUTH_DOMAIN=${FIREBASE_AUTH_DOMAIN}"
+            )
+            echo "::notice::Google sign-in enabled for web from Firebase secrets."
+          else
+            echo "::notice::Firebase web secrets are not set; Google sign-in is disabled (guest play and offline practice still work)."
+          fi
+
+          # A service worker is disabled so GitHub Pages never serves a stale
+          # cached build after a new deployment.
+          flutter build web --release \
+            --base-href="${base_href}" \
+            --pwa-strategy=none \
+            "${dart_defines[@]}"
+
+      - name: Add .nojekyll
+        run: touch client_flutter/build/web/.nojekyll
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: client_flutter/build/web
+
+  deploy:
+    name: Deploy to GitHub Pages
+    if: github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Verify GitHub Pages is enabled
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if ! gh api "repos/${GITHUB_REPOSITORY}/pages" >/dev/null 2>&1; then
+            echo "::error::GitHub Pages is not enabled for ${GITHUB_REPOSITORY}. Open Settings > Pages, set Source to 'GitHub Actions', then re-run this workflow."
+            exit 1
+          fi
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v6
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5
