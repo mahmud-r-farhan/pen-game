@@ -93,8 +93,9 @@ class KolomWsClient {
 
   Future<void> _openConnection({bool forceReconnect = false}) async {
     final profile = _profile;
-    if (profile == null)
+    if (profile == null) {
       throw StateError('No player profile for WebSocket connection.');
+    }
     final generation = ++_generation;
     _reconnectTimer?.cancel();
     if (forceReconnect || _channel != null) await _closeChannel();
@@ -147,8 +148,9 @@ class KolomWsClient {
   }
 
   void _scheduleReconnect() {
-    if (!_shouldStayConnected || _profile == null || _reconnectTimer != null)
+    if (!_shouldStayConnected || _profile == null || _reconnectTimer != null) {
       return;
+    }
     _reconnectAttempt++;
     final int seconds;
     if (_reconnectAttempt == 1) {

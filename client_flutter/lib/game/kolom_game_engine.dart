@@ -663,8 +663,9 @@ class KolomGameEngine extends Forge2DGame with DragCallbacks {
       await Future.delayed(const Duration(milliseconds: 60));
     }
     if (_isRemoved || generation != _roundGeneration) return;
-    if (playerPen.isEliminated || opponentPen.isEliminated || matchEnded)
+    if (playerPen.isEliminated || opponentPen.isEliminated || matchEnded) {
       return;
+    }
 
     final decision = botAI.calculateShot(
       botPosition: opponentPen.body.position,
@@ -675,8 +676,9 @@ class KolomGameEngine extends Forge2DGame with DragCallbacks {
 
     await Future.delayed(decision.thinkDelay);
     if (_isRemoved || generation != _roundGeneration) return;
-    if (playerPen.isEliminated || opponentPen.isEliminated || matchEnded)
+    if (playerPen.isEliminated || opponentPen.isEliminated || matchEnded) {
       return;
+    }
     if (!areAllPensStopped) return;
 
     SoundEffects().playFlick(

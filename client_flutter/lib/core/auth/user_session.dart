@@ -26,8 +26,9 @@ class UserSession with ChangeNotifier {
 
   UserProfile get profile {
     final current = _currentProfile;
-    if (current == null)
+    if (current == null) {
       throw StateError('No authenticated player profile is available.');
+    }
     return current;
   }
 
@@ -46,10 +47,11 @@ class UserSession with ChangeNotifier {
     try {
       _sessionToken = await _secureStorage.read(key: _secureKeyToken);
       final raw = prefs.getString(_prefKeyProfile);
-      if (raw != null)
+      if (raw != null) {
         _currentProfile = UserProfile.fromJson(
           jsonDecode(raw) as Map<String, dynamic>,
         );
+      }
     } catch (_) {
       _sessionToken = null;
     }

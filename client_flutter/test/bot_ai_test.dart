@@ -69,7 +69,7 @@ void main() {
   });
 
   test('easy bot adds visible human error instead of perfect aim', () {
-    final angles = <double>{};
+    final angles = <String>{};
     for (int i = 0; i < 30; i++) {
       final decision = shoot(BotDifficulty.easy);
       angles.add((decision.impulse.y / decision.impulse.x).toStringAsFixed(3));

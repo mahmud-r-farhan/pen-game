@@ -129,6 +129,17 @@ class _GameScreenState extends State<GameScreen> {
     if (mounted) setState(() => _practiceStats = stats);
   }
 
+  /// Practice label plus the live local record, so a training session shows
+  /// progression instead of a bare "PRACTICE" tag.
+  String _practiceLabel() {
+    final base = AppLocale.tr('practice_mode');
+    final stats = _practiceStats;
+    if (stats == null || stats.matches == 0) return base;
+    final buffer = StringBuffer('$base · ${stats.wins}W ${stats.losses}L');
+    if (stats.streak > 0) buffer.write(' 🔥${stats.streak}');
+    return buffer.toString();
+  }
+
   Future<void> _maybeShowTutorial() async {
     final prefs = await SharedPreferences.getInstance();
     if (!mounted) return;
@@ -671,7 +682,7 @@ class _GameScreenState extends State<GameScreen> {
                                   Text(
                                     widget.isOnline
                                         ? '${widget.room.potCoins} ${AppLocale.tr('pot_label')}'
-                                        : AppLocale.tr('practice_mode'),
+                                        : _practiceLabel(),
                                     style: KolomTheme.monoNumeric(
                                       color: AppColors.goldTiffinCoin,
                                       fontSize: 13,

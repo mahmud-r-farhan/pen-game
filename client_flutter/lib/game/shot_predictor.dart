@@ -34,8 +34,9 @@ class ShotPredictor {
     required double mass,
     required double linearDamping,
   }) {
-    if (!impulse.isFinite || !mass.isFinite || !linearDamping.isFinite)
+    if (!impulse.isFinite || !mass.isFinite || !linearDamping.isFinite) {
       return 0;
+    }
     if (impulse <= 0 || mass <= 0 || linearDamping <= 0) return 0;
     return (impulse / mass) / linearDamping;
   }
