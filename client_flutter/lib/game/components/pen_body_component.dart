@@ -7,7 +7,8 @@ import '../../models/kolom_spec.dart';
 import '../kolom_game_engine.dart';
 import '../rendering/procedural_kolom_painter.dart';
 
-class PenBodyComponent extends BodyComponent<KolomGameEngine> with ContactCallbacks {
+class PenBodyComponent extends BodyComponent<KolomGameEngine>
+    with ContactCallbacks {
   final KolomSpec spec;
   final ArenaRoom room;
   final Vector2 initialPosition;
@@ -19,6 +20,19 @@ class PenBodyComponent extends BodyComponent<KolomGameEngine> with ContactCallba
   double fallScale = 1.0;
   bool isTeetering = false;
   double teeterWobbleTime = 0.0;
+
+  late double _combinedLinearDamping;
+  late double _combinedAngularDamping;
+
+  /// Effective surface damping after the arena multiplier is applied. Used by
+  /// the aiming HUD to predict a physically honest stopping distance.
+  double get effectiveLinearDamping => _combinedLinearDamping;
+
+  /// Effective spin resistance after the arena multiplier is applied.
+  double get effectiveAngularDamping => _combinedAngularDamping;
+
+  /// Current rigid-body mass in kilograms.
+  double get mass => body.mass;
 
   PenBodyComponent({
     required this.spec,
@@ -34,7 +48,8 @@ class PenBodyComponent extends BodyComponent<KolomGameEngine> with ContactCallba
   void beginContact(Object other, Contact contact) {
     super.beginContact(other, contact);
     if (other is PenBodyComponent) {
-      final isMetal = spec.model == KolomModel.hectorMetalTank ||
+      final isMetal =
+          spec.model == KolomModel.hectorMetalTank ||
           spec.model == KolomModel.goldParkerVIP ||
           other.spec.model == KolomModel.hectorMetalTank ||
           other.spec.model == KolomModel.goldParkerVIP;
@@ -55,15 +70,15 @@ class PenBodyComponent extends BodyComponent<KolomGameEngine> with ContactCallba
 
   @override
   Body createBody() {
-    final combinedLinearDamping = spec.linearDamping * (room.friction / 2.3);
-    final combinedAngularDamping = spec.angularDamping * (room.angularDamping / 2.0);
+    _combinedLinearDamping = spec.linearDamping * (room.friction / 2.3);
+    _combinedAngularDamping = spec.angularDamping * (room.angularDamping / 2.0);
 
     final bodyDef = BodyDef(
       type: BodyType.dynamic,
       position: initialPosition,
       rotation: Rot(math.cos(initialAngle), math.sin(initialAngle)),
-      linearDamping: combinedLinearDamping,
-      angularDamping: combinedAngularDamping,
+      linearDamping: _combinedLinearDamping,
+      angularDamping: _combinedAngularDamping,
       isBullet: true, // Continuous Collision Detection
     );
 
@@ -77,10 +92,7 @@ class PenBodyComponent extends BodyComponent<KolomGameEngine> with ContactCallba
       ),
     );
 
-    body.createShape(
-      Polygon.box(spec.length / 2, spec.radius),
-      shapeDef,
-    );
+    body.createShape(Polygon.box(spec.length / 2, spec.radius), shapeDef);
 
     // Apply custom asymmetric center of mass!
     body.massData = MassData(
@@ -97,7 +109,10 @@ class PenBodyComponent extends BodyComponent<KolomGameEngine> with ContactCallba
     return body.worldPoint(localPoint);
   }
 
-  void flick({required Vector2 impulse, required double strikeOffsetNormalized}) {
+  void flick({
+    required Vector2 impulse,
+    required double strikeOffsetNormalized,
+  }) {
     if (isEliminated) return;
     final worldStrikePoint = getStrikeWorldPoint(strikeOffsetNormalized);
     // Applying force at worldStrikePoint generates linear velocity + rotational torque!
@@ -156,14 +171,17 @@ class PenBodyComponent extends BodyComponent<KolomGameEngine> with ContactCallba
   @override
   void render(Canvas canvas) {
     final gameRef = game;
-    final double teeterAngle = isTeetering ? math.sin(teeterWobbleTime) * 0.08 : 0.0;
+    final double teeterAngle = isTeetering
+        ? math.sin(teeterWobbleTime) * 0.08
+        : 0.0;
 
     ProceduralKolomPainter.drawPen(
       canvas,
       spec,
       fallScale: fallScale,
       strikeOffsetMarker: gameRef.strikeOffset,
-      showStrikeMarker: isPlayer && gameRef.isPlayerTurn && isStopped && !isEliminated,
+      showStrikeMarker:
+          isPlayer && gameRef.isPlayerTurn && isStopped && !isEliminated,
       isTeetering: isTeetering,
       teeterAngle: teeterAngle,
     );

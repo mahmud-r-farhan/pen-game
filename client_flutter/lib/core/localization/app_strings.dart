@@ -49,13 +49,16 @@ class AppLocale {
   static final Map<String, Map<String, String>> _translations = {
     'en': {
       // General
-      'app_title': 'Kolom Fight: Tactical Classroom Pen Battle',
+      'app_title': 'Kolom Fight: Classroom Pen Battle',
       'guest_play': 'Play as Guest (75 Coins)',
       'play_as_guest': 'Play as Guest',
       'practice_offline': 'Practice Offline',
-      'practice_offline_note': 'Local profile only. No online rewards or account sync.',
+      'practice_offline_note':
+          'Local profile only. No online rewards or account sync.',
       'google_sign_in': 'Sign in with Google (+120 Coins)',
       'sign_in_google': 'Sign in with Google',
+      'google_unavailable':
+          'Google sign-in is not configured in this build. Guest play and offline practice still work fully.',
       'link_google': 'Link Google Account',
       'merge_success': 'Account linked! Progress and coins merged.',
       'loading': 'Loading...',
@@ -71,7 +74,7 @@ class AppLocale {
       'quick_play': 'Quick Match',
       'quick_play_sub': 'Human-only real-time 1v1 duels',
       'arenas': 'Select Arena',
-      'arenas_sub': '7 Bangladeshi Educational System Benches',
+      'arenas_sub': '8 Bangladeshi Educational Benches',
       'bot_practice': 'Bot Practice',
       'bot_practice_sub': 'Offline Play with Pro AI Bot',
       'private_room': 'Private Room',
@@ -129,12 +132,35 @@ class AppLocale {
       'win_rate': 'Win Rate',
       'win_streak': 'Win Streak',
 
+      // Offline practice
+      'bot_difficulty': 'Bot Difficulty',
+      'difficulty_easy': 'Easy',
+      'difficulty_medium': 'Medium',
+      'difficulty_pro': 'Pro',
+      'difficulty_easy_sub': 'Generous aim error and softer flicks',
+      'difficulty_medium_sub': 'Balanced power with human-like accuracy',
+      'difficulty_pro_sub': 'Edge-aware power shots with tight precision',
+      'practice_record': 'Practice Record',
+      'practice_wins': 'Wins',
+      'practice_losses': 'Losses',
+      'practice_streak': 'Streak',
+      'practice_mode': 'PRACTICE',
+      'tutorial_title': 'How to Flick',
+      'tutorial_body':
+          'Drag anywhere to pull back, then release to strike. Center = straight power, tip = whip spin, back cap = reverse spin.',
+      'tutorial_cta': 'Got it!',
+      'shot_warning_edge': 'Edge risk! This shot may fall off the bench.',
+      'aim_power': 'POWER',
+      'aim_spin': 'SPIN',
+      'center_camera': 'Center camera',
+      'pass_turn': 'Pass turn',
+
       // Settings
       'language': 'Language',
       'sound_effects': 'Sound Effects',
       'vibration': 'Haptic Vibration',
       'region': 'Region / Flag',
-      'version': 'Version 1.0.0',
+      'version': 'Version',
     },
 
     'bn': {
@@ -143,9 +169,12 @@ class AppLocale {
       'guest_play': 'গেস্ট হিসেবে খেলুন (৭৫ কয়েন)',
       'play_as_guest': 'গেস্ট হিসেবে খেলুন',
       'practice_offline': 'অফলাইনে প্র্যাকটিস',
-      'practice_offline_note': 'শুধু স্থানীয় প্রোফাইল। অনলাইন পুরস্কার বা অ্যাকাউন্ট সিঙ্ক নেই।',
+      'practice_offline_note':
+          'শুধু স্থানীয় প্রোফাইল। অনলাইন পুরস্কার বা অ্যাকাউন্ট সিঙ্ক নেই।',
       'google_sign_in': 'গুগল দিয়ে সাইন ইন (+১২০ কয়েন)',
       'sign_in_google': 'গুগল দিয়ে সাইন ইন',
+      'google_unavailable':
+          'এই বিল্ডে গুগল সাইন-ইন নেই। গেস্ট খেলা ও অফলাইন প্র্যাকটিস সম্পূর্ণ কাজ করবে।',
       'link_google': 'গুগল অ্যাকাউন্ট লিংক করুন',
       'merge_success': 'অ্যাকাউন্ট মার্জ সফল! কয়েন ও প্রগ্রেস সুরক্ষিত।',
       'loading': 'লোড হচ্ছে...',
@@ -153,7 +182,8 @@ class AppLocale {
       'cancel': 'বাতিল',
       'back': 'পেছনে',
       'settings': 'সেটিংস',
-      'physics_kolom_championship': 'পদার্থবিজ্ঞান নির্ভর টেবিল ব্যাটেল চ্যাম্পিয়নশিপ',
+      'physics_kolom_championship':
+          'পদার্থবিজ্ঞান নির্ভর টেবিল ব্যাটেল চ্যাম্পিয়নশিপ',
       'coins': 'কয়েন',
       'quick_chat': 'ক্লাসরুম রিঅ্যাকশন চ্যাট',
 
@@ -161,7 +191,7 @@ class AppLocale {
       'quick_play': 'কুইক ম্যাচ',
       'quick_play_sub': 'শুধু মানুষের সঙ্গে রিয়েল-টাইম ১ বনাম ১ ম্যাচ',
       'arenas': 'অ্যারেনা বাছুন',
-      'arenas_sub': '৭টি ক্লাসরুম কাঠের বেঞ্চ',
+      'arenas_sub': '৮টি বাংলাদেশি শিক্ষা প্রতিষ্ঠানের বেঞ্চ',
       'bot_practice': 'বট প্র্যাকটিস',
       'bot_practice_sub': 'অফলাইন মোড (প্রো এআই বট)',
       'private_room': 'প্রাইভেট রুম',
@@ -219,12 +249,35 @@ class AppLocale {
       'win_rate': 'উইন রেট',
       'win_streak': 'উইন স্ট্রাইক',
 
+      // Offline practice
+      'bot_difficulty': 'বটের ধরন',
+      'difficulty_easy': 'সহজ',
+      'difficulty_medium': 'মাঝারি',
+      'difficulty_pro': 'প্রো',
+      'difficulty_easy_sub': 'নরম ফ্লিক ও বেশি নিশানার ভুল',
+      'difficulty_medium_sub': 'ভারসাম্যপূর্ণ শক্তি ও মানুষের মতো নির্ভুলতা',
+      'difficulty_pro_sub': 'কিনারা বুঝে শক্তিশালী ও নিখুঁত শট',
+      'practice_record': 'প্র্যাকটিস রেকর্ড',
+      'practice_wins': 'জয়',
+      'practice_losses': 'হার',
+      'practice_streak': 'স্ট্রিক',
+      'practice_mode': 'প্র্যাকটিস',
+      'tutorial_title': 'কীভাবে ফ্লিক করবেন',
+      'tutorial_body':
+          'স্ক্রিনের যেকোনো জায়গায় ড্র্যাগ করে পিছান, ছেড়ে দিলে শট। মাঝখান = সরল শক্তি, মাথা = হুইপ স্পিন, পেছনের ক্যাপ = রিভার্স স্পিন।',
+      'tutorial_cta': 'বুঝেছি!',
+      'shot_warning_edge': 'কিনারার ঝুঁকি! এই শটে কলম পড়ে যেতে পারে।',
+      'aim_power': 'শক্তি',
+      'aim_spin': 'স্পিন',
+      'center_camera': 'ক্যামেরা সেন্টার করুন',
+      'pass_turn': 'চাল পাস করুন',
+
       // Settings
       'language': 'ভাষা (Language)',
       'sound_effects': 'সাউন্ড ইফেক্টস',
       'vibration': 'ভাইব্রেশন / হ্যাপটিক্স',
       'region': 'অঞ্চল ও পতাকা',
-      'version': 'ভার্সন ১.০.০',
+      'version': 'ভার্সন',
     },
 
     'hi': {
@@ -233,9 +286,12 @@ class AppLocale {
       'guest_play': 'गेस्ट के रूप में खेलें (75 कॉइन्स)',
       'play_as_guest': 'गेस्ट के रूप में खेलें',
       'practice_offline': 'ऑफ़लाइन अभ्यास',
-      'practice_offline_note': 'केवल स्थानीय प्रोफ़ाइल। ऑनलाइन पुरस्कार या सिंक नहीं।',
+      'practice_offline_note':
+          'केवल स्थानीय प्रोफ़ाइल। ऑनलाइन पुरस्कार या सिंक नहीं।',
       'google_sign_in': 'गूगल से लॉगिन करें (+120 कॉइन्स)',
       'sign_in_google': 'गूगल से लॉगिन करें',
+      'google_unavailable':
+          'इस बिल्ड में Google साइन-इन कॉन्फ़िगर नहीं है। गेस्ट प्ले और ऑफ़लाइन अभ्यास पूरी तरह काम करते हैं।',
       'link_google': 'गूगल खाता लिंक करें',
       'merge_success': 'खाता लिंक हो गया! कॉइन्स सुरक्षित हैं।',
       'loading': 'लोड हो रहा है...',
@@ -251,7 +307,7 @@ class AppLocale {
       'quick_play': 'क्विक मैच',
       'quick_play_sub': 'केवल मनुष्यों के साथ रीयल-टाइम 1v1 मुकाबले',
       'arenas': 'अखाड़ा चुनें',
-      'arenas_sub': '7 क्लासरूम लकड़ी के बेंच',
+      'arenas_sub': '8 बांग्लादेशी शिक्षा संस्थानों के बेंच',
       'bot_practice': 'बॉट प्रैक्टिस',
       'bot_practice_sub': 'ऑफलाइन मोड (प्रो एआई बॉट)',
       'private_room': 'प्राइवेट रूम',
@@ -309,12 +365,35 @@ class AppLocale {
       'win_rate': 'जीत दर',
       'win_streak': 'जीत का सिलसिला',
 
+      // Offline practice
+      'bot_difficulty': 'बॉट कठिनाई',
+      'difficulty_easy': 'आसान',
+      'difficulty_medium': 'मध्यम',
+      'difficulty_pro': 'प्रो',
+      'difficulty_easy_sub': 'नरम फ्लिक और अधिक निशाने की गलती',
+      'difficulty_medium_sub': 'संतुलित शक्ति और मानव जैसी सटीकता',
+      'difficulty_pro_sub': 'किनारे को समझती हुई तेज और सटीक शॉट',
+      'practice_record': 'अभ्यास रिकॉर्ड',
+      'practice_wins': 'जीत',
+      'practice_losses': 'हार',
+      'practice_streak': 'स्ट्रीक',
+      'practice_mode': 'अभ्यास',
+      'tutorial_title': 'फ्लिक कैसे करें',
+      'tutorial_body':
+          'स्क्रीन पर कहीं भी खींचकर पीछे ले जाएँ, छोड़ते ही स्ट्राइक। बीच = सीधी शक्ति, नोक = व्हिप स्पिन, पिछला कैप = रिवर्स स्पिन।',
+      'tutorial_cta': 'समझ गया!',
+      'shot_warning_edge': 'किनारे का खतरा! यह शॉट बेंच से गिर सकती है।',
+      'aim_power': 'शक्ति',
+      'aim_spin': 'स्पिन',
+      'center_camera': 'कैमरा सेंटर करें',
+      'pass_turn': 'चाल पास करें',
+
       // Settings
       'language': 'भाषा (Language)',
       'sound_effects': 'ध्वनि प्रभाव',
       'vibration': 'कंपन (Vibration)',
       'region': 'क्षेत्र और ध्वज',
-      'version': 'संस्करण 1.0.0',
+      'version': 'संस्करण',
     },
   };
 }

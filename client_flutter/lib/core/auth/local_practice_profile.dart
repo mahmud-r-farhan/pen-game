@@ -3,11 +3,13 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../models/practice_stats.dart';
 import '../../models/user_profile.dart';
 
 /// A device-local practice identity, independent of any online account.
 class LocalPracticeProfile {
   static const _key = 'kolom_local_practice_profile_v1';
+  static const _statsKey = 'kolom_practice_stats_v1';
 
   static Future<UserProfile> getOrCreate({
     String? desiredName,
@@ -46,5 +48,34 @@ class LocalPracticeProfile {
     );
     await prefs.setString(_key, jsonEncode(profile.toJson()));
     return profile;
+  }
+
+  /// Reads the device-local practice record. Malformed data resets the record
+  /// rather than breaking the practice flow.
+  static Future<PracticeStats> getPracticeStats() async {
+    final prefs = await SharedPreferences.getInstance();
+    final saved = prefs.getString(_statsKey);
+    if (saved == null || saved.isEmpty) return const PracticeStats();
+    try {
+      return PracticeStats.fromJson(jsonDecode(saved) as Map<String, dynamic>);
+    } catch (_) {
+      await prefs.remove(_statsKey);
+      return const PracticeStats();
+    }
+  }
+
+  static Future<PracticeStats> recordPracticeResult({
+    required bool isWinner,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    final current = await getPracticeStats();
+    final updated = isWinner ? current.recordWin() : current.recordLoss();
+    await prefs.setString(_statsKey, jsonEncode(updated.toJson()));
+    return updated;
+  }
+
+  static Future<void> clearPracticeStats() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_statsKey);
   }
 }

@@ -28,9 +28,9 @@ class ArenaRoom {
   final Color tableColorEnd;
   final Color borderColor;
   final TableTextureType textureType;
-  final double friction;        // linear damping
-  final double angularDamping;  // spin damping
-  final double bounce;          // restitution
+  final double friction; // linear damping
+  final double angularDamping; // spin damping
+  final double bounce; // restitution
 
   final Color neonGlowColor;
   final String assetPath;
@@ -64,13 +64,22 @@ class ArenaRoom {
     if (langCode == 'bn') return nameBn;
     if (langCode == 'hi') {
       switch (id) {
-        case 'primary_school': return 'प्राथमिक विद्यालय बेंच';
-        case 'high_school': return 'हाई स्कूल डेस्क';
-        case 'polytechnic': return 'पॉलिटेक्निक ड्राफ्टिंग टेबल';
-        case 'medical_college': return 'मेडिकल कॉलेज लैब टेबल';
-        case 'national_university': return 'राष्ट्रीय विश्वविद्यालय बेंच';
-        case 'cadet_college': return 'कैडेट कॉलेज मेस टेबल';
-        case 'public_university': return 'पब्लिक यूनिवर्सिटी हॉल';
+        case 'primary_school':
+          return 'प्राथमिक विद्यालय बेंच';
+        case 'high_school':
+          return 'हाई स्कूल डेस्क';
+        case 'polytechnic':
+          return 'पॉलिटेक्निक ड्राफ्टिंग टेबल';
+        case 'medical_college':
+          return 'मेडिकल कॉलेज लैब टेबल';
+        case 'national_university':
+          return 'राष्ट्रीय विश्वविद्यालय बेंच';
+        case 'coaching_center':
+          return 'कोचिंग सेंटर डेस्क';
+        case 'cadet_college':
+          return 'कैडेट कॉलेज मेस टेबल';
+        case 'public_university':
+          return 'पब्लिक यूनिवर्सिटी हॉल';
       }
     }
     return name;
@@ -80,13 +89,22 @@ class ArenaRoom {
     if (langCode == 'bn') return descriptionBn;
     if (langCode == 'hi') {
       switch (id) {
-        case 'primary_school': return 'चॉक के निशान और रूलर से तराशी क्लासरूम की लकड़ी की बेंच।';
-        case 'high_school': return 'सागौन की लकड़ी की क्लासिक चमकदार डेस्क, कम्पास के निशान के साथ।';
-        case 'polytechnic': return 'इंजीनियरिंग ड्राफ्टिंग टेबल, टी-स्केल और सटीक ग्रिड।';
-        case 'medical_college': return 'ठंडी स्टेनलेस स्टील प्रयोगशाला बेंच। सुपर स्पीड और स्लाइड!';
-        case 'national_university': return 'परीक्षा हॉल की क्लासिक भारी बेंच, रोल नंबर के निशान के साथ।';
-        case 'cadet_college': return 'अभिजात गहरे चेरी की लकड़ी की अनुशासित मेस टेबल। हाई स्टेक्स!';
-        case 'public_university': return 'टेम्पर्ड ग्लास एक्जीक्यूटिव टेबल। बर्फ जैसा फिसलन भरा सरफेस!';
+        case 'primary_school':
+          return 'चॉक के निशान और रूलर से तराशी क्लासरूम की लकड़ी की बेंच।';
+        case 'high_school':
+          return 'सागौन की लकड़ी की क्लासिक चमकदार डेस्क, कम्पास के निशान के साथ।';
+        case 'polytechnic':
+          return 'इंजीनियरिंग ड्राफ्टिंग टेबल, टी-स्केल और सटीक ग्रिड।';
+        case 'medical_college':
+          return 'ठंडी स्टेनलेस स्टील प्रयोगशाला बेंच। सुपर स्पीड और स्लाइड!';
+        case 'national_university':
+          return 'परीक्षा हॉल की क्लासिक भारी बेंच, रोल नंबर के निशान के साथ।';
+        case 'coaching_center':
+          return 'कोचिंग सेंटर की लैमिनेट डेस्क, एडमिशन टेस्ट के निशान और एनर्जी ड्रिंक के गोले।';
+        case 'cadet_college':
+          return 'अभिजात गहरे चेरी की लकड़ी की अनुशासित मेस टेबल। हाई स्टेक्स!';
+        case 'public_university':
+          return 'टेम्पर्ड ग्लास एक्जीक्यूटिव टेबल। बर्फ जैसा फिसलन भरा सरफेस!';
       }
     }
     return description;
@@ -117,8 +135,10 @@ class ArenaRoom {
       entryCoins: 50,
       potCoins: 100,
       payoutCoins: 95,
-      description: 'Weathered tin-shed school bench with chalk scratches and pencil carvings.',
-      descriptionBn: 'টিনের চালা ক্লাসরুমের কাঠের বেঞ্চ, চকের দাগ আর কম স্টেক্স।',
+      description:
+          'Weathered tin-shed school bench with chalk scratches and pencil carvings.',
+      descriptionBn:
+          'টিনের চালা ক্লাসরুমের কাঠের বেঞ্চ, চকের দাগ আর কম স্টেক্স।',
       tableColorStart: Color(0xFF8D5524),
       tableColorEnd: Color(0xFF583111),
       borderColor: Color(0xFF00FF7F),
@@ -137,8 +157,10 @@ class ArenaRoom {
       entryCoins: 200,
       potCoins: 400,
       payoutCoins: 380,
-      description: 'Classic red-brick school desk with compass markings and varnished teak.',
-      descriptionBn: 'লাল ইটের স্কুল ঘর, সেগুন কাঠের চকচকে টেবিল ও কম্পাসের দাগ।',
+      description:
+          'Classic red-brick school desk with compass markings and varnished teak.',
+      descriptionBn:
+          'লাল ইটের স্কুল ঘর, সেগুন কাঠের চকচকে টেবিল ও কম্পাসের দাগ।',
       tableColorStart: Color(0xFFA0522D),
       tableColorEnd: Color(0xFF5C290E),
       borderColor: Color(0xFF00E5FF),
@@ -158,8 +180,10 @@ class ArenaRoom {
       entryCoins: 500,
       potCoins: 1000,
       payoutCoins: 950,
-      description: 'Precision engineering drafting table with T-square grid markings.',
-      descriptionBn: 'সবুজ ম্যাট ড্রাফটিং টেবিল, টি-স্কেল আর গ্রিড লাইনের মসৃণ সারফেস।',
+      description:
+          'Precision engineering drafting table with T-square grid markings.',
+      descriptionBn:
+          'সবুজ ম্যাট ড্রাফটিং টেবিল, টি-স্কেল আর গ্রিড লাইনের মসৃণ সারফেস।',
       tableColorStart: Color(0xFF1B4D3E),
       tableColorEnd: Color(0xFF0F281E),
       borderColor: Color(0xFF00E676),
@@ -179,8 +203,10 @@ class ArenaRoom {
       entryCoins: 1000,
       potCoins: 2000,
       payoutCoins: 1900,
-      description: 'Cold polished stainless steel laboratory bench. Extreme slide speeds!',
-      descriptionBn: 'ঠান্ডা চকচকে স্টিলের ল্যাব টেবিল। কম ঘর্ষণ, প্রচণ্ড গতি আর তীক্ষ্ণ বাউন্স!',
+      description:
+          'Cold polished stainless steel laboratory bench. Extreme slide speeds!',
+      descriptionBn:
+          'ঠান্ডা চকচকে স্টিলের ল্যাব টেবিল। কম ঘর্ষণ, প্রচণ্ড গতি আর তীক্ষ্ণ বাউন্স!',
       tableColorStart: Color(0xFF607D8B),
       tableColorEnd: Color(0xFF263238),
       borderColor: Color(0xFF40C4FF),
@@ -200,8 +226,10 @@ class ArenaRoom {
       entryCoins: 2500,
       potCoins: 5000,
       payoutCoins: 4750,
-      description: 'College canteen table with hot milk tea, fresh samosas, and pen skirmishes.',
-      descriptionBn: 'গরম দুধ চা ও সিঙ্গাড়ার ক্যান্টিন টেবিল। জমজমাট আড্ডা ও রোমাঞ্চকর কলম লড়াই!',
+      description:
+          'College canteen table with hot milk tea, fresh samosas, and pen skirmishes.',
+      descriptionBn:
+          'গরম দুধ চা ও সিঙ্গাড়ার ক্যান্টিন টেবিল। জমজমাট আড্ডা ও রোমাঞ্চকর কলম লড়াই!',
       tableColorStart: Color(0xFF795548),
       tableColorEnd: Color(0xFF3E2723),
       borderColor: Color(0xFFE040FB),
@@ -213,6 +241,29 @@ class ArenaRoom {
       assetPath: 'assets/arenas/room_college.webp',
     ),
     ArenaRoom(
+      id: 'coaching_center',
+      name: 'Coaching Center',
+      nameBn: 'কোচিং সেন্টারের ডেস্ক',
+      category: ArenaCategory.college,
+      subCategory: 'Admission & Test Prep',
+      entryCoins: 1500,
+      potCoins: 3000,
+      payoutCoins: 2850,
+      description:
+          'Laminate coaching-center desk with admission-test scribbles and energy-drink rings.',
+      descriptionBn:
+          'ল্যামিনেট কোচিং সেন্টারের ডেস্ক, ভর্তি পরীক্ষার লেখা আর এনার্জি ড্রিংকের দাগ।',
+      tableColorStart: Color(0xFF37474F),
+      tableColorEnd: Color(0xFF1A237E),
+      borderColor: Color(0xFF7C4DFF),
+      textureType: TableTextureType.draftingGreen,
+      friction: 1.8,
+      angularDamping: 1.6,
+      bounce: 0.66,
+      neonGlowColor: Color(0xFF7C4DFF),
+      assetPath: 'assets/arenas/room_college.webp',
+    ),
+    ArenaRoom(
       id: 'cadet_college',
       name: 'Cadet College Mess',
       nameBn: 'ক্যাডেট কলেজ অফিসার্স মেস',
@@ -221,8 +272,10 @@ class ArenaRoom {
       entryCoins: 5000,
       potCoins: 10000,
       payoutCoins: 9500,
-      description: 'Heavy dark cherrywood desk with polished brass corners and elite stakes.',
-      descriptionBn: 'অভিজাত ডার্ক চেরি কাঠ ও পিতলের কোনাওয়ালা সুশৃঙ্খল টেবিল। হাই স্টেক্স!',
+      description:
+          'Heavy dark cherrywood desk with polished brass corners and elite stakes.',
+      descriptionBn:
+          'অভিজাত ডার্ক চেরি কাঠ ও পিতলের কোনাওয়ালা সুশৃঙ্খল টেবিল। হাই স্টেক্স!',
       tableColorStart: Color(0xFF4A0E17),
       tableColorEnd: Color(0xFF23060B),
       borderColor: Color(0xFFFFB300),
@@ -242,8 +295,10 @@ class ArenaRoom {
       entryCoins: 10000,
       potCoins: 20000,
       payoutCoins: 19000,
-      description: 'Grand golden dome academy with slippery glass tables. Master esports level!',
-      descriptionBn: 'সোনালী গম্বুজ আর স্তম্ভওয়ালা একাডেমি। কাঁচের মতো পিচ্ছিল টেবিল!',
+      description:
+          'Grand golden dome academy with slippery glass tables. Master esports level!',
+      descriptionBn:
+          'সোনালী গম্বুজ আর স্তম্ভওয়ালা একাডেমি। কাঁচের মতো পিচ্ছিল টেবিল!',
       tableColorStart: Color(0xFF102027),
       tableColorEnd: Color(0xFF000A12),
       borderColor: Color(0xFFFF9100),
@@ -257,9 +312,6 @@ class ArenaRoom {
   ];
 
   static ArenaRoom getById(String id) {
-    return rooms.firstWhere(
-      (r) => r.id == id,
-      orElse: () => rooms.first,
-    );
+    return rooms.firstWhere((r) => r.id == id, orElse: () => rooms.first);
   }
 }

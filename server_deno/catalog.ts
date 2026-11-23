@@ -93,6 +93,17 @@ export const PEN_CATALOG: Readonly<Record<string, PenCatalogEntry>> = {
     angularDamping: 1.5,
     restitution: 0.75,
   },
+  titaniumStriker: {
+    id: "titaniumStriker",
+    unlockPrice: 9000,
+    minLevel: 7,
+    length: 5.55,
+    radius: 0.192,
+    density: 2.35,
+    linearDamping: 2.9,
+    angularDamping: 2.7,
+    restitution: 0.70,
+  },
 };
 
 export const STARTER_PENS = ["hiSchoolClassic", "econoStriker"] as const;

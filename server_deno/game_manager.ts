@@ -660,14 +660,14 @@ export class GameManager {
         return;
       }
       room.turnTimerSeconds--;
-      if (room.turnTimerSeconds % 5 === 0 || room.turnTimerSeconds <= 5) {
-        this.broadcast(room, {
-          type: "TURN_TIMER_TICK",
-          roomId: room.roomId,
-          secondsLeft: Math.max(0, room.turnTimerSeconds),
-          activeUserId: room.currentTurnUserId,
-        });
-      }
+      // Tick every second so both clients stay aligned with the authoritative
+      // clock even after packet loss or a background-tab timer drift.
+      this.broadcast(room, {
+        type: "TURN_TIMER_TICK",
+        roomId: room.roomId,
+        secondsLeft: Math.max(0, room.turnTimerSeconds),
+        activeUserId: room.currentTurnUserId,
+      });
       if (room.turnTimerSeconds <= 0) this.handleTurnTimeout(room);
     }, 1000);
     this.roomTimers.set(room.roomId, timer);

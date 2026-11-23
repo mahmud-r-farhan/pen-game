@@ -1,0 +1,22 @@
+{
+  "pens": [
+    "hiSchoolClassic",
+    "econoStriker",
+    "oceanGelPro",
+    "hectorMetalTank",
+    "doubleCapMod",
+    "goldParkerVIP",
+    "neonSpinner",
+    "titaniumStriker"
+  ],
+  "arenas": [
+    "primary_school",
+    "high_school",
+    "polytechnic",
+    "medical_college",
+    "national_university",
+    "coaching_center",
+    "cadet_college",
+    "public_university"
+  ]
+}

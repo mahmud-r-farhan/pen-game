@@ -95,6 +95,26 @@ export const ARENA_ROOMS: Record<string, ArenaRoomConfig> = {
     angularDamping: 1.9,
     bounce: 0.58,
   },
+  coaching_center: {
+    id: "coaching_center",
+    name: "Coaching Center",
+    nameBn: "কোচিং সেন্টারের ডেস্ক",
+    category: "college",
+    subCategory: "Admission / Test Prep",
+    entryCoins: 1500,
+    potCoins: 3000,
+    payoutCoins: 2850,
+    description:
+      "Laminate coaching-center desk with admission-test scribbles and energy-drink rings.",
+    descriptionBn:
+      "ল্যামিনেট কোচিং সেন্টারের ডেস্ক, ভর্তি পরীক্ষার লেখা আর এনার্জি ড্রিংকের দাগ।",
+    tableColorStart: "#37474F",
+    tableColorEnd: "#1A237E",
+    tableTexture: "drafting_green",
+    friction: 1.8,
+    angularDamping: 1.6,
+    bounce: 0.66,
+  },
   cadet_college: {
     id: "cadet_college",
     name: "Cadet College",
