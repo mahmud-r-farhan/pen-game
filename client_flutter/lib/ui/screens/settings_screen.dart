@@ -1,6 +1,7 @@
 // lib/ui/screens/settings_screen.dart
 import 'package:flutter/material.dart';
 import '../../core/audio/sound_effects.dart';
+import '../../core/constants/app_info.dart';
 import '../../core/auth/user_session.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_theme.dart';
@@ -35,7 +36,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
         elevation: 0,
         leading: IconButton(
           onPressed: () => Navigator.of(context).pop(),
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.chalkWhite),
+          icon: const Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: AppColors.chalkWhite,
+          ),
         ),
         title: Text(
           AppLocale.tr('settings'),
@@ -51,7 +55,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
               // Language Selector
               _buildSectionHeader(AppLocale.tr('language')),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
                 decoration: KolomTheme.glassCardDecoration(radius: 16),
                 child: Column(
                   children: [
@@ -122,8 +129,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           selectedColor: AppColors.goldTiffinCoin,
                           backgroundColor: AppColors.glassSurfaceHeavy,
                           labelStyle: TextStyle(
-                            color: isDivSelected ? Colors.black : Colors.white70,
-                            fontWeight: isDivSelected ? FontWeight.bold : FontWeight.normal,
+                            color: isDivSelected
+                                ? Colors.black
+                                : Colors.white70,
+                            fontWeight: isDivSelected
+                                ? FontWeight.bold
+                                : FontWeight.normal,
                             fontSize: 12,
                           ),
                           onSelected: (selected) async {
@@ -135,7 +146,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               } catch (error) {
                                 if (!mounted) return;
                                 ScaffoldMessenger.of(this.context).showSnackBar(
-                                  SnackBar(content: Text(error.toString()), backgroundColor: AppColors.crimsonStrike),
+                                  SnackBar(
+                                    content: Text(error.toString()),
+                                    backgroundColor: AppColors.crimsonStrike,
+                                  ),
                                 );
                               }
                             }
@@ -156,8 +170,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 child: Column(
                   children: [
                     SwitchListTile(
-                      title: Text(AppLocale.tr('sound_effects'), style: const TextStyle(color: Colors.white)),
-                      subtitle: const Text('Flicks, collision clacks, and victory fanfares', style: TextStyle(color: AppColors.slateMuted, fontSize: 12)),
+                      title: Text(
+                        AppLocale.tr('sound_effects'),
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                      subtitle: const Text(
+                        'Flicks, collision clacks, and victory fanfares',
+                        style: TextStyle(
+                          color: AppColors.slateMuted,
+                          fontSize: 12,
+                        ),
+                      ),
                       activeThumbColor: AppColors.goldTiffinCoin,
                       value: _soundEnabled,
                       onChanged: (val) {
@@ -167,8 +190,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                     const Divider(color: Colors.white12, height: 1),
                     SwitchListTile(
-                      title: Text(AppLocale.tr('vibration'), style: const TextStyle(color: Colors.white)),
-                      subtitle: const Text('Tactile haptic pulses on table impact and 30s timer warning', style: TextStyle(color: AppColors.slateMuted, fontSize: 12)),
+                      title: Text(
+                        AppLocale.tr('vibration'),
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                      subtitle: const Text(
+                        'Tactile haptic pulses on table impact and 30s timer warning',
+                        style: TextStyle(
+                          color: AppColors.slateMuted,
+                          fontSize: 12,
+                        ),
+                      ),
                       activeThumbColor: AppColors.goldTiffinCoin,
                       value: _vibrationEnabled,
                       onChanged: (val) {
@@ -187,13 +219,31 @@ class _SettingsScreenState extends State<SettingsScreen> {
               Container(
                 decoration: KolomTheme.glassCardDecoration(radius: 16),
                 child: ListTile(
-                  leading: const Icon(Icons.cloud_sync_rounded, color: AppColors.cyanSpin),
-                  title: const Text('Server Host', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                  leading: const Icon(
+                    Icons.cloud_sync_rounded,
+                    color: AppColors.cyanSpin,
+                  ),
+                  title: const Text(
+                    'Server Host',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
                   subtitle: Text(
                     NetworkConfig.activeHost,
-                    style: const TextStyle(color: AppColors.slateMuted, fontSize: 12, fontFamily: 'monospace'),
+                    style: const TextStyle(
+                      color: AppColors.slateMuted,
+                      fontSize: 12,
+                      fontFamily: 'monospace',
+                    ),
                   ),
-                  trailing: const Icon(Icons.edit_rounded, color: AppColors.slateMuted, size: 18),
+                  trailing: const Icon(
+                    Icons.edit_rounded,
+                    color: AppColors.slateMuted,
+                    size: 18,
+                  ),
                   onTap: _showEditServerDialog,
                 ),
               ),
@@ -203,8 +253,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
               // Version / Build info
               Center(
                 child: Text(
-                  AppLocale.tr('version'),
-                  style: const TextStyle(color: AppColors.slateMuted, fontSize: 11),
+                  '${AppLocale.tr('version')} ${AppInfo.displayVersion}',
+                  style: const TextStyle(
+                    color: AppColors.slateMuted,
+                    fontSize: 11,
+                  ),
                 ),
               ),
             ],
@@ -245,7 +298,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
       ),
       trailing: selected
-          ? const Icon(Icons.check_circle_rounded, color: AppColors.goldTiffinCoin)
+          ? const Icon(
+              Icons.check_circle_rounded,
+              color: AppColors.goldTiffinCoin,
+            )
           : null,
       onTap: () {
         AppLocale().setLanguage(code);
@@ -266,7 +322,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
         } catch (error) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(error.toString()), backgroundColor: AppColors.crimsonStrike),
+              SnackBar(
+                content: Text(error.toString()),
+                backgroundColor: AppColors.crimsonStrike,
+              ),
             );
           }
         }
@@ -275,10 +334,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.goldTiffinCoin.withValues(alpha: 0.2) : AppColors.glassSurfaceHeavy,
+          color: isSelected
+              ? AppColors.goldTiffinCoin.withValues(alpha: 0.2)
+              : AppColors.glassSurfaceHeavy,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected ? AppColors.goldTiffinCoin : AppColors.glassBorder,
+            color: isSelected
+                ? AppColors.goldTiffinCoin
+                : AppColors.glassBorder,
           ),
         ),
         child: Row(
@@ -312,7 +375,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
           children: [
             Icon(Icons.cloud_sync_rounded, color: AppColors.cyanSpin),
             SizedBox(width: 8),
-            Text('Server Host', style: TextStyle(color: Colors.white, fontSize: 16)),
+            Text(
+              'Server Host',
+              style: TextStyle(color: Colors.white, fontSize: 16),
+            ),
           ],
         ),
         content: Column(
@@ -326,14 +392,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
             const SizedBox(height: 12),
             TextField(
               controller: controller,
-              style: const TextStyle(color: Colors.white, fontFamily: 'monospace', fontSize: 13),
+              style: const TextStyle(
+                color: Colors.white,
+                fontFamily: 'monospace',
+                fontSize: 13,
+              ),
               decoration: InputDecoration(
                 filled: true,
                 fillColor: AppColors.glassSurfaceHeavy,
                 hintText: 'kolom-fight.deno.dev',
                 hintStyle: const TextStyle(color: Colors.white30),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 12,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide.none,
+                ),
               ),
             ),
           ],
@@ -346,7 +422,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 if (mounted) setState(() {});
               });
             },
-            child: const Text('Reset Default', style: TextStyle(color: AppColors.slateMuted)),
+            child: const Text(
+              'Reset Default',
+              style: TextStyle(color: AppColors.slateMuted),
+            ),
           ),
           ElevatedButton(
             onPressed: () {
@@ -362,7 +441,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
               backgroundColor: AppColors.goldTiffinCoin,
               foregroundColor: Colors.black,
             ),
-            child: const Text('Save', style: TextStyle(fontWeight: FontWeight.bold)),
+            child: const Text(
+              'Save',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
           ),
         ],
       ),
@@ -388,7 +470,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ];
       case 'IN':
       case 'INDIA':
-        return ['Kolkata', 'Delhi', 'Mumbai', 'Punjab', 'Bangalore', 'Hyderabad'];
+        return [
+          'Kolkata',
+          'Delhi',
+          'Mumbai',
+          'Punjab',
+          'Bangalore',
+          'Hyderabad',
+        ];
       case 'PK':
       case 'PAKISTAN':
         return ['Lahore', 'Karachi', 'Islamabad', 'Peshawar', 'Rawalpindi'];
@@ -399,7 +488,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
       case 'UNITED KINGDOM':
         return ['London', 'Manchester', 'Birmingham', 'Leeds'];
       default:
-        return ['International', 'Esports Global', 'Asia-Pacific', 'Europe', 'Americas'];
+        return [
+          'International',
+          'Esports Global',
+          'Asia-Pacific',
+          'Europe',
+          'Americas',
+        ];
     }
   }
 }

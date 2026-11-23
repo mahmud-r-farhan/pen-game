@@ -20,7 +20,7 @@ if (keystorePropertiesFile.isFile) {
 }
 
 android {
-    namespace = "com.penfight.kolomkhela"
+    namespace = "com.kolomfight.app"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -30,7 +30,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.penfight.kolomkhela"
+        applicationId = "com.kolomfight.app"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode

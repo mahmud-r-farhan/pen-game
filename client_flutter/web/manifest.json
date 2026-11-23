@@ -1,12 +1,12 @@
 {
-    "name": "Kolom Khela - Pen Fight",
-    "short_name": "Kolom Khela",
+    "name": "Kolom Fight - Classroom Pen Battle",
+    "short_name": "Kolom Fight",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0B101D",
     "theme_color": "#0B101D",
-    "description": "Kolom Khela - Realistic Real-Time Multiplayer Pen Fight Tabletop Game",
-    "orientation": "portrait-primary",
+    "description": "Kolom Fight - Realistic real-time multiplayer classroom pen battle",
+    "orientation": "any",
     "prefer_related_applications": false,
     "icons": [
         {

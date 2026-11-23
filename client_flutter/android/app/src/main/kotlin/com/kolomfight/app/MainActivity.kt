@@ -1,4 +1,4 @@
-package com.penfight.kolomkhela
+package com.kolomfight.app
 
 import io.flutter.embedding.android.FlutterActivity
 

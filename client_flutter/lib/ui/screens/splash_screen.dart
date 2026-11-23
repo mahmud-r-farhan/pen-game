@@ -15,7 +15,8 @@ class SplashScreen extends StatefulWidget {
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderStateMixin {
+class _SplashScreenState extends State<SplashScreen>
+    with SingleTickerProviderStateMixin {
   late AnimationController _animController;
   late Animation<double> _scaleAnimation;
   late Animation<double> _penSpinAnimation;
@@ -55,10 +56,12 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
         Future<void>.delayed(const Duration(milliseconds: 1200)),
       ]);
       if (!mounted) return;
-      final restored = results[0] != null || UserSession().hasOnlineCachedProfile;
+      final restored =
+          results[0] != null || UserSession().hasOnlineCachedProfile;
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
-          builder: (_) => restored ? const MainLobbyScreen() : const AuthScreen(),
+          builder: (_) =>
+              restored ? const MainLobbyScreen() : const AuthScreen(),
         ),
       );
     } catch (error) {
@@ -101,7 +104,10 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                   gradient: const RadialGradient(
                     colors: [Color(0xFF1E2633), Color(0xFF0F141C)],
                   ),
-                  border: Border.all(color: AppColors.goldTiffinCoin.withValues(alpha: 0.6), width: 3),
+                  border: Border.all(
+                    color: AppColors.goldTiffinCoin.withValues(alpha: 0.6),
+                    width: 3,
+                  ),
                   boxShadow: [
                     BoxShadow(
                       color: AppColors.goldTiffinCoin.withValues(alpha: 0.25),
@@ -137,7 +143,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
             ),
             const SizedBox(height: 4),
             const Text(
-              'ONLINE MULTIPLAYER ARENA',
+              'CLASSROOM PEN BATTLE',
               style: TextStyle(
                 color: AppColors.goldTiffinCoin,
                 fontSize: 13,
@@ -154,7 +160,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                 border: Border.all(color: AppColors.glassBorder),
               ),
               child: const Text(
-                'Authentic Tabletop Pen Battle Arena 🖋️',
+                'Authentic Bangladeshi classroom tabletop duels 🖋️',
                 style: TextStyle(color: AppColors.slateMuted, fontSize: 13),
               ),
             ),
@@ -163,7 +169,10 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
               const SizedBox(
                 width: 32,
                 height: 32,
-                child: CircularProgressIndicator(strokeWidth: 3, color: AppColors.goldTiffinCoin),
+                child: CircularProgressIndicator(
+                  strokeWidth: 3,
+                  color: AppColors.goldTiffinCoin,
+                ),
               )
             else
               Padding(
@@ -173,7 +182,10 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                     Text(
                       _startupError!,
                       textAlign: TextAlign.center,
-                      style: const TextStyle(color: Colors.white70, fontSize: 13),
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 13,
+                      ),
                     ),
                     const SizedBox(height: 14),
                     ElevatedButton.icon(

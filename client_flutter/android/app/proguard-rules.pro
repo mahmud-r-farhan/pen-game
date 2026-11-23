@@ -27,7 +27,7 @@
 -dontwarn com.google.android.play.core.**
 
 # Prevent R8 from mangling MainActivity
--keep class com.penfight.kolomkhela.MainActivity { *; }
+-keep class com.kolomfight.app.MainActivity { *; }
 
 # Google Sign In & Firebase
 -keep class com.google.android.gms.** { *; }

@@ -4,7 +4,7 @@
 const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const WS_TICKET_TTL_MS = 60 * 1000;
 const FIREBASE_PROJECT_ID = Deno.env.get("FIREBASE_PROJECT_ID") ??
-  "kolom-khela";
+  "kolom-fight";
 const FIREBASE_JWKS_URL =
   "https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com";
 

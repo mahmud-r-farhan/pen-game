@@ -29,12 +29,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
       await AuthService().signInWithGoogle();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppLocale.tr('merge_success')), backgroundColor: AppColors.emeraldTurn),
+        SnackBar(
+          content: Text(AppLocale.tr('merge_success')),
+          backgroundColor: AppColors.emeraldTurn,
+        ),
       );
     } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(error.toString()), backgroundColor: AppColors.crimsonStrike),
+          SnackBar(
+            content: Text(error.toString()),
+            backgroundColor: AppColors.crimsonStrike,
+          ),
         );
       }
     } finally {
@@ -62,7 +68,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
         elevation: 0,
         leading: IconButton(
           onPressed: () => Navigator.of(context).pop(),
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.chalkWhite),
+          icon: const Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: AppColors.chalkWhite,
+          ),
         ),
         title: Text(
           AppLocale.tr('profile'),
@@ -71,11 +80,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
         actions: [
           IconButton(
             onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const SettingsScreen()),
-              ).then((_) => setState(() {}));
+              Navigator.of(context)
+                  .push(
+                    MaterialPageRoute(builder: (_) => const SettingsScreen()),
+                  )
+                  .then((_) => setState(() {}));
             },
-            icon: const Icon(Icons.settings_rounded, color: AppColors.goldTiffinCoin),
+            icon: const Icon(
+              Icons.settings_rounded,
+              color: AppColors.goldTiffinCoin,
+            ),
           ),
         ],
       ),
@@ -108,7 +122,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             color: AppColors.goldTiffinCoin,
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(Icons.edit, size: 14, color: Colors.black),
+                          child: const Icon(
+                            Icons.edit,
+                            size: 14,
+                            color: Colors.black,
+                          ),
                         ),
                       ],
                     ),
@@ -137,10 +155,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         onPressed: () {
                           Clipboard.setData(ClipboardData(text: user.tag));
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Tag copied to clipboard!')),
+                            const SnackBar(
+                              content: Text('Tag copied to clipboard!'),
+                            ),
                           );
                         },
-                        icon: const Icon(Icons.copy_rounded, color: Colors.white70, size: 16),
+                        icon: const Icon(
+                          Icons.copy_rounded,
+                          color: Colors.white70,
+                          size: 16,
+                        ),
                       ),
                     ],
                   ),
@@ -151,7 +175,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: AppColors.glassSurfaceHeavy,
                           borderRadius: BorderRadius.circular(10),
@@ -159,17 +186,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                         child: Text(
                           '${user.flagEmoji} ${user.region}',
-                          style: const TextStyle(color: Colors.white70, fontSize: 11),
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 11,
+                          ),
                         ),
                       ),
                       if (user.clubName != null) ...[
                         const SizedBox(width: 8),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
                             color: AppColors.cyanSpin.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: AppColors.cyanSpin.withValues(alpha: 0.6)),
+                            border: Border.all(
+                              color: AppColors.cyanSpin.withValues(alpha: 0.6),
+                            ),
                           ),
                           child: Text(
                             '🛡️ ${user.clubTag ?? "[CLUB]"} ${user.clubName}',
@@ -204,18 +239,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           decoration: BoxDecoration(
                             color: AppColors.glassSurfaceHeavy,
                             borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: AppColors.goldTiffinCoin.withValues(alpha: 0.4)),
+                            border: Border.all(
+                              color: AppColors.goldTiffinCoin.withValues(
+                                alpha: 0.4,
+                              ),
+                            ),
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Row(
                                 children: const [
-                                  Icon(Icons.monetization_on_rounded, color: AppColors.goldTiffinCoin, size: 18),
+                                  Icon(
+                                    Icons.monetization_on_rounded,
+                                    color: AppColors.goldTiffinCoin,
+                                    size: 18,
+                                  ),
                                   SizedBox(width: 5),
                                   Text(
                                     'Virtual Coins',
-                                    style: TextStyle(color: AppColors.slateMuted, fontSize: 11),
+                                    style: TextStyle(
+                                      color: AppColors.slateMuted,
+                                      fontSize: 11,
+                                    ),
                                   ),
                                 ],
                               ),
@@ -229,7 +275,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               ),
                               const Text(
                                 'Match Stakes & Garage',
-                                style: TextStyle(color: Colors.white30, fontSize: 9),
+                                style: TextStyle(
+                                  color: Colors.white30,
+                                  fontSize: 9,
+                                ),
                               ),
                             ],
                           ),
@@ -245,18 +294,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           decoration: BoxDecoration(
                             color: AppColors.glassSurfaceHeavy,
                             borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: user.cupColor.withValues(alpha: 0.5)),
+                            border: Border.all(
+                              color: user.cupColor.withValues(alpha: 0.5),
+                            ),
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Row(
                                 children: [
-                                  Icon(Icons.military_tech_rounded, color: user.cupColor, size: 18),
+                                  Icon(
+                                    Icons.military_tech_rounded,
+                                    color: user.cupColor,
+                                    size: 18,
+                                  ),
                                   const SizedBox(width: 5),
                                   const Text(
                                     'Rating Points',
-                                    style: TextStyle(color: AppColors.slateMuted, fontSize: 11),
+                                    style: TextStyle(
+                                      color: AppColors.slateMuted,
+                                      fontSize: 11,
+                                    ),
                                   ),
                                 ],
                               ),
@@ -308,7 +366,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                       Text(
                         'Next Level: ${(user.xpProgress * 100).toInt()}%',
-                        style: const TextStyle(color: AppColors.slateMuted, fontSize: 12),
+                        style: const TextStyle(
+                          color: AppColors.slateMuted,
+                          fontSize: 12,
+                        ),
                       ),
                     ],
                   ),
@@ -326,10 +387,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                   Row(
                     children: [
-                      _buildStatBox('Total Matches', '${user.stats.totalMatches}', Colors.white70),
-                      _buildStatBox('Wins', '${user.stats.wins}', AppColors.emeraldTurn),
-                      _buildStatBox('Win Rate', '${user.winRate.toStringAsFixed(1)}%', AppColors.goldTiffinCoin),
-                      _buildStatBox('Streak', '${user.stats.winStreak}🔥', AppColors.crimsonStrike),
+                      _buildStatBox(
+                        'Total Matches',
+                        '${user.stats.totalMatches}',
+                        Colors.white70,
+                      ),
+                      _buildStatBox(
+                        'Wins',
+                        '${user.stats.wins}',
+                        AppColors.emeraldTurn,
+                      ),
+                      _buildStatBox(
+                        'Win Rate',
+                        '${user.winRate.toStringAsFixed(1)}%',
+                        AppColors.goldTiffinCoin,
+                      ),
+                      _buildStatBox(
+                        'Streak',
+                        '${user.stats.winStreak}🔥',
+                        AppColors.crimsonStrike,
+                      ),
                     ],
                   ),
                 ],
@@ -347,7 +424,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     : AppColors.emeraldTurn.withValues(alpha: 0.10),
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
-                  color: user.isGuest ? AppColors.goldTiffinCoin : AppColors.emeraldTurn,
+                  color: user.isGuest
+                      ? AppColors.goldTiffinCoin
+                      : AppColors.emeraldTurn,
                   width: 1.2,
                 ),
               ),
@@ -357,14 +436,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   Row(
                     children: [
                       Icon(
-                        user.isGuest ? Icons.warning_amber_rounded : Icons.verified_user_rounded,
-                        color: user.isGuest ? AppColors.goldTiffinCoin : AppColors.emeraldTurn,
+                        user.isGuest
+                            ? Icons.warning_amber_rounded
+                            : Icons.verified_user_rounded,
+                        color: user.isGuest
+                            ? AppColors.goldTiffinCoin
+                            : AppColors.emeraldTurn,
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        user.isGuest ? 'Guest Mode Account' : 'Verified Google Account',
+                        user.isGuest
+                            ? 'Guest Mode Account'
+                            : 'Verified Google Account',
                         style: TextStyle(
-                          color: user.isGuest ? AppColors.goldTiffinCoin : AppColors.emeraldTurn,
+                          color: user.isGuest
+                              ? AppColors.goldTiffinCoin
+                              : AppColors.emeraldTurn,
                           fontWeight: FontWeight.bold,
                           fontSize: 14,
                         ),
@@ -376,9 +463,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     user.isGuest
                         ? 'You are playing as a Guest. Link your Google account to merge your coins, unlocked pens, and trophies safely to the cloud!'
                         : 'Your progress, coins, and trophies are safely synced to the cloud.',
-                    style: const TextStyle(color: AppColors.slateMuted, fontSize: 12),
+                    style: const TextStyle(
+                      color: AppColors.slateMuted,
+                      fontSize: 12,
+                    ),
                   ),
-                  if (user.isGuest) ...[
+                  if (user.isGuest && AuthService().isGoogleAvailable) ...[
                     const SizedBox(height: 14),
                     ElevatedButton(
                       onPressed: _isLinking ? null : _handleGoogleLink,
@@ -386,7 +476,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         backgroundColor: AppColors.goldTiffinCoin,
                         foregroundColor: Colors.black,
                         minimumSize: const Size.fromHeight(44),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -411,8 +503,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
             Container(
               decoration: KolomTheme.glassCardDecoration(radius: 16),
               child: ListTile(
-                leading: const Icon(Icons.logout_rounded, color: AppColors.crimsonStrike),
-                title: const Text('Logout / Switch Account', style: TextStyle(color: AppColors.crimsonStrike)),
+                leading: const Icon(
+                  Icons.logout_rounded,
+                  color: AppColors.crimsonStrike,
+                ),
+                title: const Text(
+                  'Logout / Switch Account',
+                  style: TextStyle(color: AppColors.crimsonStrike),
+                ),
                 onTap: _handleLogout,
               ),
             ),
@@ -448,9 +546,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
         margin: const EdgeInsets.symmetric(horizontal: 4),
         child: Column(
           children: [
-            Text(value, style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 15)),
+            Text(
+              value,
+              style: TextStyle(
+                color: color,
+                fontWeight: FontWeight.bold,
+                fontSize: 15,
+              ),
+            ),
             const SizedBox(height: 4),
-            Text(label, style: const TextStyle(color: AppColors.slateMuted, fontSize: 9)),
+            Text(
+              label,
+              style: const TextStyle(color: AppColors.slateMuted, fontSize: 9),
+            ),
           ],
         ),
       ),
@@ -477,7 +585,8 @@ class _AvatarPickerModalState extends State<_AvatarPickerModal> {
   @override
   Widget build(BuildContext context) {
     final user = widget.currentUser;
-    final hasGooglePhoto = (user.googlePhotoUrl != null && user.googlePhotoUrl!.isNotEmpty);
+    final hasGooglePhoto =
+        (user.googlePhotoUrl != null && user.googlePhotoUrl!.isNotEmpty);
     final isGooglePhotoActive = user.avatar == user.googlePhotoUrl;
 
     List<AvatarOption> displayedList;
@@ -562,7 +671,9 @@ class _AvatarPickerModalState extends State<_AvatarPickerModal> {
                 Navigator.of(context).pop();
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                    content: Text('Profile picture set to your Google account photo!'),
+                    content: Text(
+                      'Profile picture set to your Google account photo!',
+                    ),
                     backgroundColor: AppColors.emeraldTurn,
                   ),
                 );
@@ -576,7 +687,9 @@ class _AvatarPickerModalState extends State<_AvatarPickerModal> {
                       : AppColors.glassSurfaceHeavy,
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
-                    color: isGooglePhotoActive ? Colors.blueAccent : AppColors.glassBorder,
+                    color: isGooglePhotoActive
+                        ? Colors.blueAccent
+                        : AppColors.glassBorder,
                     width: isGooglePhotoActive ? 2.0 : 1.0,
                   ),
                 ),
@@ -585,7 +698,9 @@ class _AvatarPickerModalState extends State<_AvatarPickerModal> {
                     KolomAvatar(
                       avatar: user.googlePhotoUrl!,
                       size: 46,
-                      borderColor: isGooglePhotoActive ? Colors.blueAccent : Colors.white24,
+                      borderColor: isGooglePhotoActive
+                          ? Colors.blueAccent
+                          : Colors.white24,
                       borderWidth: 2.0,
                     ),
                     const SizedBox(width: 14),
@@ -606,7 +721,10 @@ class _AvatarPickerModalState extends State<_AvatarPickerModal> {
                               const SizedBox(width: 8),
                               if (isGooglePhotoActive)
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 2,
+                                  ),
                                   decoration: BoxDecoration(
                                     color: AppColors.emeraldTurn,
                                     borderRadius: BorderRadius.circular(6),
@@ -627,12 +745,19 @@ class _AvatarPickerModalState extends State<_AvatarPickerModal> {
                             isGooglePhotoActive
                                 ? 'Your Google profile picture is currently active.'
                                 : 'Tap to switch back to your Google profile picture anytime.',
-                            style: const TextStyle(color: AppColors.slateMuted, fontSize: 11),
+                            style: const TextStyle(
+                              color: AppColors.slateMuted,
+                              fontSize: 11,
+                            ),
                           ),
                         ],
                       ),
                     ),
-                    const Icon(Icons.sync_rounded, color: Colors.blueAccent, size: 22),
+                    const Icon(
+                      Icons.sync_rounded,
+                      color: Colors.blueAccent,
+                      size: 22,
+                    ),
                   ],
                 ),
               ),
@@ -645,13 +770,29 @@ class _AvatarPickerModalState extends State<_AvatarPickerModal> {
             scrollDirection: Axis.horizontal,
             child: Row(
               children: [
-                _buildCategoryChip(0, 'All (${AppAvatars.all.length})', Icons.auto_awesome_rounded),
+                _buildCategoryChip(
+                  0,
+                  'All (${AppAvatars.all.length})',
+                  Icons.auto_awesome_rounded,
+                ),
                 const SizedBox(width: 8),
-                _buildCategoryChip(1, '🧑 Cartoon (${AppAvatars.cartoonHumans.length})', Icons.person_rounded),
+                _buildCategoryChip(
+                  1,
+                  '🧑 Cartoon (${AppAvatars.cartoonHumans.length})',
+                  Icons.person_rounded,
+                ),
                 const SizedBox(width: 8),
-                _buildCategoryChip(2, '🐾 Animals (${AppAvatars.cuteAnimals.length})', Icons.pets_rounded),
+                _buildCategoryChip(
+                  2,
+                  '🐾 Animals (${AppAvatars.cuteAnimals.length})',
+                  Icons.pets_rounded,
+                ),
                 const SizedBox(width: 8),
-                _buildCategoryChip(3, '👾 Pixel (${AppAvatars.pixelChamps.length})', Icons.sports_esports_rounded),
+                _buildCategoryChip(
+                  3,
+                  '👾 Pixel (${AppAvatars.pixelChamps.length})',
+                  Icons.sports_esports_rounded,
+                ),
               ],
             ),
           ),
@@ -686,20 +827,27 @@ class _AvatarPickerModalState extends State<_AvatarPickerModal> {
                   },
                   borderRadius: BorderRadius.circular(14),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 6,
+                      horizontal: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: isSelected
                           ? AppColors.goldTiffinCoin.withValues(alpha: 0.18)
                           : Colors.white.withValues(alpha: 0.04),
                       borderRadius: BorderRadius.circular(14),
                       border: Border.all(
-                        color: isSelected ? AppColors.goldTiffinCoin : Colors.white12,
+                        color: isSelected
+                            ? AppColors.goldTiffinCoin
+                            : Colors.white12,
                         width: isSelected ? 2.0 : 1.0,
                       ),
                       boxShadow: isSelected
                           ? [
                               BoxShadow(
-                                color: AppColors.goldTiffinCoin.withValues(alpha: 0.3),
+                                color: AppColors.goldTiffinCoin.withValues(
+                                  alpha: 0.3,
+                                ),
                                 blurRadius: 10,
                               ),
                             ]
@@ -711,15 +859,21 @@ class _AvatarPickerModalState extends State<_AvatarPickerModal> {
                         KolomAvatar(
                           avatar: opt.id,
                           size: 44,
-                          borderColor: isSelected ? AppColors.goldTiffinCoin : Colors.transparent,
+                          borderColor: isSelected
+                              ? AppColors.goldTiffinCoin
+                              : Colors.transparent,
                         ),
                         const SizedBox(height: 6),
                         Text(
                           opt.name.split(' ').first,
                           style: TextStyle(
-                            color: isSelected ? AppColors.goldTiffinCoin : Colors.white70,
+                            color: isSelected
+                                ? AppColors.goldTiffinCoin
+                                : Colors.white70,
                             fontSize: 10,
-                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                            fontWeight: isSelected
+                                ? FontWeight.bold
+                                : FontWeight.normal,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -744,16 +898,24 @@ class _AvatarPickerModalState extends State<_AvatarPickerModal> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.goldTiffinCoin : AppColors.glassSurfaceHeavy,
+          color: isSelected
+              ? AppColors.goldTiffinCoin
+              : AppColors.glassSurfaceHeavy,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected ? AppColors.goldTiffinCoin : AppColors.glassBorder,
+            color: isSelected
+                ? AppColors.goldTiffinCoin
+                : AppColors.glassBorder,
           ),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 14, color: isSelected ? Colors.black : Colors.white70),
+            Icon(
+              icon,
+              size: 14,
+              color: isSelected ? Colors.black : Colors.white70,
+            ),
             const SizedBox(width: 6),
             Text(
               label,
@@ -769,4 +931,3 @@ class _AvatarPickerModalState extends State<_AvatarPickerModal> {
     );
   }
 }
-
