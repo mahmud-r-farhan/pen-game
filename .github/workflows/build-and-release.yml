@@ -318,6 +318,14 @@ jobs:
     permissions:
       contents: write
     steps:
+      # `gh release create` needs a Git repository (it runs `git rev-parse` to
+      # resolve the ref), but this job only downloads artifacts, so initialize
+      # one instead of doing a full checkout of the sources.
+      - name: Initialize Git repository
+        run: |
+          git init -q
+          git remote add origin "https://github.com/${{ github.repository }}.git"
+
       - name: Download all artifacts
         uses: actions/download-artifact@v8
         with:
