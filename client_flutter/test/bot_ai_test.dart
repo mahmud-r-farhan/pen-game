@@ -20,16 +20,24 @@ void main() {
     );
   }
 
+  // Vector2 stores components at single precision, so a magnitude of 44 can
+  // only be represented to ~44 * 1e-7. Compare with a relative tolerance
+  // instead of an absolute one, or the assertion is tighter than the type.
+  const double relativeTolerance = 1e-6;
+
   test('every difficulty stays inside the legal impulse envelope', () {
     for (final difficulty in BotDifficulty.values) {
       for (int i = 0; i < 40; i++) {
         final decision = shoot(difficulty);
         expect(
           decision.impulse.length,
-          lessThanOrEqualTo(ShotPredictor.maxImpulse + 1e-6),
+          lessThanOrEqualTo(ShotPredictor.maxImpulse * (1 + relativeTolerance)),
           reason: '$difficulty produced an overpowered shot',
         );
-        expect(decision.impulse.length, greaterThanOrEqualTo(12.0 - 1e-6));
+        expect(
+          decision.impulse.length,
+          greaterThanOrEqualTo(12.0 * (1 - relativeTolerance)),
+        );
         expect(decision.strikeOffset.abs(), lessThanOrEqualTo(0.85));
         expect(decision.thinkDelay.inMilliseconds, isNonNegative);
       }
@@ -56,7 +64,10 @@ void main() {
       benchBounds: bench,
       botSpec: spec,
     );
-    expect(teetering.impulse.length, lessThanOrEqualTo(32.0 + 1e-6));
+    expect(
+      teetering.impulse.length,
+      lessThanOrEqualTo(32.0 * (1 + relativeTolerance)),
+    );
     expect(teetering.strikeOffset, lessThan(0.0));
   });
 
