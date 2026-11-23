@@ -164,8 +164,20 @@ class OfflineBotAI {
     // A tiny normalization guard keeps the impulse inside the legal envelope.
     if (finalDir.length < 1e-6) finalDir = Vector2(1.0, 0.0);
 
+    // `finalForce` is already clamped, but Vector2 components are stored at
+    // reduced precision, so normalising the direction and scaling it back up
+    // can round the resulting magnitude a hair off the intended value
+    // (observed at ~1e-8 relative). Rescale to exactly `finalForce` so the
+    // decision's magnitude is what the AI computed, and can never exceed the
+    // legal flick limit or the self-preservation cap.
+    final Vector2 impulse = finalDir.normalized() * finalForce;
+    final double magnitude = impulse.length;
+    final Vector2 legalImpulse = magnitude > 0
+        ? impulse * (finalForce / magnitude)
+        : impulse;
+
     return BotShotDecision(
-      impulse: finalDir.normalized() * finalForce,
+      impulse: legalImpulse,
       strikeOffset: strikeOffset.clamp(-0.85, 0.85),
       thinkDelay: thinkDelay,
     );
