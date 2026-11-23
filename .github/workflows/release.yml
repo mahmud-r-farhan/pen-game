@@ -532,7 +532,10 @@ jobs:
         working-directory: ./client_flutter/build/linux/x64/release
         run: |
           set -euo pipefail
-          tar -czf "../../../kolom-fight-${{ needs.prepare.outputs.version }}-linux-x64.tar.gz" bundle/
+          # Anchor to GITHUB_WORKSPACE: the relative depth from this directory
+          # is easy to get wrong, and the upload resolves against the workspace.
+          tar -czf "$GITHUB_WORKSPACE/kolom-fight-${{ needs.prepare.outputs.version }}-linux-x64.tar.gz" bundle/
+          ls -lh "$GITHUB_WORKSPACE/kolom-fight-${{ needs.prepare.outputs.version }}-linux-x64.tar.gz"
 
       - name: Upload Linux artifact
         uses: actions/upload-artifact@v7
