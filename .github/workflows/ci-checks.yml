@@ -140,10 +140,16 @@ jobs:
                       names[test.get('id')] = test.get('name') or 'unnamed test'
                   elif kind == 'error':
                       test_id = event.get('testID')
-                      message = (event.get('error') or '').strip().splitlines()
+                      # Keep the assertion detail (Expected/Actual/Which), not just
+                      # the headline, so the annotation is actionable on its own.
+                      lines = [
+                          part.strip()
+                          for part in (event.get('error') or '').strip().splitlines()
+                          if part.strip()
+                      ]
                       failures[test_id] = (
                           names.get(test_id, 'unknown test'),
-                          message[0] if message else 'test raised an error',
+                          ' | '.join(lines[:6]) if lines else 'test raised an error',
                       )
                   elif kind == 'testDone':
                       if event.get('skipped'):
@@ -159,7 +165,7 @@ jobs:
                           )
 
           def clean(text):
-              return (text or '').replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')[:500]
+              return (text or '').replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')[:1500]
 
           for name, message in failures.values():
               print('::error title=Flutter test failed::%s - %s' % (clean(name), clean(message)))
