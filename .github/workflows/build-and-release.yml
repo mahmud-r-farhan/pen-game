@@ -85,8 +85,12 @@ jobs:
       - name: Write key.properties for signing
         working-directory: ./client_flutter/android
         run: |
+          # storeFile is resolved with file(...) inside android/app/build.gradle.kts,
+          # so it is relative to android/app/: "ci-release.jks" means
+          # android/app/ci-release.jks (where the keystore above was generated).
+          # "app/ci-release.jks" would resolve to android/app/app/ci-release.jks.
           cat > key.properties <<'EOF'
-          storeFile=app/ci-release.jks
+          storeFile=ci-release.jks
           storePassword=CI_RELEASE_PASS
           keyAlias=ci-key
           keyPassword=CI_RELEASE_PASS
