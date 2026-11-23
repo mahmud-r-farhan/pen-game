@@ -3,7 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../core/audio/sound_effects.dart';
-import '../../core/auth/user_session.dart';
+import '../../models/user_profile.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_theme.dart';
 import '../../core/localization/app_strings.dart';
@@ -14,6 +14,8 @@ class VictoryDialog extends StatefulWidget {
   final int trophyDelta;
   final VoidCallback onRematch;
   final VoidCallback onLobby;
+  final UserProfile profile;
+  final bool isPractice;
 
   const VictoryDialog({
     super.key,
@@ -22,6 +24,8 @@ class VictoryDialog extends StatefulWidget {
     this.trophyDelta = 25,
     required this.onRematch,
     required this.onLobby,
+    required this.profile,
+    this.isPractice = false,
   });
 
   @override
@@ -90,8 +94,8 @@ class _VictoryDialogState extends State<VictoryDialog> with SingleTickerProvider
 
   @override
   Widget build(BuildContext context) {
-    final user = UserSession().profile;
-    final int displayedTrophyDelta = widget.isWinner ? widget.trophyDelta : -15;
+    final user = widget.profile;
+    final int displayedTrophyDelta = widget.trophyDelta;
 
     return Dialog(
       backgroundColor: Colors.transparent,
@@ -213,7 +217,7 @@ class _VictoryDialogState extends State<VictoryDialog> with SingleTickerProvider
                           const Icon(Icons.monetization_on_rounded, color: AppColors.goldTiffinCoin, size: 20),
                           const SizedBox(width: 6),
                           Text(
-                            widget.isWinner ? '+${widget.payout} Coins' : '-Stake Coins',
+                            widget.isPractice ? 'No coins' : (widget.isWinner ? '+${widget.payout} Coins' : '-Stake Coins'),
                             style: KolomTheme.monoNumeric(
                               color: AppColors.goldTiffinCoin,
                               fontSize: 14,
@@ -243,7 +247,7 @@ class _VictoryDialogState extends State<VictoryDialog> with SingleTickerProvider
                           ),
                           const SizedBox(width: 6),
                           Text(
-                            widget.isWinner ? '+$displayedTrophyDelta RP' : '$displayedTrophyDelta RP',
+                            widget.isPractice ? 'No RP change' : '${displayedTrophyDelta >= 0 ? '+' : ''}$displayedTrophyDelta RP',
                             style: KolomTheme.monoNumeric(
                               color: widget.isWinner ? AppColors.emeraldTurn : AppColors.crimsonStrike,
                               fontSize: 14,
@@ -287,7 +291,7 @@ class _VictoryDialogState extends State<VictoryDialog> with SingleTickerProvider
                           padding: const EdgeInsets.symmetric(vertical: 14),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
-                        child: Text(AppLocale.tr('lobby')),
+                        child: Text(widget.isPractice ? AppLocale.tr('back') : AppLocale.tr('lobby')),
                       ),
                     ),
                     const SizedBox(width: 12),

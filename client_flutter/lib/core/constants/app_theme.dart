@@ -1,6 +1,5 @@
 // lib/core/constants/app_theme.dart
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'app_colors.dart';
 
 class KolomTheme {
@@ -69,33 +68,39 @@ class KolomTheme {
         surface: AppColors.glassSurface,
       ),
       textTheme: TextTheme(
-        displayLarge: GoogleFonts.outfit(
+        displayLarge: TextStyle(
+          fontFamily: 'Outfit',
           fontSize: 32,
           fontWeight: FontWeight.w800,
           color: AppColors.chalkWhite,
           letterSpacing: -0.5,
         ),
-        displayMedium: GoogleFonts.outfit(
+        displayMedium: TextStyle(
+          fontFamily: 'Outfit',
           fontSize: 24,
           fontWeight: FontWeight.w700,
           color: AppColors.chalkWhite,
           letterSpacing: -0.5,
         ),
-        titleLarge: GoogleFonts.outfit(
+        titleLarge: TextStyle(
+          fontFamily: 'Outfit',
           fontSize: 18,
           fontWeight: FontWeight.bold,
           color: AppColors.chalkWhite,
         ),
-        titleMedium: GoogleFonts.outfit(
+        titleMedium: TextStyle(
+          fontFamily: 'Outfit',
           fontSize: 15,
           fontWeight: FontWeight.w600,
           color: AppColors.chalkWhite,
         ),
-        bodyLarge: GoogleFonts.inter(
+        bodyLarge: TextStyle(
+          fontFamily: 'Inter',
           fontSize: 14,
           color: AppColors.chalkWhite,
         ),
-        bodyMedium: GoogleFonts.inter(
+        bodyMedium: TextStyle(
+          fontFamily: 'Inter',
           fontSize: 12,
           color: AppColors.slateMuted,
         ),
@@ -109,7 +114,8 @@ class KolomTheme {
     FontWeight fontWeight = FontWeight.bold,
     Color color = AppColors.chalkWhite,
   }) {
-    return GoogleFonts.jetBrainsMono(
+    return TextStyle(
+      fontFamily: 'JetBrainsMono',
       fontSize: fontSize,
       fontWeight: fontWeight,
       color: color,

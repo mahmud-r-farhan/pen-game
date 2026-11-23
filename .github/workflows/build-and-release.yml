@@ -46,7 +46,7 @@ jobs:
           echo "Version: $VERSION_NAME  Build: $BUILD_NUMBER  Tag: $TAG"
 
   # ──────────────────────────────────────────────
-  # Build Android APK (signed with CI key)
+  # Build Android APK (signed with the stable release key)
   # ──────────────────────────────────────────────
   build-android:
     name: Build Android APK
@@ -72,29 +72,56 @@ jobs:
         working-directory: ./client_flutter
         run: flutter pub get
 
-      - name: Generate CI signing keystore
+      - name: Configure Android Firebase
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
         run: |
-          keytool -genkeypair -v \
-            -keystore client_flutter/android/app/ci-release.jks \
-            -storetype JKS -keyalg RSA -keysize 2048 -validity 10000 \
-            -alias ci-key \
-            -storepass 'CI_RELEASE_PASS' \
-            -keypass 'CI_RELEASE_PASS' \
-            -dname "CN=Kolom Fight CI, OU=CI, O=Pen Fight, L=Dhaka, ST=Dhaka, C=BD"
+          if [ -z "$GOOGLE_SERVICES_JSON" ]; then
+            echo "::error::Set the GOOGLE_SERVICES_JSON Actions secret for Google sign-in."
+            exit 1
+          fi
+          printf '%s' "$GOOGLE_SERVICES_JSON" > client_flutter/android/app/google-services.json
+          python3 -m json.tool client_flutter/android/app/google-services.json > /dev/null
 
-      - name: Write key.properties for signing
-        working-directory: ./client_flutter/android
+      - name: Configure Android release signing
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
-          # storeFile is resolved with file(...) inside android/app/build.gradle.kts,
-          # so it is relative to android/app/: "ci-release.jks" means
-          # android/app/ci-release.jks (where the keystore above was generated).
-          # "app/ci-release.jks" would resolve to android/app/app/ci-release.jks.
-          cat > key.properties <<'EOF'
-          storeFile=ci-release.jks
-          storePassword=CI_RELEASE_PASS
-          keyAlias=ci-key
-          keyPassword=CI_RELEASE_PASS
-          EOF
+          for name in ANDROID_KEYSTORE_BASE64 ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD; do
+            if [ -z "${!name}" ]; then
+              echo "::error::Missing $name release signing secret."
+              exit 1
+            fi
+          done
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > client_flutter/android/app/release.jks
+          python3 - <<'PYCODE'
+          import os
+          def escape(value):
+              units = value.encode('utf-16-be')
+              result = []
+              for i in range(0, len(units), 2):
+                  code = int.from_bytes(units[i:i+2], 'big')
+                  char = chr(code)
+                  if code < 32 or code > 126:
+                      result.append(chr(92) + 'u%04x' % code)
+                  elif char == chr(92) or char in ' :=#!':
+                      result.append(chr(92) + char)
+                  else:
+                      result.append(char)
+              return ''.join(result)
+          values = {
+              'storeFile': 'release.jks',
+              'storePassword': os.environ['ANDROID_KEYSTORE_PASSWORD'],
+              'keyAlias': os.environ['ANDROID_KEY_ALIAS'],
+              'keyPassword': os.environ['ANDROID_KEY_PASSWORD'],
+          }
+          with open('client_flutter/android/key.properties', 'w', encoding='ascii') as out:
+              for key, value in values.items():
+                  out.write(key + '=' + escape(value) + chr(10))
+          PYCODE
 
       - name: Build release APK
         working-directory: ./client_flutter
@@ -104,7 +131,6 @@ jobs:
           # printed in the log instead of being buried in the Gradle output.
           set +e
           flutter build apk --release \
-            --dart-define=SERVER_HOST=game.example.com \
             --build-name=${{ needs.get-version.outputs.version }} \
             --build-number=${{ needs.get-version.outputs.build_number }} 2>&1 | tee /tmp/apk-build.log
           BUILD_STATUS=${PIPESTATUS[0]}
@@ -151,8 +177,25 @@ jobs:
 
       - name: Build Web release
         working-directory: ./client_flutter
+        env:
+          FIREBASE_API_KEY: ${{ secrets.FIREBASE_WEB_API_KEY }}
+          FIREBASE_APP_ID: ${{ secrets.FIREBASE_WEB_APP_ID }}
+          FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.FIREBASE_WEB_MESSAGING_SENDER_ID }}
+          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_WEB_PROJECT_ID }}
+          FIREBASE_AUTH_DOMAIN: ${{ secrets.FIREBASE_WEB_AUTH_DOMAIN }}
         run: |
+          for name in FIREBASE_API_KEY FIREBASE_APP_ID FIREBASE_MESSAGING_SENDER_ID FIREBASE_PROJECT_ID FIREBASE_AUTH_DOMAIN; do
+            if [ -z "${!name}" ]; then
+              echo "::error::Missing $name web Firebase configuration."
+              exit 1
+            fi
+          done
           flutter build web --release \
+            --dart-define="FIREBASE_API_KEY=$FIREBASE_API_KEY" \
+            --dart-define="FIREBASE_APP_ID=$FIREBASE_APP_ID" \
+            --dart-define="FIREBASE_MESSAGING_SENDER_ID=$FIREBASE_MESSAGING_SENDER_ID" \
+            --dart-define="FIREBASE_PROJECT_ID=$FIREBASE_PROJECT_ID" \
+            --dart-define="FIREBASE_AUTH_DOMAIN=$FIREBASE_AUTH_DOMAIN" \
             --build-name=${{ needs.get-version.outputs.version }} \
             --build-number=${{ needs.get-version.outputs.build_number }}
 
@@ -350,23 +393,25 @@ jobs:
           echo "=== Release files ==="
           ls -lh release-files/
 
-      - name: Delete existing release and tag if present
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          TAG="${{ needs.get-version.outputs.release_tag }}"
-          
-          # Delete existing release (if any)
-          gh release delete "$TAG" --yes --cleanup-tag 2>/dev/null || true
-
       - name: Create GitHub Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           TAG="${{ needs.get-version.outputs.release_tag }}"
           VERSION="${{ needs.get-version.outputs.version }}"
-          
+          if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null; then
+            echo "::error::Tag $TAG already exists; choose a new version."
+            exit 1
+          else
+            status=$?
+            if [ "$status" -ne 2 ]; then
+              echo "::error::Could not check whether tag $TAG exists."
+              exit "$status"
+            fi
+          fi
+
           gh release create "$TAG" \
+            --target "${{ github.sha }}" \
             --title "Kolom Fight (কলম খেলা) v${VERSION}" \
             --notes "## 🎮 Kolom Fight v${VERSION}
           

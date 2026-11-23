@@ -32,6 +32,11 @@ class UserSession with ChangeNotifier {
 
   bool get hasProfile => _currentProfile != null;
   bool get hasSessionToken => _sessionToken != null;
+  // Older versions could cache a local guest over an online profile. Do not
+  // treat that cache as an authenticated identity when restoration fails.
+  bool get hasOnlineCachedProfile => hasSessionToken &&
+      _currentProfile != null &&
+      !_currentProfile!.id.startsWith('local_guest_');
   String? get sessionToken => _sessionToken;
 
   Future<void> init() async {
@@ -45,47 +50,6 @@ class UserSession with ChangeNotifier {
     }
     ApiService().configureSessionToken(_sessionToken);
     notifyListeners();
-  }
-
-  Future<UserProfile> createLocalGuestProfile({
-    String? desiredName,
-    String division = 'Dhaka',
-    String region = 'BD',
-    String flagEmoji = '🇧🇩',
-  }) async {
-    final digits = (DateTime.now().millisecondsSinceEpoch % 900000 + 100000).toString();
-    final profile = UserProfile(
-      id: 'local_guest_${DateTime.now().millisecondsSinceEpoch}',
-      tag: '#KLM-$digits',
-      username: (desiredName != null && desiredName.trim().isNotEmpty)
-          ? desiredName.trim()
-          : 'Guest_$digits',
-      avatar: 'avatar_shuvo',
-      coins: 100,
-      trophyPoints: 100,
-      cupTier: 'bronze',
-      region: region,
-      flagEmoji: flagEmoji,
-      clubId: null,
-      clubName: null,
-      clubTag: null,
-      clubRole: null,
-      equippedPen: 'hiSchoolClassic',
-      unlockedPens: const ['hiSchoolClassic', 'econoStriker'],
-      isGuest: true,
-      division: division,
-      friends: const [],
-      stats: const UserStats(
-        totalMatches: 0,
-        wins: 0,
-        losses: 0,
-        winStreak: 0,
-        highestStreak: 0,
-      ),
-      createdAt: DateTime.now().millisecondsSinceEpoch,
-    );
-    await setProfile(profile);
-    return profile;
   }
 
   Future<void> setAuthenticatedSession(AuthSessionData session) async {

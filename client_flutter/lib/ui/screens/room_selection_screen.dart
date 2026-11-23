@@ -14,8 +14,10 @@ import 'matchmaking_screen.dart';
 
 class RoomSelectionScreen extends StatefulWidget {
   final bool isOnline;
+  final UserProfile? practiceProfile;
 
-  const RoomSelectionScreen({super.key, this.isOnline = true});
+  const RoomSelectionScreen({super.key, this.isOnline = true, this.practiceProfile})
+      : assert(!isOnline || practiceProfile == null);
 
   @override
   State<RoomSelectionScreen> createState() => _RoomSelectionScreenState();
@@ -63,6 +65,7 @@ class _RoomSelectionScreenState extends State<RoomSelectionScreen> {
                 room: room,
                 playerPen: currentPen,
                 isOnline: false,
+                practiceProfile: widget.practiceProfile,
               ),
       ),
     );
@@ -70,7 +73,7 @@ class _RoomSelectionScreenState extends State<RoomSelectionScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final profile = UserSession().profile;
+    final profile = widget.practiceProfile ?? UserSession().profile;
     final currentPen = KolomSpec.getById(profile.equippedPen);
 
     return ValueListenableBuilder<String>(
@@ -99,7 +102,7 @@ class _RoomSelectionScreenState extends State<RoomSelectionScreen> {
               ),
             ),
             actions: [
-              Padding(
+              if (widget.isOnline) Padding(
                 padding: const EdgeInsets.only(right: 16),
                 child: CoinBadge(coins: profile.coins),
               ),
@@ -138,7 +141,7 @@ class _RoomSelectionScreenState extends State<RoomSelectionScreen> {
                     physics: const BouncingScrollPhysics(),
                     itemBuilder: (context, index) {
                       final room = ArenaRoom.rooms[index];
-                      final bool canAfford = profile.coins >= room.entryCoins;
+                      final bool canAfford = !widget.isOnline || profile.coins >= room.entryCoins;
 
                       // Calculate 3D scale and opacity based on distance from current scroll position
                       final double diff = (_currentPage - index).abs();
