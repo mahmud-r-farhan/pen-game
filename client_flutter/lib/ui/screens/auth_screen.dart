@@ -1,10 +1,12 @@
 // lib/ui/screens/auth_screen.dart
 import 'package:flutter/material.dart';
 import '../../core/auth/auth_service.dart';
+import '../../core/auth/local_practice_profile.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/localization/app_strings.dart';
 import '../widgets/brand_icons.dart';
 import 'main_lobby_screen.dart';
+import 'room_selection_screen.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -60,6 +62,30 @@ class _AuthScreenState extends State<AuthScreen> {
       if (!mounted) return;
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (_) => const MainLobbyScreen()),
+      );
+    } catch (error) {
+      _showError(error);
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _handleOfflinePractice() async {
+    if (_isLoading) return;
+    setState(() => _isLoading = true);
+    try {
+      final region = _regions.firstWhere((r) => r['code'] == _selectedRegion);
+      final profile = await LocalPracticeProfile.getOrCreate(
+        desiredName: _nameController.text,
+        division: _selectedDivision,
+        region: region['code']!,
+        flagEmoji: region['flag']!,
+      );
+      if (!mounted) return;
+      await Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => RoomSelectionScreen(isOnline: false, practiceProfile: profile),
+        ),
       );
     } catch (error) {
       _showError(error);
@@ -251,7 +277,7 @@ class _AuthScreenState extends State<AuthScreen> {
                       else ...[
                         // 1. Guest Login Button (75 coins)
                         ElevatedButton(
-                          onPressed: _handleGuestLogin,
+                          onPressed: _isLoading ? null : _handleGuestLogin,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.goldTiffinCoin,
                             foregroundColor: Colors.black,
@@ -286,7 +312,7 @@ class _AuthScreenState extends State<AuthScreen> {
 
                         // 2. Google Login Button (120 coins)
                         OutlinedButton(
-                          onPressed: _handleGoogleSignIn,
+                          onPressed: _isLoading ? null : _handleGoogleSignIn,
                           style: OutlinedButton.styleFrom(
                             foregroundColor: Colors.white,
                             side: const BorderSide(color: AppColors.glassBorder),
@@ -321,6 +347,18 @@ class _AuthScreenState extends State<AuthScreen> {
                         ),
                         const SizedBox(height: 12),
 
+                        OutlinedButton.icon(
+                          key: const Key('offline_practice_button'),
+                          onPressed: _isLoading ? null : _handleOfflinePractice,
+                          icon: const Icon(Icons.smart_toy_rounded),
+                          label: Text(AppLocale.tr('practice_offline')),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          AppLocale.tr('practice_offline_note'),
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(color: AppColors.slateMuted, fontSize: 11),
+                        ),
                         const SizedBox(height: 16),
 
                         Container(

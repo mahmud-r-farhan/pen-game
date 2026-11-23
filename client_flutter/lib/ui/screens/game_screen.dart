@@ -26,6 +26,7 @@ class GameScreen extends StatefulWidget {
   final bool isOnline;
   final BotDifficulty botDifficulty;
   final MatchStartData? match;
+  final UserProfile? practiceProfile;
 
   const GameScreen({
     super.key,
@@ -34,7 +35,9 @@ class GameScreen extends StatefulWidget {
     this.isOnline = true,
     this.botDifficulty = BotDifficulty.medium,
     this.match,
-  }) : assert(!isOnline || match != null, 'Online games require an authoritative MATCH_START packet.');
+    this.practiceProfile,
+  }) : assert(!isOnline || practiceProfile == null),
+       assert(!isOnline || match != null, 'Online games require an authoritative MATCH_START packet.');
 
   @override
   State<GameScreen> createState() => _GameScreenState();
@@ -70,10 +73,12 @@ class _GameScreenState extends State<GameScreen> {
 
   String? _matchOverRoomId;
 
+  UserProfile get _playerProfile => widget.practiceProfile ?? UserSession().profile;
+
   MatchPlayer? get _onlineOpponent {
     final match = widget.match;
     if (match == null) return null;
-    final ownId = UserSession().profile.id;
+    final ownId = _playerProfile.id;
     return match.p1.id == ownId ? match.p2 : match.p1;
   }
 
@@ -106,7 +111,7 @@ class _GameScreenState extends State<GameScreen> {
 
   void _initGameEngine() {
     final match = widget.match;
-    final ownId = UserSession().profile.id;
+    final ownId = _playerProfile.id;
     final localSide = match?.p1.id == ownId ? 0 : 1;
     _gameEngine = KolomGameEngine(
       room: widget.room,
@@ -309,7 +314,7 @@ class _GameScreenState extends State<GameScreen> {
         content: Text(
           widget.isOnline
               ? 'Are you sure you want to exit? If you leave now, you will forfeit and your opponent will automatically win the pot!'
-              : 'Are you sure you want to exit the match and return to lobby?',
+              : 'Are you sure you want to exit the practice match?',
           style: const TextStyle(color: Colors.white70, fontSize: 13),
         ),
         actions: [
@@ -350,6 +355,8 @@ class _GameScreenState extends State<GameScreen> {
         isWinner: isWinner,
         payout: payout,
         trophyDelta: trophyDelta,
+        profile: _playerProfile,
+        isPractice: !widget.isOnline,
         onRematch: () {
           if (widget.isOnline) {
             Navigator.of(context).pop(); // dismiss victory dialog
@@ -429,7 +436,7 @@ class _GameScreenState extends State<GameScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final user = UserSession().profile;
+    final user = _playerProfile;
     final isPlayerTurn = _gameEngine.isPlayerTurn;
 
     return PopScope(

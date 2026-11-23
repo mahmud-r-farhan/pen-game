@@ -55,7 +55,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
         Future<void>.delayed(const Duration(milliseconds: 1200)),
       ]);
       if (!mounted) return;
-      final restored = results[0] != null || UserSession().hasProfile;
+      final restored = results[0] != null || UserSession().hasOnlineCachedProfile;
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
           builder: (_) => restored ? const MainLobbyScreen() : const AuthScreen(),
@@ -63,7 +63,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
       );
     } catch (error) {
       if (!mounted) return;
-      if (UserSession().hasProfile) {
+      if (UserSession().hasOnlineCachedProfile) {
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (_) => const MainLobbyScreen()),
         );
@@ -183,15 +183,13 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                     ),
                     const SizedBox(height: 10),
                     OutlinedButton.icon(
-                      onPressed: () async {
-                        await UserSession().createLocalGuestProfile();
-                        if (!context.mounted) return;
+                      onPressed: () {
                         Navigator.of(context).pushReplacement(
-                          MaterialPageRoute(builder: (_) => const MainLobbyScreen()),
+                          MaterialPageRoute(builder: (_) => const AuthScreen()),
                         );
                       },
                       icon: const Icon(Icons.offline_bolt_rounded),
-                      label: const Text('Play Offline (Guest Mode)'),
+                      label: const Text('Continue to offline practice'),
                     ),
                   ],
                 ),

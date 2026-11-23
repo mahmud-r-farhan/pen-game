@@ -13,7 +13,7 @@ Online matches are **human-only and server-authoritative**. Bots exist only in t
 - Drag-to-aim shots, adjustable strike point, spin, collisions, table-edge knockouts, pass/timeout handling, quick chat, and rematches.
 - Human quick play, six-digit private rooms, friend challenges, and a 15-second reconnect grace period.
 - Server-produced 60 Hz keyframes rendered by both online clients; clients never report a knockout or choose a winner.
-- Offline practice uses local Forge2D physics and a local bot. It does not change online coins, trophies, or career statistics.
+- Offline practice is available directly from the sign-in screen without Firebase or a server. It uses a separate device-local anonymous profile, Forge2D physics and a local bot. It does not change online coins, trophies, or career statistics, and the local profile is not synchronized or merged into an online account.
 
 ### Accounts and progression
 
@@ -129,7 +129,7 @@ Profiles and transactions are durable in Deno KV. Active rooms, queues, sockets,
 
 1. Enable Google sign-in in Firebase Authentication.
 2. Register Android application ID `com.penfight.kolomkhela` and add the release SHA-1/SHA-256 fingerprints.
-3. Replace/update `client_flutter/android/app/google-services.json` with the real Firebase configuration, including the required Android OAuth client.
+3. Download the Firebase configuration (including the required Android OAuth client) to `client_flutter/android/app/google-services.json`. This file is ignored by Git. Android builds without it still support offline practice and server guest login, but not Google sign-in.
 4. Set the backend `FIREBASE_PROJECT_ID` to the same project.
 5. For web Google sign-in, supply the Firebase web values at build/run time:
 
@@ -142,7 +142,9 @@ flutter build web --release \
   --dart-define=FIREBASE_AUTH_DOMAIN=your-project-id.firebaseapp.com
 ```
 
-Guest mode remains available when optional Google sign-in is not configured; the UI reports that limitation instead of creating a fake identity.
+Server guest login still requires a connection to the backend. **Practice Offline** instead creates a separate profile on the device and does not contact Firebase or the game server; clearing app data removes it. Practice results never affect online progress. The UI reports missing Google configuration instead of creating a fake identity.
+
+For release automation, set the GitHub Actions secret `GOOGLE_SERVICES_JSON` to the full Android configuration JSON, and set `FIREBASE_WEB_API_KEY`, `FIREBASE_WEB_APP_ID`, `FIREBASE_WEB_MESSAGING_SENDER_ID`, `FIREBASE_WEB_PROJECT_ID`, and `FIREBASE_WEB_AUTH_DOMAIN` for the web build. The release workflow fails rather than publishing builds with missing Google configuration. Firebase client configuration is included in shipped apps and is not a substitute for Firebase security rules, API-key restrictions or protected server credentials. Set `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, and `ANDROID_KEY_PASSWORD` to a securely stored, stable Android signing key and its credentials. Updates must use the same signing identity as the installed app (or its authorized successor). Never commit the keystore.
 
 ## Production build
 
