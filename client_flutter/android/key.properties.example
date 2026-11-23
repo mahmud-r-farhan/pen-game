@@ -1,5 +1,14 @@
-# Copy to android/key.properties and supply your private release credentials.
-# Keep key.properties and the referenced keystore out of version control.
+# Copy this file to android/key.properties and supply your private release
+# credentials. key.properties and the referenced keystore must stay out of
+# version control (see .gitignore).
+#
+# storeFile is resolved by android/app/build.gradle.kts with file(...), so it is
+# relative to the *app module* directory (android/app/), not to android/ or the
+# repo root. "ci-release.jks" therefore means android/app/ci-release.jks.
+# A path such as "app/kolom-release.jks" would resolve to
+# android/app/app/kolom-release.jks and Gradle would fail with
+# "Keystore file ... not found for signing config 'release'".
+# An absolute path also works.
 storeFile=/absolute/path/to/kolom-release.jks
 storePassword=replace-with-the-keystore-password
 keyAlias=kolom-release
