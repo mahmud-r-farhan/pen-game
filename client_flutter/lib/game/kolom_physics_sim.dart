@@ -22,7 +22,11 @@ const double maxPull = 190.0;
 const double minPull = 14.0;
 const double spinK = 0.35;
 
-double clampVal(double v, double a, double b) => v < a ? a : v > b ? b : v;
+double clampVal(double v, double a, double b) => v < a
+    ? a
+    : v > b
+    ? b
+    : v;
 
 class SimPen {
   final int owner; // 0 or 1
@@ -50,39 +54,39 @@ class SimPen {
   });
 
   SimPen clone() => SimPen(
-        owner: owner,
-        x: x,
-        y: y,
-        a: a,
-        vx: vx,
-        vy: vy,
-        w: w,
-        h: h,
-        r: r,
-        fall: fall,
-      );
+    owner: owner,
+    x: x,
+    y: y,
+    a: a,
+    vx: vx,
+    vy: vy,
+    w: w,
+    h: h,
+    r: r,
+    fall: fall,
+  );
 
   Map<String, dynamic> toJson() => {
-        'owner': owner,
-        'x': x,
-        'y': y,
-        'a': a,
-        'vx': vx,
-        'vy': vy,
-        'w': w,
-        'fall': fall,
-      };
+    'owner': owner,
+    'x': x,
+    'y': y,
+    'a': a,
+    'vx': vx,
+    'vy': vy,
+    'w': w,
+    'fall': fall,
+  };
 
   factory SimPen.fromJson(Map<String, dynamic> json) => SimPen(
-        owner: (json['owner'] as num?)?.toInt() ?? 0,
-        x: (json['x'] as num?)?.toDouble() ?? 0.0,
-        y: (json['y'] as num?)?.toDouble() ?? 0.0,
-        a: (json['a'] as num?)?.toDouble() ?? 0.0,
-        vx: (json['vx'] as num?)?.toDouble() ?? 0.0,
-        vy: (json['vy'] as num?)?.toDouble() ?? 0.0,
-        w: (json['w'] as num?)?.toDouble() ?? 0.0,
-        fall: (json['fall'] as num?)?.toDouble() ?? 0.0,
-      );
+    owner: (json['owner'] as num?)?.toInt() ?? 0,
+    x: (json['x'] as num?)?.toDouble() ?? 0.0,
+    y: (json['y'] as num?)?.toDouble() ?? 0.0,
+    a: (json['a'] as num?)?.toDouble() ?? 0.0,
+    vx: (json['vx'] as num?)?.toDouble() ?? 0.0,
+    vy: (json['vy'] as num?)?.toDouble() ?? 0.0,
+    w: (json['w'] as num?)?.toDouble() ?? 0.0,
+    fall: (json['fall'] as num?)?.toDouble() ?? 0.0,
+  );
 }
 
 class SimShot {
@@ -99,18 +103,18 @@ class SimShot {
   });
 
   Map<String, dynamic> toJson() => {
-        'ang': ang,
-        'power': power,
-        'rx': rx,
-        'ry': ry,
-      };
+    'ang': ang,
+    'power': power,
+    'rx': rx,
+    'ry': ry,
+  };
 
   factory SimShot.fromJson(Map<String, dynamic> json) => SimShot(
-        ang: (json['ang'] as num?)?.toDouble() ?? 0.0,
-        power: (json['power'] as num?)?.toDouble() ?? 0.5,
-        rx: (json['rx'] as num?)?.toDouble() ?? 0.0,
-        ry: (json['ry'] as num?)?.toDouble() ?? 0.0,
-      );
+    ang: (json['ang'] as num?)?.toDouble() ?? 0.0,
+    power: (json['power'] as num?)?.toDouble() ?? 0.5,
+    rx: (json['rx'] as num?)?.toDouble() ?? 0.0,
+    ry: (json['ry'] as num?)?.toDouble() ?? 0.0,
+  );
 }
 
 class SimState {
@@ -118,31 +122,31 @@ class SimState {
   bool ended;
   int winner; // -1 if active, 0 or 1
 
-  SimState({
-    required this.pens,
-    this.ended = false,
-    this.winner = -1,
-  });
+  SimState({required this.pens, this.ended = false, this.winner = -1});
 
   SimState clone() => SimState(
-        pens: [pens[0].clone(), pens[1].clone()],
-        ended: ended,
-        winner: winner,
-      );
+    pens: [pens[0].clone(), pens[1].clone()],
+    ended: ended,
+    winner: winner,
+  );
 
   Map<String, dynamic> toJson() => {
-        'pens': pens.map((p) => p.toJson()).toList(),
-        'ended': ended,
-        'winner': winner,
-      };
+    'pens': pens.map((p) => p.toJson()).toList(),
+    'ended': ended,
+    'winner': winner,
+  };
 
   factory SimState.fromJson(Map<String, dynamic> json) {
     final pensRaw = json['pens'] as List<dynamic>? ?? [];
     if (pensRaw.length != 2) {
-      throw const FormatException('An authoritative match must contain exactly two pens.');
+      throw const FormatException(
+        'An authoritative match must contain exactly two pens.',
+      );
     }
     return SimState(
-      pens: pensRaw.map((p) => SimPen.fromJson(p as Map<String, dynamic>)).toList(),
+      pens: pensRaw
+          .map((p) => SimPen.fromJson(p as Map<String, dynamic>))
+          .toList(),
       ended: json['ended'] as bool? ?? false,
       winner: (json['winner'] as num?)?.toInt() ?? -1,
     );
@@ -163,18 +167,13 @@ class SimHitEvent {
   });
 
   factory SimHitEvent.fromJson(Map<String, dynamic> json) => SimHitEvent(
-        t: (json['t'] as num?)?.toDouble() ?? 0.0,
-        x: (json['x'] as num?)?.toDouble() ?? 0.0,
-        y: (json['y'] as num?)?.toDouble() ?? 0.0,
-        impact: (json['impact'] as num?)?.toDouble() ?? 0.0,
-      );
+    t: (json['t'] as num?)?.toDouble() ?? 0.0,
+    x: (json['x'] as num?)?.toDouble() ?? 0.0,
+    y: (json['y'] as num?)?.toDouble() ?? 0.0,
+    impact: (json['impact'] as num?)?.toDouble() ?? 0.0,
+  );
 
-  Map<String, dynamic> toJson() => {
-        't': t,
-        'x': x,
-        'y': y,
-        'impact': impact,
-      };
+  Map<String, dynamic> toJson() => {'t': t, 'x': x, 'y': y, 'impact': impact};
 }
 
 class SimKeyframe {
@@ -201,16 +200,16 @@ class SimKeyframe {
   });
 
   factory SimKeyframe.fromList(List<dynamic> list) => SimKeyframe(
-        t: (list[0] as num).toDouble(),
-        x0: (list[1] as num).toDouble(),
-        y0: (list[2] as num).toDouble(),
-        a0: (list[3] as num).toDouble(),
-        fall0: (list[4] as num).toDouble(),
-        x1: (list[5] as num).toDouble(),
-        y1: (list[6] as num).toDouble(),
-        a1: (list[7] as num).toDouble(),
-        fall1: (list[8] as num).toDouble(),
-      );
+    t: (list[0] as num).toDouble(),
+    x0: (list[1] as num).toDouble(),
+    y0: (list[2] as num).toDouble(),
+    a0: (list[3] as num).toDouble(),
+    fall0: (list[4] as num).toDouble(),
+    x1: (list[5] as num).toDouble(),
+    y1: (list[6] as num).toDouble(),
+    a1: (list[7] as num).toDouble(),
+    fall1: (list[8] as num).toDouble(),
+  );
 
   List<double> toList() => [t, x0, y0, a0, fall0, x1, y1, a1, fall1];
 }
@@ -233,7 +232,8 @@ class SimTurnResult {
   });
 }
 
-double edgeDist(SimPen p) => math.min(math.min(p.x, simW - p.x), math.min(p.y, simH - p.y));
+double edgeDist(SimPen p) =>
+    math.min(math.min(p.x, simW - p.x), math.min(p.y, simH - p.y));
 
 double travelDist(double v) {
   if (v < 8.0) return 0.0;
@@ -465,7 +465,9 @@ void stepPhysics(
   }
 }
 
-bool settled(SimState S) => S.pens.every((p) => p.fall > 0.0 || (p.vx == 0.0 && p.vy == 0.0 && p.w == 0.0));
+bool settled(SimState S) => S.pens.every(
+  (p) => p.fall > 0.0 || (p.vx == 0.0 && p.vy == 0.0 && p.w == 0.0),
+);
 
 SimState createInitialMatchState([double? fixedY, double? fixedA]) {
   final y = fixedY ?? (simH / 2.0 + (math.Random().nextDouble() - 0.5) * 180.0);
@@ -495,44 +497,43 @@ SimTurnResult simulateTurn(
   double nextSampleTime = 0.0;
   double elapsed = 0.0;
 
-  frames.add(SimKeyframe(
-    t: 0.0,
-    x0: sim.pens[0].x,
-    y0: sim.pens[0].y,
-    a0: sim.pens[0].a,
-    fall0: sim.pens[0].fall,
-    x1: sim.pens[1].x,
-    y1: sim.pens[1].y,
-    a1: sim.pens[1].a,
-    fall1: sim.pens[1].fall,
-  ));
+  frames.add(
+    SimKeyframe(
+      t: 0.0,
+      x0: sim.pens[0].x,
+      y0: sim.pens[0].y,
+      a0: sim.pens[0].a,
+      fall0: sim.pens[0].fall,
+      x1: sim.pens[1].x,
+      y1: sim.pens[1].y,
+      a1: sim.pens[1].a,
+      fall1: sim.pens[1].fall,
+    ),
+  );
 
   while (elapsed < maxSimSeconds) {
     stepPhysics(sim, simStep, (x, y, impact) {
       if (impact > 25.0) {
-        events.add(SimHitEvent(
-          t: elapsed,
-          x: x,
-          y: y,
-          impact: impact,
-        ));
+        events.add(SimHitEvent(t: elapsed, x: x, y: y, impact: impact));
       }
     });
 
     elapsed += simStep;
 
     if (elapsed >= nextSampleTime) {
-      frames.add(SimKeyframe(
-        t: elapsed,
-        x0: sim.pens[0].x,
-        y0: sim.pens[0].y,
-        a0: sim.pens[0].a,
-        fall0: sim.pens[0].fall,
-        x1: sim.pens[1].x,
-        y1: sim.pens[1].y,
-        a1: sim.pens[1].a,
-        fall1: sim.pens[1].fall,
-      ));
+      frames.add(
+        SimKeyframe(
+          t: elapsed,
+          x0: sim.pens[0].x,
+          y0: sim.pens[0].y,
+          a0: sim.pens[0].a,
+          fall0: sim.pens[0].fall,
+          x1: sim.pens[1].x,
+          y1: sim.pens[1].y,
+          a1: sim.pens[1].a,
+          fall1: sim.pens[1].fall,
+        ),
+      );
       nextSampleTime += sampleInterval;
     }
 
@@ -543,17 +544,19 @@ SimTurnResult simulateTurn(
     }
   }
 
-  frames.add(SimKeyframe(
-    t: elapsed,
-    x0: sim.pens[0].x,
-    y0: sim.pens[0].y,
-    a0: sim.pens[0].a,
-    fall0: sim.pens[0].fall,
-    x1: sim.pens[1].x,
-    y1: sim.pens[1].y,
-    a1: sim.pens[1].a,
-    fall1: sim.pens[1].fall,
-  ));
+  frames.add(
+    SimKeyframe(
+      t: elapsed,
+      x0: sim.pens[0].x,
+      y0: sim.pens[0].y,
+      a0: sim.pens[0].a,
+      fall0: sim.pens[0].fall,
+      x1: sim.pens[1].x,
+      y1: sim.pens[1].y,
+      a1: sim.pens[1].a,
+      fall1: sim.pens[1].fall,
+    ),
+  );
 
   final f0 = sim.pens[0].fall > 0.0;
   final f1 = sim.pens[1].fall > 0.0;

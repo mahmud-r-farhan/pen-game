@@ -46,7 +46,7 @@ class KolomFightApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       navigatorKey: appNavigatorKey,
-      title: 'Kolom Fight Online',
+      title: 'Kolom Fight',
       debugShowCheckedModeBanner: false,
       theme: KolomTheme.darkTheme,
       home: const SplashScreen(),

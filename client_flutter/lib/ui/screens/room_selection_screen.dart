@@ -1,11 +1,14 @@
 // lib/ui/screens/room_selection_screen.dart
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import '../../core/auth/local_practice_profile.dart';
 import '../../core/auth/user_session.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_theme.dart';
 import '../../core/localization/app_strings.dart';
+import '../../game/bot/offline_bot_ai.dart';
 import '../../models/arena_room.dart';
+import '../../models/practice_stats.dart';
 import '../../models/kolom_spec.dart';
 import '../../models/user_profile.dart';
 import '../widgets/coin_badge.dart';
@@ -16,8 +19,11 @@ class RoomSelectionScreen extends StatefulWidget {
   final bool isOnline;
   final UserProfile? practiceProfile;
 
-  const RoomSelectionScreen({super.key, this.isOnline = true, this.practiceProfile})
-      : assert(!isOnline || practiceProfile == null);
+  const RoomSelectionScreen({
+    super.key,
+    this.isOnline = true,
+    this.practiceProfile,
+  }) : assert(!isOnline || practiceProfile == null);
 
   @override
   State<RoomSelectionScreen> createState() => _RoomSelectionScreenState();
@@ -26,6 +32,8 @@ class RoomSelectionScreen extends StatefulWidget {
 class _RoomSelectionScreenState extends State<RoomSelectionScreen> {
   late final PageController _pageController;
   double _currentPage = 0.0;
+  BotDifficulty _selectedDifficulty = BotDifficulty.medium;
+  PracticeStats? _practiceStats;
 
   @override
   void initState() {
@@ -36,6 +44,34 @@ class _RoomSelectionScreenState extends State<RoomSelectionScreen> {
         _currentPage = _pageController.page ?? 0.0;
       });
     });
+    if (!widget.isOnline) _loadPracticeStats();
+  }
+
+  Future<void> _loadPracticeStats() async {
+    final stats = await LocalPracticeProfile.getPracticeStats();
+    if (mounted) setState(() => _practiceStats = stats);
+  }
+
+  String _difficultyLabel(BotDifficulty difficulty) {
+    switch (difficulty) {
+      case BotDifficulty.easy:
+        return AppLocale.tr('difficulty_easy');
+      case BotDifficulty.medium:
+        return AppLocale.tr('difficulty_medium');
+      case BotDifficulty.pro:
+        return AppLocale.tr('difficulty_pro');
+    }
+  }
+
+  String _difficultySubtitle(BotDifficulty difficulty) {
+    switch (difficulty) {
+      case BotDifficulty.easy:
+        return AppLocale.tr('difficulty_easy_sub');
+      case BotDifficulty.medium:
+        return AppLocale.tr('difficulty_medium_sub');
+      case BotDifficulty.pro:
+        return AppLocale.tr('difficulty_pro_sub');
+    }
   }
 
   @override
@@ -57,18 +93,23 @@ class _RoomSelectionScreenState extends State<RoomSelectionScreen> {
       return;
     }
 
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => widget.isOnline
-            ? MatchmakingScreen(room: room, playerPen: currentPen)
-            : GameScreen(
-                room: room,
-                playerPen: currentPen,
-                isOnline: false,
-                practiceProfile: widget.practiceProfile,
-              ),
-      ),
-    );
+    Navigator.of(context)
+        .push(
+          MaterialPageRoute(
+            builder: (_) => widget.isOnline
+                ? MatchmakingScreen(room: room, playerPen: currentPen)
+                : GameScreen(
+                    room: room,
+                    playerPen: currentPen,
+                    isOnline: false,
+                    botDifficulty: _selectedDifficulty,
+                    practiceProfile: widget.practiceProfile,
+                  ),
+          ),
+        )
+        .then((_) {
+          if (mounted && !widget.isOnline) _loadPracticeStats();
+        });
   }
 
   @override
@@ -80,8 +121,16 @@ class _RoomSelectionScreenState extends State<RoomSelectionScreen> {
       valueListenable: AppLocale.currentCode,
       builder: (context, langCode, _) {
         final title = widget.isOnline
-            ? (langCode == 'bn' ? 'অনলাইন ১ বনাম ১ অ্যারেনা' : (langCode == 'hi' ? 'ऑनलाइन 1v1 अखाड़ा' : 'Online 1v1 Arenas'))
-            : (langCode == 'bn' ? 'বট প্র্যাকটিস অ্যারেনা' : (langCode == 'hi' ? 'ऑफ़लाइन बॉट अखाड़ा' : 'Offline Bot Arenas'));
+            ? (langCode == 'bn'
+                  ? 'অনলাইন ১ বনাম ১ অ্যারেনা'
+                  : (langCode == 'hi'
+                        ? 'ऑनलाइन 1v1 अखाड़ा'
+                        : 'Online 1v1 Arenas'))
+            : (langCode == 'bn'
+                  ? 'বট প্র্যাকটিস অ্যারেনা'
+                  : (langCode == 'hi'
+                        ? 'ऑफ़लाइन बॉट अखाड़ा'
+                        : 'Offline Bot Arenas'));
 
         return Scaffold(
           backgroundColor: AppColors.bgObsidian,
@@ -90,7 +139,10 @@ class _RoomSelectionScreenState extends State<RoomSelectionScreen> {
             elevation: 0,
             leading: IconButton(
               onPressed: () => Navigator.of(context).pop(),
-              icon: const Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.chalkWhite),
+              icon: const Icon(
+                Icons.arrow_back_ios_new_rounded,
+                color: AppColors.chalkWhite,
+              ),
             ),
             title: Text(
               title,
@@ -102,10 +154,11 @@ class _RoomSelectionScreenState extends State<RoomSelectionScreen> {
               ),
             ),
             actions: [
-              if (widget.isOnline) Padding(
-                padding: const EdgeInsets.only(right: 16),
-                child: CoinBadge(coins: profile.coins),
-              ),
+              if (widget.isOnline)
+                Padding(
+                  padding: const EdgeInsets.only(right: 16),
+                  child: CoinBadge(coins: profile.coins),
+                ),
             ],
           ),
           body: SafeArea(
@@ -113,11 +166,18 @@ class _RoomSelectionScreenState extends State<RoomSelectionScreen> {
               children: [
                 // Subheader & Swipe hint
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 4,
+                  ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(Icons.swipe_rounded, color: AppColors.slateMuted, size: 16),
+                      const Icon(
+                        Icons.swipe_rounded,
+                        color: AppColors.slateMuted,
+                        size: 16,
+                      ),
                       const SizedBox(width: 6),
                       Text(
                         AppLocale.tr('swipe_hint'),
@@ -133,6 +193,11 @@ class _RoomSelectionScreenState extends State<RoomSelectionScreen> {
 
                 const SizedBox(height: 8),
 
+                if (!widget.isOnline) ...[
+                  _buildPracticePanel(),
+                  const SizedBox(height: 4),
+                ],
+
                 // Horizontal Carousel of Vertical Cards
                 Expanded(
                   child: PageView.builder(
@@ -141,12 +206,19 @@ class _RoomSelectionScreenState extends State<RoomSelectionScreen> {
                     physics: const BouncingScrollPhysics(),
                     itemBuilder: (context, index) {
                       final room = ArenaRoom.rooms[index];
-                      final bool canAfford = !widget.isOnline || profile.coins >= room.entryCoins;
+                      final bool canAfford =
+                          !widget.isOnline || profile.coins >= room.entryCoins;
 
                       // Calculate 3D scale and opacity based on distance from current scroll position
                       final double diff = (_currentPage - index).abs();
-                      final double scale = (1.0 - (diff * 0.12)).clamp(0.88, 1.0);
-                      final double opacity = (1.0 - (diff * 0.35)).clamp(0.65, 1.0);
+                      final double scale = (1.0 - (diff * 0.12)).clamp(
+                        0.88,
+                        1.0,
+                      );
+                      final double opacity = (1.0 - (diff * 0.35)).clamp(
+                        0.65,
+                        1.0,
+                      );
 
                       return Transform.scale(
                         scale: scale,
@@ -178,6 +250,103 @@ class _RoomSelectionScreenState extends State<RoomSelectionScreen> {
     );
   }
 
+  Widget _buildPracticePanel() {
+    final stats = _practiceStats;
+    final Color accent = switch (_selectedDifficulty) {
+      BotDifficulty.easy => AppColors.emeraldTurn,
+      BotDifficulty.medium => AppColors.goldTiffinCoin,
+      BotDifficulty.pro => AppColors.crimsonStrike,
+    };
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+      padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+      decoration: KolomTheme.glassCardDecoration(radius: 18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(
+                Icons.smart_toy_rounded,
+                color: AppColors.cyanSpin,
+                size: 16,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                AppLocale.tr('bot_difficulty'),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 12,
+                ),
+              ),
+              const Spacer(),
+              if (stats != null)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
+                  decoration: BoxDecoration(
+                    color: accent.withValues(alpha: 0.16),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: accent.withValues(alpha: 0.5)),
+                  ),
+                  child: Text(
+                    '${stats.wins} ${AppLocale.tr('practice_wins')} · '
+                    '${stats.losses} ${AppLocale.tr('practice_losses')} · '
+                    '🔥${stats.streak}',
+                    style: TextStyle(
+                      color: accent,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 10.5,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              for (final difficulty in BotDifficulty.values)
+                Expanded(
+                  child: Padding(
+                    padding: EdgeInsets.only(
+                      right: difficulty == BotDifficulty.pro ? 0 : 6,
+                    ),
+                    child: ChoiceChip(
+                      label: Text(_difficultyLabel(difficulty)),
+                      selected: _selectedDifficulty == difficulty,
+                      selectedColor: accent,
+                      backgroundColor: AppColors.glassSurfaceHeavy,
+                      visualDensity: VisualDensity.compact,
+                      labelStyle: TextStyle(
+                        color: _selectedDifficulty == difficulty
+                            ? Colors.black
+                            : Colors.white70,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 11,
+                      ),
+                      onSelected: (selected) {
+                        if (!selected) return;
+                        setState(() => _selectedDifficulty = difficulty);
+                      },
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            _difficultySubtitle(_selectedDifficulty),
+            style: const TextStyle(color: AppColors.slateMuted, fontSize: 10.5),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildVerticalRoomCard({
     required ArenaRoom room,
     required bool canAfford,
@@ -201,10 +370,7 @@ class _RoomSelectionScreenState extends State<RoomSelectionScreen> {
             ],
             stops: const [0.0, 0.55, 1.0],
           ),
-          border: Border.all(
-            color: room.neonGlowColor,
-            width: 2.2,
-          ),
+          border: Border.all(color: room.neonGlowColor, width: 2.2),
           boxShadow: [
             BoxShadow(
               color: room.neonGlowColor.withValues(alpha: 0.40),
@@ -248,7 +414,10 @@ class _RoomSelectionScreenState extends State<RoomSelectionScreen> {
 
               // Card Vertical Body
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 16,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
@@ -257,11 +426,16 @@ class _RoomSelectionScreenState extends State<RoomSelectionScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
                             color: Colors.black54,
                             borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: room.neonGlowColor.withValues(alpha: 0.6)),
+                            border: Border.all(
+                              color: room.neonGlowColor.withValues(alpha: 0.6),
+                            ),
                           ),
                           child: Text(
                             room.category.name.toUpperCase(),
@@ -275,7 +449,10 @@ class _RoomSelectionScreenState extends State<RoomSelectionScreen> {
                         ),
                         if (room.subCategory != null)
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
                             decoration: BoxDecoration(
                               color: Colors.black45,
                               borderRadius: BorderRadius.circular(8),
@@ -353,17 +530,24 @@ class _RoomSelectionScreenState extends State<RoomSelectionScreen> {
 
                     // Center: Entry Fee & Pot Badge
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 10,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.black.withValues(alpha: 0.75),
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
-                          color: AppColors.goldTiffinCoin.withValues(alpha: 0.8),
+                          color: AppColors.goldTiffinCoin.withValues(
+                            alpha: 0.8,
+                          ),
                           width: 1.5,
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: AppColors.goldTiffinCoin.withValues(alpha: 0.2),
+                            color: AppColors.goldTiffinCoin.withValues(
+                              alpha: 0.2,
+                            ),
                             blurRadius: 12,
                           ),
                         ],
@@ -386,11 +570,17 @@ class _RoomSelectionScreenState extends State<RoomSelectionScreen> {
                               const SizedBox(height: 2),
                               Row(
                                 children: [
-                                  const Icon(Icons.monetization_on_rounded, color: AppColors.goldTiffinCoin, size: 16),
+                                  const Icon(
+                                    Icons.monetization_on_rounded,
+                                    color: AppColors.goldTiffinCoin,
+                                    size: 16,
+                                  ),
                                   const SizedBox(width: 4),
                                   Text(
                                     widget.isOnline
-                                        ? NumberFormat.decimalPattern().format(room.entryCoins)
+                                        ? NumberFormat.decimalPattern().format(
+                                            room.entryCoins,
+                                          )
                                         : 'FREE',
                                     style: KolomTheme.monoNumeric(
                                       color: AppColors.goldTiffinCoin,
@@ -423,12 +613,18 @@ class _RoomSelectionScreenState extends State<RoomSelectionScreen> {
                               const SizedBox(height: 2),
                               Row(
                                 children: [
-                                  const Icon(Icons.emoji_events_rounded, color: AppColors.emeraldTurn, size: 16),
+                                  const Icon(
+                                    Icons.emoji_events_rounded,
+                                    color: AppColors.emeraldTurn,
+                                    size: 16,
+                                  ),
                                   const SizedBox(width: 4),
                                   Text(
                                     widget.isOnline
-                                        ? NumberFormat.decimalPattern().format(room.payoutCoins)
-                                        : 'PRACTICE',
+                                        ? NumberFormat.decimalPattern().format(
+                                            room.payoutCoins,
+                                          )
+                                        : AppLocale.tr('practice_mode'),
                                     style: KolomTheme.monoNumeric(
                                       color: AppColors.emeraldTurn,
                                       fontSize: 14,
@@ -446,7 +642,10 @@ class _RoomSelectionScreenState extends State<RoomSelectionScreen> {
 
                     // Table Surface & Physics Specs
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.black38,
                         borderRadius: BorderRadius.circular(12),
@@ -457,21 +656,37 @@ class _RoomSelectionScreenState extends State<RoomSelectionScreen> {
                         children: [
                           Row(
                             children: [
-                              const Icon(Icons.speed_rounded, size: 14, color: AppColors.cyanSpin),
+                              const Icon(
+                                Icons.speed_rounded,
+                                size: 14,
+                                color: AppColors.cyanSpin,
+                              ),
                               const SizedBox(width: 4),
                               Text(
                                 room.localizedFriction(langCode),
-                                style: const TextStyle(color: Colors.white70, fontSize: 10.5, fontWeight: FontWeight.w600),
+                                style: const TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 10.5,
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
                             ],
                           ),
                           Row(
                             children: [
-                              const Icon(Icons.sports_baseball_rounded, size: 14, color: Colors.orangeAccent),
+                              const Icon(
+                                Icons.sports_baseball_rounded,
+                                size: 14,
+                                color: Colors.orangeAccent,
+                              ),
                               const SizedBox(width: 4),
                               Text(
                                 '${(room.bounce * 100).toInt()}% Bounce',
-                                style: const TextStyle(color: Colors.white70, fontSize: 10.5, fontWeight: FontWeight.w600),
+                                style: const TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 10.5,
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
                             ],
                           ),
@@ -488,12 +703,16 @@ class _RoomSelectionScreenState extends State<RoomSelectionScreen> {
                       child: ElevatedButton(
                         onPressed: canAfford ? onTap : null,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: canAfford ? room.neonGlowColor : Colors.grey.shade800,
+                          backgroundColor: canAfford
+                              ? room.neonGlowColor
+                              : Colors.grey.shade800,
                           foregroundColor: Colors.black,
                           disabledBackgroundColor: Colors.grey.shade900,
                           disabledForegroundColor: Colors.white30,
                           elevation: canAfford ? 8 : 0,
-                          shadowColor: room.neonGlowColor.withValues(alpha: 0.6),
+                          shadowColor: room.neonGlowColor.withValues(
+                            alpha: 0.6,
+                          ),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(14),
                           ),
@@ -503,7 +722,9 @@ class _RoomSelectionScreenState extends State<RoomSelectionScreen> {
                           children: [
                             Icon(
                               canAfford
-                                  ? (widget.isOnline ? Icons.flash_on_rounded : Icons.smart_toy_rounded)
+                                  ? (widget.isOnline
+                                        ? Icons.flash_on_rounded
+                                        : Icons.smart_toy_rounded)
                                   : Icons.lock_outline_rounded,
                               size: 18,
                               color: canAfford ? Colors.black : Colors.white30,
@@ -511,10 +732,14 @@ class _RoomSelectionScreenState extends State<RoomSelectionScreen> {
                             const SizedBox(width: 8),
                             Text(
                               canAfford
-                                  ? (widget.isOnline ? AppLocale.tr('play_1v1_duel') : AppLocale.tr('play_bot'))
+                                  ? (widget.isOnline
+                                        ? AppLocale.tr('play_1v1_duel')
+                                        : AppLocale.tr('play_bot'))
                                   : AppLocale.tr('insufficient_coins'),
                               style: TextStyle(
-                                color: canAfford ? Colors.black : Colors.white30,
+                                color: canAfford
+                                    ? Colors.black
+                                    : Colors.white30,
                                 fontWeight: FontWeight.w900,
                                 fontSize: 13,
                                 letterSpacing: 0.5,
@@ -542,7 +767,11 @@ class _RoomSelectionScreenState extends State<RoomSelectionScreen> {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         IconButton(
-          icon: const Icon(Icons.arrow_back_ios_rounded, size: 16, color: Colors.white60),
+          icon: const Icon(
+            Icons.arrow_back_ios_rounded,
+            size: 16,
+            color: Colors.white60,
+          ),
           onPressed: activeIndex > 0
               ? () {
                   _pageController.previousPage(
@@ -567,7 +796,9 @@ class _RoomSelectionScreenState extends State<RoomSelectionScreen> {
                 boxShadow: isSelected
                     ? [
                         BoxShadow(
-                          color: activeRoom.neonGlowColor.withValues(alpha: 0.6),
+                          color: activeRoom.neonGlowColor.withValues(
+                            alpha: 0.6,
+                          ),
                           blurRadius: 8,
                         ),
                       ]
@@ -577,7 +808,11 @@ class _RoomSelectionScreenState extends State<RoomSelectionScreen> {
           }),
         ),
         IconButton(
-          icon: const Icon(Icons.arrow_forward_ios_rounded, size: 16, color: Colors.white60),
+          icon: const Icon(
+            Icons.arrow_forward_ios_rounded,
+            size: 16,
+            color: Colors.white60,
+          ),
           onPressed: activeIndex < count - 1
               ? () {
                   _pageController.nextPage(

@@ -4,12 +4,25 @@ A turn-based tabletop pen battle for Android and the web. The client is built wi
 
 Online matches are **human-only and server-authoritative**. Bots exist only in the explicitly labeled offline practice mode. There are no fabricated players, simulated backend responses, client-selected winners, or local-only shop transactions in the online flow.
 
+## Download and play
+
+Grab the newest build from the [Releases](https://github.com/mahmud-r-farhan/pen-game/releases/latest) page.
+
+| Platform | Artifact | Notes |
+|---|---|---|
+| Android | `kolom-fight-<version>-android.apk` | Install directly; allow installs from unknown sources. |
+| Web | `kolom-fight-<version>-web.zip` | Unzip and serve the folder with any static web server. |
+| Windows | `kolom-fight-<version>-windows.zip` | Unzip everything and run the executable. |
+| Linux | `kolom-fight-<version>-linux-x64.tar.gz` | Extract and run the bundled executable. |
+
+Every release also ships `SHA256SUMS.txt`. Tagging `vX.Y.Z` (or dispatching the **Release** workflow) builds all platforms and publishes the GitHub Release automatically; see [Releasing](#releasing).
+
 ## What is implemented
 
 ### Game
 
-- Seven Bangladeshi education-themed arenas with distinct presentation, authoritative stakes, and server-owned surface physics.
-- Seven procedural pen designs, including transparent barrels, rubber grips, metal finishes, and double-cap modifications. Verified loadouts affect authoritative mass, inertia, dimensions, damping, and restitution—not just appearance.
+- Eight Bangladeshi education-themed arenas with distinct presentation, authoritative stakes, and server-owned surface physics.
+- Eight procedural pen designs, including transparent barrels, rubber grips, metal finishes, and double-cap modifications. Verified loadouts affect authoritative mass, inertia, dimensions, damping, and restitution—not just appearance.
 - Drag-to-aim shots, adjustable strike point, spin, collisions, table-edge knockouts, pass/timeout handling, quick chat, and rematches.
 - Human quick play, six-digit private rooms, friend challenges, and a 15-second reconnect grace period.
 - Server-produced 60 Hz keyframes rendered by both online clients; clients never report a knockout or choose a winner.
@@ -40,14 +53,15 @@ Facebook login/friend import, clan wars, cash purchases, and rewarded-ad payouts
 ```text
 client_flutter/
   lib/
-    core/auth/                 Guest/Google auth and secure session state
+    core/auth/                 Guest/Google auth, secure session state, local practice profile
     core/navigation/           Single-owner online match navigation
     core/network/              Typed REST client, configuration, WebSocket client
-    game/                      Offline physics and authoritative online playback
-    models/                    Profiles, arenas, pens, protocol DTOs
+    game/                      Offline physics, aiming math and authoritative online playback
+    game/bot/                  Difficulty-scaled offline bot
+    models/                    Profiles, arenas, pens, practice record, protocol DTOs
     ui/                        Localized screens and reusable widgets
   android/                     Release signing and network security configuration
-  test/                        Client physics-vector tests
+  test/                        Unit and widget tests (physics, aiming, bot, practice, catalog)
 server_deno/
   server.ts                    REST, WebSocket upgrade, security, static web hosting
   auth.ts                      Sessions, WS tickets, Firebase Google verification
@@ -61,7 +75,10 @@ server_deno/
   physics_sim_test.ts          Shared physics-vector verification
 test_vectors/
   shared_physics_vectors.json  Cross-runtime physics fixtures
+  content_catalog.json         Pen and arena IDs shared by client and server
+.github/workflows/             CI checks, tag-driven release, GitHub Pages deploy
 docs/CODEBASE_GUIDE.md         Architecture and protocol details
+CI_CD_SUMMARY.md               Build and release overview
 ```
 
 ## Run locally
@@ -112,7 +129,7 @@ A custom host can also be entered in Settings. Non-local hosts always use HTTPS/
 | `DENO_KV_PATH` | Optional local KV database path | Deno default |
 | `WEB_ROOT` | Compiled Flutter web directory | `client_flutter/build/web` |
 | `ALLOWED_ORIGINS` | Comma-separated exact browser origins | `*` (development only) |
-| `FIREBASE_PROJECT_ID` | Expected Firebase audience/issuer project | `kolom-khela` |
+| `FIREBASE_PROJECT_ID` | Expected Firebase audience/issuer project | `kolom-fight` |
 
 Set an explicit production origin list, for example:
 
@@ -128,7 +145,7 @@ Profiles and transactions are durable in Deno KV. Active rooms, queues, sockets,
 ## Google/Firebase setup
 
 1. Enable Google sign-in in Firebase Authentication.
-2. Register Android application ID `com.penfight.kolomkhela` and add the release SHA-1/SHA-256 fingerprints.
+2. Register Android application ID `com.kolomfight.app` and add the release SHA-1/SHA-256 fingerprints.
 3. Download the Firebase configuration (including the required Android OAuth client) to `client_flutter/android/app/google-services.json`. This file is ignored by Git. Android builds without it still support offline practice and server guest login, but not Google sign-in.
 4. Set the backend `FIREBASE_PROJECT_ID` to the same project.
 5. For web Google sign-in, supply the Firebase web values at build/run time:
@@ -144,7 +161,7 @@ flutter build web --release \
 
 Server guest login still requires a connection to the backend. **Practice Offline** instead creates a separate profile on the device and does not contact Firebase or the game server; clearing app data removes it. Practice results never affect online progress. The UI reports missing Google configuration instead of creating a fake identity.
 
-For release automation, set the GitHub Actions secret `GOOGLE_SERVICES_JSON` to the full Android configuration JSON, and set `FIREBASE_WEB_API_KEY`, `FIREBASE_WEB_APP_ID`, `FIREBASE_WEB_MESSAGING_SENDER_ID`, `FIREBASE_WEB_PROJECT_ID`, and `FIREBASE_WEB_AUTH_DOMAIN` for the web build. The release workflow fails rather than publishing builds with missing Google configuration. Firebase client configuration is included in shipped apps and is not a substitute for Firebase security rules, API-key restrictions or protected server credentials. Set `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, and `ANDROID_KEY_PASSWORD` to a securely stored, stable Android signing key and its credentials. Updates must use the same signing identity as the installed app (or its authorized successor). Never commit the keystore.
+For release automation every credential is **optional**. Set `GOOGLE_SERVICES_JSON` to the full Android configuration JSON, and set `FIREBASE_WEB_API_KEY`, `FIREBASE_WEB_APP_ID`, `FIREBASE_WEB_MESSAGING_SENDER_ID`, `FIREBASE_WEB_PROJECT_ID`, and `FIREBASE_WEB_AUTH_DOMAIN` for the web build. When they are absent the workflow still publishes playable builds: the app is compiled with `--dart-define=FIREBASE_ENABLED=false`, the Google button is disabled with an explanatory message, and guest play plus offline practice keep working. Set `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, and `ANDROID_KEY_PASSWORD` to produce a signed release APK/AAB; without them the workflow publishes an installable debug APK instead. Updates must use the same signing identity as the installed app (or its authorized successor). Never commit the keystore. Firebase client configuration is included in shipped apps and is not a substitute for Firebase security rules, API-key restrictions or protected server credentials.
 
 ## Production build
 
@@ -209,6 +226,25 @@ flutter test
 flutter build web --release
 flutter build appbundle --release --dart-define=SERVER_HOST=game.example.com
 ```
+
+## Releasing
+
+Workflows live in `.github/workflows/`:
+
+| Workflow | Trigger | Purpose |
+|---|---|---|
+| `ci-checks.yml` | Push/PR to `main` | `deno task check` + `deno task test`, then `flutter analyze` + `flutter test`. |
+| `release.yml` | Tag `v*`, PR touching the workflow, or manual | Builds Android APK (+AAB), Web, Windows and Linux, then publishes a GitHub Release with `SHA256SUMS.txt`. PR runs build but never publish. |
+| `deploy-web.yml` | Push to `main`, or manual | Builds the web bundle and deploys it to GitHub Pages. |
+
+To cut a release:
+
+1. Bump `version:` in `client_flutter/pubspec.yaml` (for example `1.3.0+4`).
+2. Tag and push: `git tag v1.3.0 && git push origin v1.3.0`.
+
+The workflow refuses to publish when the tag does not match `pubspec.yaml`. The in-app version badge is fed from the same values through `--dart-define=APP_VERSION` / `APP_BUILD`, so it can never drift from the shipped build.
+
+Publishing is restricted to a real `v*` tag. A pull request that changes `release.yml` runs the entire pipeline as a dry run, and a manual dispatch with `publish=false` does the same — both leave the artifacts downloadable from the run without creating a release. The pipeline is known-good with **zero secrets configured**: all four platforms build and are checksummed.
 
 ## Operational requirements
 

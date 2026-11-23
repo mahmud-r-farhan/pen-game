@@ -90,9 +90,8 @@ class UserProfile {
   int get level => (stats.wins ~/ 3) + 1;
   int get currentLevelXp => stats.wins % 3;
   double get xpProgress => currentLevelXp / 3.0;
-  double get winRate => stats.totalMatches > 0
-      ? (stats.wins / stats.totalMatches) * 100
-      : 0.0;
+  double get winRate =>
+      stats.totalMatches > 0 ? (stats.wins / stats.totalMatches) * 100 : 0.0;
 
   String get cupTitle {
     switch (cupTier.toLowerCase()) {
@@ -420,10 +419,20 @@ class BotProfile {
       penModel: 'neonSpinner',
       title: 'Global Tabletop Ace',
     ),
+    BotProfile(
+      id: 'bot_titanium',
+      name: 'Titanium Tanvir',
+      tag: '#BOT-TITAN',
+      flagEmoji: '🇧🇩',
+      avatar: 'avatar_tanvir_cyber',
+      penModel: 'titaniumStriker',
+      title: 'National Bench Champion',
+    ),
   ];
 
   static BotProfile getRandom() {
-    return predefined[DateTime.now().millisecondsSinceEpoch % predefined.length];
+    return predefined[DateTime.now().millisecondsSinceEpoch %
+        predefined.length];
   }
 }
 
@@ -446,61 +455,285 @@ class AvatarOption {
 class AppAvatars {
   // 1. Cute Mascot Animals (10 avatars)
   static const List<AvatarOption> cuteAnimals = [
-    AvatarOption(id: 'avatar_fox', name: 'Snowy Fox', assetPath: 'assets/avatars/avatar_fox.webp', category: AvatarCategory.animal),
-    AvatarOption(id: 'avatar_polar_bear', name: 'Polar Bear', assetPath: 'assets/avatars/avatar_polar_bear.webp', category: AvatarCategory.animal),
-    AvatarOption(id: 'avatar_penguin', name: 'Pippy Penguin', assetPath: 'assets/avatars/avatar_penguin.webp', category: AvatarCategory.animal),
-    AvatarOption(id: 'avatar_deer', name: 'Forest Fawn', assetPath: 'assets/avatars/avatar_deer.webp', category: AvatarCategory.animal),
-    AvatarOption(id: 'avatar_seal', name: 'Sammie Seal', assetPath: 'assets/avatars/avatar_seal.webp', category: AvatarCategory.animal),
-    AvatarOption(id: 'avatar_owl', name: 'Wise Owl', assetPath: 'assets/avatars/avatar_owl.webp', category: AvatarCategory.animal),
-    AvatarOption(id: 'avatar_red_panda', name: 'Rusty Panda', assetPath: 'assets/avatars/avatar_red_panda.webp', category: AvatarCategory.animal),
-    AvatarOption(id: 'avatar_shiba', name: 'Hachi Shiba', assetPath: 'assets/avatars/avatar_shiba.webp', category: AvatarCategory.animal),
-    AvatarOption(id: 'avatar_calico_cat', name: 'Mochi Cat', assetPath: 'assets/avatars/avatar_calico_cat.webp', category: AvatarCategory.animal),
-    AvatarOption(id: 'avatar_otter', name: 'Ollie Otter', assetPath: 'assets/avatars/avatar_otter.webp', category: AvatarCategory.animal),
+    AvatarOption(
+      id: 'avatar_fox',
+      name: 'Snowy Fox',
+      assetPath: 'assets/avatars/avatar_fox.webp',
+      category: AvatarCategory.animal,
+    ),
+    AvatarOption(
+      id: 'avatar_polar_bear',
+      name: 'Polar Bear',
+      assetPath: 'assets/avatars/avatar_polar_bear.webp',
+      category: AvatarCategory.animal,
+    ),
+    AvatarOption(
+      id: 'avatar_penguin',
+      name: 'Pippy Penguin',
+      assetPath: 'assets/avatars/avatar_penguin.webp',
+      category: AvatarCategory.animal,
+    ),
+    AvatarOption(
+      id: 'avatar_deer',
+      name: 'Forest Fawn',
+      assetPath: 'assets/avatars/avatar_deer.webp',
+      category: AvatarCategory.animal,
+    ),
+    AvatarOption(
+      id: 'avatar_seal',
+      name: 'Sammie Seal',
+      assetPath: 'assets/avatars/avatar_seal.webp',
+      category: AvatarCategory.animal,
+    ),
+    AvatarOption(
+      id: 'avatar_owl',
+      name: 'Wise Owl',
+      assetPath: 'assets/avatars/avatar_owl.webp',
+      category: AvatarCategory.animal,
+    ),
+    AvatarOption(
+      id: 'avatar_red_panda',
+      name: 'Rusty Panda',
+      assetPath: 'assets/avatars/avatar_red_panda.webp',
+      category: AvatarCategory.animal,
+    ),
+    AvatarOption(
+      id: 'avatar_shiba',
+      name: 'Hachi Shiba',
+      assetPath: 'assets/avatars/avatar_shiba.webp',
+      category: AvatarCategory.animal,
+    ),
+    AvatarOption(
+      id: 'avatar_calico_cat',
+      name: 'Mochi Cat',
+      assetPath: 'assets/avatars/avatar_calico_cat.webp',
+      category: AvatarCategory.animal,
+    ),
+    AvatarOption(
+      id: 'avatar_otter',
+      name: 'Ollie Otter',
+      assetPath: 'assets/avatars/avatar_otter.webp',
+      category: AvatarCategory.animal,
+    ),
   ];
 
   // 2. Diverse Modern Cartoon People (24 avatars)
   static const List<AvatarOption> cartoonHumans = [
-    AvatarOption(id: 'avatar_girl_afro', name: 'Amara (Afro)', assetPath: 'assets/avatars/avatar_girl_afro.webp', category: AvatarCategory.cartoon),
-    AvatarOption(id: 'avatar_boy_headset', name: 'Tariq (Headset)', assetPath: 'assets/avatars/avatar_boy_headset.webp', category: AvatarCategory.cartoon),
-    AvatarOption(id: 'avatar_girl_hijab', name: 'Nusrat (Hijab)', assetPath: 'assets/avatars/avatar_girl_hijab.webp', category: AvatarCategory.cartoon),
-    AvatarOption(id: 'avatar_boy_cap', name: 'Rahim (Street Cap)', assetPath: 'assets/avatars/avatar_boy_cap.webp', category: AvatarCategory.cartoon),
-    AvatarOption(id: 'avatar_boy_hoodie', name: 'Siam (Hoodie)', assetPath: 'assets/avatars/avatar_boy_hoodie.webp', category: AvatarCategory.cartoon),
-    AvatarOption(id: 'avatar_girl_pink_hair', name: 'Sakura (Pink)', assetPath: 'assets/avatars/avatar_girl_pink_hair.webp', category: AvatarCategory.cartoon),
-    AvatarOption(id: 'avatar_gamer_glasses', name: 'Fahim (Pro Gamer)', assetPath: 'assets/avatars/avatar_gamer_glasses.webp', category: AvatarCategory.cartoon),
-    AvatarOption(id: 'avatar_girl_bun', name: 'Meher (Bun)', assetPath: 'assets/avatars/avatar_girl_bun.webp', category: AvatarCategory.cartoon),
-    AvatarOption(id: 'avatar_boy_anime', name: 'Riku (Anime)', assetPath: 'assets/avatars/avatar_boy_anime.webp', category: AvatarCategory.cartoon),
-    AvatarOption(id: 'avatar_boy_blonde', name: 'Leon (Smile)', assetPath: 'assets/avatars/avatar_boy_blonde.webp', category: AvatarCategory.cartoon),
-    AvatarOption(id: 'avatar_boy_beanie', name: 'Arman (Beanie)', assetPath: 'assets/avatars/avatar_boy_beanie.webp', category: AvatarCategory.cartoon),
-    AvatarOption(id: 'avatar_girl_cap_glasses', name: 'Anika (Cap)', assetPath: 'assets/avatars/avatar_girl_cap_glasses.webp', category: AvatarCategory.cartoon),
-    AvatarOption(id: 'avatar_gamer_pro_boy', name: 'Sami (Esports)', assetPath: 'assets/avatars/avatar_gamer_pro_boy.webp', category: AvatarCategory.cartoon),
-    AvatarOption(id: 'avatar_pro_streamer', name: 'Rayhan (Streamer)', assetPath: 'assets/avatars/avatar_pro_streamer.webp', category: AvatarCategory.cartoon),
-    AvatarOption(id: 'avatar_boy_curly', name: 'Zubair (Curly)', assetPath: 'assets/avatars/avatar_boy_curly.webp', category: AvatarCategory.cartoon),
-    AvatarOption(id: 'avatar_dj_headset', name: 'DJ Shakil', assetPath: 'assets/avatars/avatar_dj_headset.webp', category: AvatarCategory.cartoon),
-    AvatarOption(id: 'avatar_boy_jacket', name: 'Kabir (Jacket)', assetPath: 'assets/avatars/avatar_boy_jacket.webp', category: AvatarCategory.cartoon),
-    AvatarOption(id: 'avatar_girl_blonde', name: 'Maya (Blonde)', assetPath: 'assets/avatars/avatar_girl_blonde.webp', category: AvatarCategory.cartoon),
-    AvatarOption(id: 'avatar_boy_winter_hat', name: 'Rifat (Winter)', assetPath: 'assets/avatars/avatar_boy_winter_hat.webp', category: AvatarCategory.cartoon),
-    AvatarOption(id: 'avatar_girl_blue_hair', name: 'Zara (Blue Hair)', assetPath: 'assets/avatars/avatar_girl_blue_hair.webp', category: AvatarCategory.cartoon),
-    AvatarOption(id: 'avatar_girl_casual', name: 'Tasnim (Casual)', assetPath: 'assets/avatars/avatar_girl_casual.webp', category: AvatarCategory.cartoon),
-    AvatarOption(id: 'avatar_boy_nerd_glasses', name: 'Nabil (Glasses)', assetPath: 'assets/avatars/avatar_boy_nerd_glasses.webp', category: AvatarCategory.cartoon),
-    AvatarOption(id: 'avatar_girl_cyan_hair', name: 'Nova (Cyan)', assetPath: 'assets/avatars/avatar_girl_cyan_hair.webp', category: AvatarCategory.cartoon),
-    AvatarOption(id: 'avatar_girl_wavy', name: 'Rhea (Wavy)', assetPath: 'assets/avatars/avatar_girl_wavy.webp', category: AvatarCategory.cartoon),
+    AvatarOption(
+      id: 'avatar_girl_afro',
+      name: 'Amara (Afro)',
+      assetPath: 'assets/avatars/avatar_girl_afro.webp',
+      category: AvatarCategory.cartoon,
+    ),
+    AvatarOption(
+      id: 'avatar_boy_headset',
+      name: 'Tariq (Headset)',
+      assetPath: 'assets/avatars/avatar_boy_headset.webp',
+      category: AvatarCategory.cartoon,
+    ),
+    AvatarOption(
+      id: 'avatar_girl_hijab',
+      name: 'Nusrat (Hijab)',
+      assetPath: 'assets/avatars/avatar_girl_hijab.webp',
+      category: AvatarCategory.cartoon,
+    ),
+    AvatarOption(
+      id: 'avatar_boy_cap',
+      name: 'Rahim (Street Cap)',
+      assetPath: 'assets/avatars/avatar_boy_cap.webp',
+      category: AvatarCategory.cartoon,
+    ),
+    AvatarOption(
+      id: 'avatar_boy_hoodie',
+      name: 'Siam (Hoodie)',
+      assetPath: 'assets/avatars/avatar_boy_hoodie.webp',
+      category: AvatarCategory.cartoon,
+    ),
+    AvatarOption(
+      id: 'avatar_girl_pink_hair',
+      name: 'Sakura (Pink)',
+      assetPath: 'assets/avatars/avatar_girl_pink_hair.webp',
+      category: AvatarCategory.cartoon,
+    ),
+    AvatarOption(
+      id: 'avatar_gamer_glasses',
+      name: 'Fahim (Pro Gamer)',
+      assetPath: 'assets/avatars/avatar_gamer_glasses.webp',
+      category: AvatarCategory.cartoon,
+    ),
+    AvatarOption(
+      id: 'avatar_girl_bun',
+      name: 'Meher (Bun)',
+      assetPath: 'assets/avatars/avatar_girl_bun.webp',
+      category: AvatarCategory.cartoon,
+    ),
+    AvatarOption(
+      id: 'avatar_boy_anime',
+      name: 'Riku (Anime)',
+      assetPath: 'assets/avatars/avatar_boy_anime.webp',
+      category: AvatarCategory.cartoon,
+    ),
+    AvatarOption(
+      id: 'avatar_boy_blonde',
+      name: 'Leon (Smile)',
+      assetPath: 'assets/avatars/avatar_boy_blonde.webp',
+      category: AvatarCategory.cartoon,
+    ),
+    AvatarOption(
+      id: 'avatar_boy_beanie',
+      name: 'Arman (Beanie)',
+      assetPath: 'assets/avatars/avatar_boy_beanie.webp',
+      category: AvatarCategory.cartoon,
+    ),
+    AvatarOption(
+      id: 'avatar_girl_cap_glasses',
+      name: 'Anika (Cap)',
+      assetPath: 'assets/avatars/avatar_girl_cap_glasses.webp',
+      category: AvatarCategory.cartoon,
+    ),
+    AvatarOption(
+      id: 'avatar_gamer_pro_boy',
+      name: 'Sami (Esports)',
+      assetPath: 'assets/avatars/avatar_gamer_pro_boy.webp',
+      category: AvatarCategory.cartoon,
+    ),
+    AvatarOption(
+      id: 'avatar_pro_streamer',
+      name: 'Rayhan (Streamer)',
+      assetPath: 'assets/avatars/avatar_pro_streamer.webp',
+      category: AvatarCategory.cartoon,
+    ),
+    AvatarOption(
+      id: 'avatar_boy_curly',
+      name: 'Zubair (Curly)',
+      assetPath: 'assets/avatars/avatar_boy_curly.webp',
+      category: AvatarCategory.cartoon,
+    ),
+    AvatarOption(
+      id: 'avatar_dj_headset',
+      name: 'DJ Shakil',
+      assetPath: 'assets/avatars/avatar_dj_headset.webp',
+      category: AvatarCategory.cartoon,
+    ),
+    AvatarOption(
+      id: 'avatar_boy_jacket',
+      name: 'Kabir (Jacket)',
+      assetPath: 'assets/avatars/avatar_boy_jacket.webp',
+      category: AvatarCategory.cartoon,
+    ),
+    AvatarOption(
+      id: 'avatar_girl_blonde',
+      name: 'Maya (Blonde)',
+      assetPath: 'assets/avatars/avatar_girl_blonde.webp',
+      category: AvatarCategory.cartoon,
+    ),
+    AvatarOption(
+      id: 'avatar_boy_winter_hat',
+      name: 'Rifat (Winter)',
+      assetPath: 'assets/avatars/avatar_boy_winter_hat.webp',
+      category: AvatarCategory.cartoon,
+    ),
+    AvatarOption(
+      id: 'avatar_girl_blue_hair',
+      name: 'Zara (Blue Hair)',
+      assetPath: 'assets/avatars/avatar_girl_blue_hair.webp',
+      category: AvatarCategory.cartoon,
+    ),
+    AvatarOption(
+      id: 'avatar_girl_casual',
+      name: 'Tasnim (Casual)',
+      assetPath: 'assets/avatars/avatar_girl_casual.webp',
+      category: AvatarCategory.cartoon,
+    ),
+    AvatarOption(
+      id: 'avatar_boy_nerd_glasses',
+      name: 'Nabil (Glasses)',
+      assetPath: 'assets/avatars/avatar_boy_nerd_glasses.webp',
+      category: AvatarCategory.cartoon,
+    ),
+    AvatarOption(
+      id: 'avatar_girl_cyan_hair',
+      name: 'Nova (Cyan)',
+      assetPath: 'assets/avatars/avatar_girl_cyan_hair.webp',
+      category: AvatarCategory.cartoon,
+    ),
+    AvatarOption(
+      id: 'avatar_girl_wavy',
+      name: 'Rhea (Wavy)',
+      assetPath: 'assets/avatars/avatar_girl_wavy.webp',
+      category: AvatarCategory.cartoon,
+    ),
   ];
 
   // 3. Pixel Art Legends (10 avatars)
   static const List<AvatarOption> pixelChamps = [
-    AvatarOption(id: 'avatar_shuvo', name: 'Shuvo (Student)', assetPath: 'assets/avatars/avatar_shuvo.webp', category: AvatarCategory.pixel),
-    AvatarOption(id: 'avatar_tania_vr', name: 'Tania (VR Gamer)', assetPath: 'assets/avatars/avatar_tania_vr.webp', category: AvatarCategory.pixel),
-    AvatarOption(id: 'avatar_arafat', name: 'Arafat (Striker)', assetPath: 'assets/avatars/avatar_arafat.webp', category: AvatarCategory.pixel),
-    AvatarOption(id: 'avatar_mimi_cat', name: 'Mimi (Kawaii)', assetPath: 'assets/avatars/avatar_mimi_cat.webp', category: AvatarCategory.pixel),
-    AvatarOption(id: 'avatar_tanvir_cyber', name: 'Tanvir (Cyber)', assetPath: 'assets/avatars/avatar_tanvir_cyber.webp', category: AvatarCategory.pixel),
-    AvatarOption(id: 'avatar_rakib_dj', name: 'Rakib (DJ Beats)', assetPath: 'assets/avatars/avatar_rakib_dj.webp', category: AvatarCategory.pixel),
-    AvatarOption(id: 'avatar_priya_elf', name: 'Priya (Nature)', assetPath: 'assets/avatars/avatar_priya_elf.webp', category: AvatarCategory.pixel),
-    AvatarOption(id: 'avatar_karim_pro', name: 'Karim (Veteran)', assetPath: 'assets/avatars/avatar_karim_pro.webp', category: AvatarCategory.pixel),
-    AvatarOption(id: 'avatar_samia_sun', name: 'Samia (Summer)', assetPath: 'assets/avatars/avatar_samia_sun.webp', category: AvatarCategory.pixel),
-    AvatarOption(id: 'avatar_rohit_neon', name: 'Rohit (Neon)', assetPath: 'assets/avatars/avatar_rohit_neon.webp', category: AvatarCategory.pixel),
+    AvatarOption(
+      id: 'avatar_shuvo',
+      name: 'Shuvo (Student)',
+      assetPath: 'assets/avatars/avatar_shuvo.webp',
+      category: AvatarCategory.pixel,
+    ),
+    AvatarOption(
+      id: 'avatar_tania_vr',
+      name: 'Tania (VR Gamer)',
+      assetPath: 'assets/avatars/avatar_tania_vr.webp',
+      category: AvatarCategory.pixel,
+    ),
+    AvatarOption(
+      id: 'avatar_arafat',
+      name: 'Arafat (Striker)',
+      assetPath: 'assets/avatars/avatar_arafat.webp',
+      category: AvatarCategory.pixel,
+    ),
+    AvatarOption(
+      id: 'avatar_mimi_cat',
+      name: 'Mimi (Kawaii)',
+      assetPath: 'assets/avatars/avatar_mimi_cat.webp',
+      category: AvatarCategory.pixel,
+    ),
+    AvatarOption(
+      id: 'avatar_tanvir_cyber',
+      name: 'Tanvir (Cyber)',
+      assetPath: 'assets/avatars/avatar_tanvir_cyber.webp',
+      category: AvatarCategory.pixel,
+    ),
+    AvatarOption(
+      id: 'avatar_rakib_dj',
+      name: 'Rakib (DJ Beats)',
+      assetPath: 'assets/avatars/avatar_rakib_dj.webp',
+      category: AvatarCategory.pixel,
+    ),
+    AvatarOption(
+      id: 'avatar_priya_elf',
+      name: 'Priya (Nature)',
+      assetPath: 'assets/avatars/avatar_priya_elf.webp',
+      category: AvatarCategory.pixel,
+    ),
+    AvatarOption(
+      id: 'avatar_karim_pro',
+      name: 'Karim (Veteran)',
+      assetPath: 'assets/avatars/avatar_karim_pro.webp',
+      category: AvatarCategory.pixel,
+    ),
+    AvatarOption(
+      id: 'avatar_samia_sun',
+      name: 'Samia (Summer)',
+      assetPath: 'assets/avatars/avatar_samia_sun.webp',
+      category: AvatarCategory.pixel,
+    ),
+    AvatarOption(
+      id: 'avatar_rohit_neon',
+      name: 'Rohit (Neon)',
+      assetPath: 'assets/avatars/avatar_rohit_neon.webp',
+      category: AvatarCategory.pixel,
+    ),
   ];
 
-  static List<AvatarOption> get all => [...cartoonHumans, ...cuteAnimals, ...pixelChamps];
+  static List<AvatarOption> get all => [
+    ...cartoonHumans,
+    ...cuteAnimals,
+    ...pixelChamps,
+  ];
   static List<AvatarOption> get list => all;
 
   static String getRandomId() {
@@ -523,5 +756,3 @@ class AppAvatars {
     return 'assets/avatars/$avatarId.webp';
   }
 }
-
-

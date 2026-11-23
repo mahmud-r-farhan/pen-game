@@ -18,7 +18,9 @@ void main() {
 
     for (final tc in cases) {
       final name = tc['name'] as String;
-      final initialState = SimState.fromJson(tc['initialState'] as Map<String, dynamic>);
+      final initialState = SimState.fromJson(
+        tc['initialState'] as Map<String, dynamic>,
+      );
       final activeSide = tc['activeSide'] as int;
       final shot = SimShot.fromJson(tc['shot'] as Map<String, dynamic>);
       final exp = tc['expectedFinalState'] as Map<String, dynamic>;

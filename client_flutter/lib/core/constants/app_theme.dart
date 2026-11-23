@@ -26,7 +26,8 @@ class KolomTheme {
         color: borderColor ?? AppColors.glassBorder,
         width: 1.0,
       ),
-      boxShadow: shadows ??
+      boxShadow:
+          shadows ??
           [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.45),
@@ -38,15 +39,17 @@ class KolomTheme {
   }
 
   // Active Player Turn Glowing Border
-  static BoxDecoration activeTurnDecoration({required bool isYourTurn, double radius = 16}) {
-    final activeColor = isYourTurn ? AppColors.emeraldTurn : AppColors.crimsonStrike;
+  static BoxDecoration activeTurnDecoration({
+    required bool isYourTurn,
+    double radius = 16,
+  }) {
+    final activeColor = isYourTurn
+        ? AppColors.emeraldTurn
+        : AppColors.crimsonStrike;
     return BoxDecoration(
       color: AppColors.glassSurfaceHeavy,
       borderRadius: BorderRadius.circular(radius),
-      border: Border.all(
-        color: activeColor,
-        width: 1.8,
-      ),
+      border: Border.all(color: activeColor, width: 1.8),
       boxShadow: [
         BoxShadow(
           color: activeColor.withValues(alpha: 0.35),

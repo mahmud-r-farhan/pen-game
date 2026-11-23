@@ -84,7 +84,8 @@ class _AuthScreenState extends State<AuthScreen> {
       if (!mounted) return;
       await Navigator.of(context).push(
         MaterialPageRoute(
-          builder: (_) => RoomSelectionScreen(isOnline: false, practiceProfile: profile),
+          builder: (_) =>
+              RoomSelectionScreen(isOnline: false, practiceProfile: profile),
         ),
       );
     } catch (error) {
@@ -102,7 +103,9 @@ class _AuthScreenState extends State<AuthScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Welcome ${profile.username}! Your cloud profile is synchronized.'),
+          content: Text(
+            'Welcome ${profile.username}! Your cloud profile is synchronized.',
+          ),
           backgroundColor: AppColors.emeraldTurn,
         ),
       );
@@ -120,9 +123,13 @@ class _AuthScreenState extends State<AuthScreen> {
     if (!mounted) return;
     ScaffoldMessenger.of(context).hideCurrentSnackBar();
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(error.toString()), backgroundColor: AppColors.crimsonStrike),
+      SnackBar(
+        content: Text(error.toString()),
+        backgroundColor: AppColors.crimsonStrike,
+      ),
     );
   }
+
   @override
   void dispose() {
     _nameController.dispose();
@@ -139,7 +146,10 @@ class _AuthScreenState extends State<AuthScreen> {
           body: SafeArea(
             child: Center(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 20,
+                ),
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 440),
                   child: Column(
@@ -147,10 +157,14 @@ class _AuthScreenState extends State<AuthScreen> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       // Header Branding
-                      const Icon(Icons.sports_esports_rounded, color: AppColors.goldTiffinCoin, size: 54),
+                      const Icon(
+                        Icons.sports_esports_rounded,
+                        color: AppColors.goldTiffinCoin,
+                        size: 54,
+                      ),
                       const SizedBox(height: 10),
                       const Text(
-                        'KOLOM FIGHT ONLINE',
+                        'KOLOM FIGHT',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           color: Colors.white,
@@ -179,14 +193,23 @@ class _AuthScreenState extends State<AuthScreen> {
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(color: AppColors.glassBorder),
                         ),
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 4,
+                        ),
                         child: TextField(
                           controller: _nameController,
                           style: const TextStyle(color: Colors.white),
                           decoration: const InputDecoration(
-                            icon: Icon(Icons.person_outline_rounded, color: AppColors.goldTiffinCoin),
+                            icon: Icon(
+                              Icons.person_outline_rounded,
+                              color: AppColors.goldTiffinCoin,
+                            ),
                             hintText: 'Enter player nickname',
-                            hintStyle: TextStyle(color: AppColors.slateMuted, fontSize: 14),
+                            hintStyle: TextStyle(
+                              color: AppColors.slateMuted,
+                              fontSize: 14,
+                            ),
                             border: InputBorder.none,
                           ),
                         ),
@@ -200,12 +223,24 @@ class _AuthScreenState extends State<AuthScreen> {
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(color: AppColors.glassBorder),
                         ),
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 6,
+                        ),
                         child: Row(
                           children: [
-                            const Icon(Icons.public_rounded, color: AppColors.cyanSpin),
+                            const Icon(
+                              Icons.public_rounded,
+                              color: AppColors.cyanSpin,
+                            ),
                             const SizedBox(width: 12),
-                            const Text('Country / Region:', style: TextStyle(color: AppColors.slateMuted, fontSize: 13)),
+                            const Text(
+                              'Country / Region:',
+                              style: TextStyle(
+                                color: AppColors.slateMuted,
+                                fontSize: 13,
+                              ),
+                            ),
                             const SizedBox(width: 12),
                             Expanded(
                               child: DropdownButtonHideUnderline(
@@ -213,21 +248,38 @@ class _AuthScreenState extends State<AuthScreen> {
                                   value: _selectedRegion,
                                   isExpanded: true,
                                   dropdownColor: AppColors.bgSurfaceDark,
-                                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                   items: _regions.map((r) {
                                     return DropdownMenuItem(
                                       value: r['code'],
                                       child: Row(
                                         children: [
-                                          Text(r['flag']!, style: const TextStyle(fontSize: 16)),
+                                          Text(
+                                            r['flag']!,
+                                            style: const TextStyle(
+                                              fontSize: 16,
+                                            ),
+                                          ),
                                           const SizedBox(width: 8),
-                                          Expanded(child: Text(r['name']!, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 13))),
+                                          Expanded(
+                                            child: Text(
+                                              r['name']!,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: const TextStyle(
+                                                fontSize: 13,
+                                              ),
+                                            ),
+                                          ),
                                         ],
                                       ),
                                     );
                                   }).toList(),
                                   onChanged: (val) {
-                                    if (val != null) setState(() => _selectedRegion = val);
+                                    if (val != null)
+                                      setState(() => _selectedRegion = val);
                                   },
                                 ),
                               ),
@@ -244,12 +296,24 @@ class _AuthScreenState extends State<AuthScreen> {
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(color: AppColors.glassBorder),
                         ),
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 6,
+                        ),
                         child: Row(
                           children: [
-                            const Icon(Icons.location_on_outlined, color: AppColors.crimsonStrike),
+                            const Icon(
+                              Icons.location_on_outlined,
+                              color: AppColors.crimsonStrike,
+                            ),
                             const SizedBox(width: 12),
-                            const Text('Division / City:', style: TextStyle(color: AppColors.slateMuted, fontSize: 13)),
+                            const Text(
+                              'Division / City:',
+                              style: TextStyle(
+                                color: AppColors.slateMuted,
+                                fontSize: 13,
+                              ),
+                            ),
                             const SizedBox(width: 12),
                             Expanded(
                               child: DropdownButtonHideUnderline(
@@ -257,12 +321,23 @@ class _AuthScreenState extends State<AuthScreen> {
                                   value: _selectedDivision,
                                   isExpanded: true,
                                   dropdownColor: AppColors.bgSurfaceDark,
-                                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                   items: _divisions.map((d) {
-                                    return DropdownMenuItem(value: d, child: Text(d, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 13)));
+                                    return DropdownMenuItem(
+                                      value: d,
+                                      child: Text(
+                                        d,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(fontSize: 13),
+                                      ),
+                                    );
                                   }).toList(),
                                   onChanged: (val) {
-                                    if (val != null) setState(() => _selectedDivision = val);
+                                    if (val != null)
+                                      setState(() => _selectedDivision = val);
                                   },
                                 ),
                               ),
@@ -274,7 +349,9 @@ class _AuthScreenState extends State<AuthScreen> {
 
                       if (_isLoading)
                         const Center(
-                          child: CircularProgressIndicator(color: AppColors.goldTiffinCoin),
+                          child: CircularProgressIndicator(
+                            color: AppColors.goldTiffinCoin,
+                          ),
                         )
                       else ...[
                         // 1. Guest Login Button (75 coins)
@@ -284,7 +361,9 @@ class _AuthScreenState extends State<AuthScreen> {
                             backgroundColor: AppColors.goldTiffinCoin,
                             foregroundColor: Colors.black,
                             padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
                           ),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
@@ -293,18 +372,27 @@ class _AuthScreenState extends State<AuthScreen> {
                               const SizedBox(width: 8),
                               Text(
                                 AppLocale.tr('play_as_guest'),
-                                style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 15,
+                                ),
                               ),
                               const SizedBox(width: 8),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
                                 decoration: BoxDecoration(
                                   color: Colors.black26,
                                   borderRadius: BorderRadius.circular(6),
                                 ),
                                 child: const Text(
                                   '75 Coins',
-                                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                               ),
                             ],
@@ -313,13 +401,32 @@ class _AuthScreenState extends State<AuthScreen> {
                         const SizedBox(height: 12),
 
                         // 2. Google Login Button (120 coins)
+                        if (!AuthService().isGoogleAvailable)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: Text(
+                              AppLocale.tr('google_unavailable'),
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                color: AppColors.slateMuted,
+                                fontSize: 11,
+                              ),
+                            ),
+                          ),
                         OutlinedButton(
-                          onPressed: _isLoading ? null : _handleGoogleSignIn,
+                          onPressed:
+                              _isLoading || !AuthService().isGoogleAvailable
+                              ? null
+                              : _handleGoogleSignIn,
                           style: OutlinedButton.styleFrom(
                             foregroundColor: Colors.white,
-                            side: const BorderSide(color: AppColors.glassBorder),
+                            side: const BorderSide(
+                              color: AppColors.glassBorder,
+                            ),
                             padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
                             backgroundColor: AppColors.glassSurface,
                           ),
                           child: Row(
@@ -329,21 +436,38 @@ class _AuthScreenState extends State<AuthScreen> {
                               const SizedBox(width: 8),
                               Text(
                                 AppLocale.tr('sign_in_google'),
-                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                ),
                               ),
                               const SizedBox(width: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: AppColors.goldTiffinCoin.withValues(alpha: 0.2),
-                                  borderRadius: BorderRadius.circular(6),
-                                  border: Border.all(color: AppColors.goldTiffinCoin, width: 0.8),
+                              if (AuthService().isGoogleAvailable) ...[
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 2,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.goldTiffinCoin.withValues(
+                                      alpha: 0.2,
+                                    ),
+                                    borderRadius: BorderRadius.circular(6),
+                                    border: Border.all(
+                                      color: AppColors.goldTiffinCoin,
+                                      width: 0.8,
+                                    ),
+                                  ),
+                                  child: const Text(
+                                    '120 Coins',
+                                    style: TextStyle(
+                                      color: AppColors.goldTiffinCoin,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
                                 ),
-                                child: const Text(
-                                  '120 Coins',
-                                  style: TextStyle(color: AppColors.goldTiffinCoin, fontSize: 11, fontWeight: FontWeight.bold),
-                                ),
-                              ),
+                              ],
                             ],
                           ),
                         ),
@@ -359,7 +483,10 @@ class _AuthScreenState extends State<AuthScreen> {
                         Text(
                           AppLocale.tr('practice_offline_note'),
                           textAlign: TextAlign.center,
-                          style: const TextStyle(color: AppColors.slateMuted, fontSize: 11),
+                          style: const TextStyle(
+                            color: AppColors.slateMuted,
+                            fontSize: 11,
+                          ),
                         ),
                         const SizedBox(height: 16),
 
@@ -372,12 +499,19 @@ class _AuthScreenState extends State<AuthScreen> {
                           ),
                           child: const Row(
                             children: [
-                              Icon(Icons.shield_outlined, color: AppColors.cyanSpin, size: 18),
+                              Icon(
+                                Icons.shield_outlined,
+                                color: AppColors.cyanSpin,
+                                size: 18,
+                              ),
                               SizedBox(width: 10),
                               Expanded(
                                 child: Text(
                                   'Tip: You can start with Guest mode (75 coins) and merge later with Google to preserve your trophies and pens!',
-                                  style: TextStyle(color: AppColors.slateMuted, fontSize: 11),
+                                  style: TextStyle(
+                                    color: AppColors.slateMuted,
+                                    fontSize: 11,
+                                  ),
                                 ),
                               ),
                             ],

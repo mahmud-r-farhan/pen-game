@@ -57,7 +57,9 @@ class KolomAvatar extends StatelessWidget {
         boxShadow: showGlow
             ? [
                 BoxShadow(
-                  color: (borderColor ?? AppColors.goldTiffinCoin).withValues(alpha: 0.4),
+                  color: (borderColor ?? AppColors.goldTiffinCoin).withValues(
+                    alpha: 0.4,
+                  ),
                   blurRadius: 10,
                   spreadRadius: 1,
                 ),
@@ -82,10 +84,7 @@ class KolomAvatar extends StatelessWidget {
                 color: AppColors.bgObsidian,
                 shape: BoxShape.circle,
               ),
-              child: Text(
-                flagEmoji!,
-                style: TextStyle(fontSize: size * 0.36),
-              ),
+              child: Text(flagEmoji!, style: TextStyle(fontSize: size * 0.36)),
             ),
           ),
         ],

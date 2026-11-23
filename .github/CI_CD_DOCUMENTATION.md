@@ -1,274 +1,213 @@
 # CI/CD Documentation
 
-This document explains the automated build and release system for Kolom Fight.
+This document describes the automated build and release system for **Kolom Fight**.
 
-## 📋 Overview
+## Overview
 
-The project uses GitHub Actions to automatically build the game for all platforms and create GitHub releases where anyone can download and play.
+GitHub Actions does three jobs for this repository:
 
-### Automated Workflows
+1. **Verify** every change (`ci-checks.yml`) — server type checks and tests, client analysis and tests.
+2. **Ship** tagged builds (`release.yml`) — Android APK/AAB, Web, Windows and Linux artifacts attached to a GitHub Release.
+3. **Host** the web build (`deploy-web.yml`) — deploys the compiled web bundle to GitHub Pages.
 
-1. **Build and Release** (`.github/workflows/build-and-release.yml`)
-   - Builds the game for Android, iOS, Web, and Windows
-   - Creates a GitHub Release with all build artifacts
-   - Triggers on every push to `main` branch or when a version tag is pushed
+Releases are **tag-driven**. Pushing to `main` runs checks and refreshes the web preview, but never publishes a release. That keeps `main` free of accidental publishes while still giving players a live web build.
 
-2. **CI Checks** (`.github/workflows/ci-checks.yml`)
-   - Runs tests and static analysis
-   - Validates both server (Deno) and client (Flutter) code
-   - Runs on every push and pull request to `main`
+### Where players get the game
 
-## 🎯 How It Works
+- **Latest release**: https://github.com/mahmud-r-farhan/pen-game/releases/latest
+- **All releases**: https://github.com/mahmud-r-farhan/pen-game/releases
+- **Web (Pages)**: https://mahmud-r-farhan.github.io/pen-game/
 
-### Build and Release Workflow
+## Workflows
 
-When you push to `main` or create a version tag (e.g., `v1.0.0`):
+### 1. CI Checks — `ci-checks.yml`
 
-1. **Version Extraction**: Reads version from `client_flutter/pubspec.yaml`
-2. **Parallel Builds**: Simultaneously builds for all platforms:
-   - **Android**: Creates a signed APK using a CI-generated keystore
-   - **iOS**: Creates an unsigned iOS app bundle
-   - **Web**: Builds web version and packages as ZIP
-   - **Windows**: Builds Windows executable and packages as ZIP
-3. **GitHub Release**: Creates a release with all artifacts attached
-4. **Downloadable**: Anyone can visit the releases page and download the game
+**Triggers:** push to `main`, pull request targeting `main`, manual dispatch.
 
-### Where to Find Releases
+| Job | Runner | Steps |
+|---|---|---|
+| `server-check` | `ubuntu-latest` | `deno task check`, `deno task test` |
+| `client-check` | `ubuntu-latest` | `flutter pub get`, `flutter analyze --no-fatal-infos`, `flutter test` |
 
-- **Latest Release**: https://github.com/mahmud-r-farhan/pen-game/releases/latest
-- **All Releases**: https://github.com/mahmud-r-farhan/pen-game/releases
+Flutter is pinned to `3.44.9` to match the project's SDK constraint, and the SDK is cached by version and OS. Test output is echoed to the log and mirrored into a `::error` annotation so a failure is visible even in a collapsed step.
 
-## 📱 Platform-Specific Notes
+### 2. Release — `release.yml`
 
-### Android
+**Triggers:** push of a `v*` tag, a pull request that changes `release.yml`, or manual dispatch.
 
-**Build Output**: Signed APK (installable on any Android device)
+Manual dispatch accepts three optional inputs:
 
-**Signing**:
-- CI automatically generates a signing keystore for each build
-- The APK is properly signed and can be installed directly
-- For production releases with your own key:
-  1. Generate a release keystore: `keytool -genkeypair -v -keystore release-key.jks ...`
-  2. Add keystore to GitHub Secrets: `Settings → Secrets → Actions → New repository secret`
-  3. Name it `ANDROID_KEYSTORE` and upload the `.jks` file
-  4. Add `ANDROID_KEYSTORE_PASSWORD` secret
-  5. Update the workflow to use these secrets
+| Input | Type | Meaning |
+|---|---|---|
+| `tag` | string | Release tag to publish, e.g. `v1.3.0`. Empty = derive `v<pubspec version>`. |
+| `prerelease` | boolean | Mark the GitHub Release as a pre-release. |
+| `publish` | boolean | Create the GitHub Release. Off = build and upload artifacts only. Defaults to on. |
 
-**Installation**:
-- Download the APK from GitHub Releases
-- Enable "Install from unknown sources" in Android settings
-- Open the APK file to install
+The `pull_request` trigger exists so the whole pipeline is exercised before it is trusted with a real tag. Publishing is gated on `startsWith(github.ref, 'refs/tags/') || inputs.publish == true`, so a PR run — or a manual run with `publish=false` — builds every platform and leaves the artifacts on the run without ever creating a release.
 
-### iOS
+#### Job graph
 
-**Build Output**: Unsigned iOS app bundle (ZIP containing `.app`)
-
-**Signing**:
-- CI builds are **unsigned** (Apple requires developer certificates)
-- To install on a real device:
-  1. You need an Apple Developer Account ($99/year)
-  2. Create proper signing certificates and provisioning profiles
-  3. Add them to GitHub Secrets
-  4. Update the workflow to use signed builds
-- Alternatively, use Xcode to build locally with your own certificates
-
-**Installation**:
-- Unzip the iOS build
-- Use Xcode or sideloading tools (like AltStore) to install on device
-- For simulator: Extract and run in Xcode simulator
-
-### Web
-
-**Build Output**: Static web files (HTML, JS, CSS) packaged as ZIP
-
-**Deployment**:
-- Unzip the web build
-- Upload to any web server (Netlify, Vercel, GitHub Pages, etc.)
-- Or serve locally: `python3 -m http.server 8080`
-
-**Running Locally**:
-```bash
-unzip kolom-fight-*-web.zip
-cd web
-python3 -m http.server 8080
-# Open http://localhost:8080
+```
+prepare ──┬── android ──┐
+          ├── web ──────┤
+          ├── windows* ─┼──> checksums ──> release
+          └── linux* ───┘
 ```
 
-### Windows
+\* `windows` and `linux` run with `continue-on-error: true`. They are a bonus for a mobile/web title; a desktop toolchain failure is reported but never blocks the Android and Web release.
 
-**Build Output**: Windows executable and dependencies packaged as ZIP
+#### `prepare`
 
-**Running**:
-- Unzip the Windows build
-- Run `kolom_fight.exe` (or similar executable name)
-- No installation required - it's portable!
+Reads `version:` from `client_flutter/pubspec.yaml`, validates that it is `X.Y.Z+N`, and derives the release tag:
 
-## 🔧 Workflow Configuration
+- tag push → use `github.ref_name`
+- manual dispatch with `tag` input → use the input
+- otherwise → `v<pubspec version>`
 
-### Build and Release Trigger
+It then cross-checks that the tag's version equals the pubspec version and fails fast on a mismatch. A pre-release is detected automatically from a tag such as `v1.3.0-rc.1`, and can be forced with the `prerelease` input.
 
-```yaml
-on:
-  push:
-    branches:
-      - main          # Auto-release on every push to main
-    tags:
-      - 'v*'          # Also release on version tags
-  workflow_dispatch:  # Manual trigger from GitHub UI
-```
+Outputs: `version`, `build_number`, `tag`, `prerelease`.
 
-### Version Management
+#### `android`
 
-The version is extracted from `client_flutter/pubspec.yaml`:
+1. **Optional Firebase** — if `GOOGLE_SERVICES_JSON` is set it is written to `client_flutter/android/app/google-services.json` and validated as JSON. The Gradle script applies the `google-services` plugin only when that file exists, so a build without it needs no stub.
+2. **Optional signing** — if all four `ANDROID_KEYSTORE_*` secrets are set, the keystore is decoded to `app/release.jks` and `android/key.properties` is generated with Java-properties escaping applied to every value. Otherwise the step records `mode=debug`.
+3. **Build** — always passes `--build-name`, `--build-number`, `--dart-define=APP_VERSION=…`, and `--dart-define=APP_BUILD=…` so the in-app version badge matches the shipped build exactly.
+   - signed → `flutter build apk --release` → `kolom-fight-<version>-android.apk`
+   - unsigned → `flutter build apk --debug` → `kolom-fight-<version>-android-debug.apk`
+4. **AAB** — only in signed mode, `flutter build appbundle --release` → `kolom-fight-<version>-android.aab`.
 
-```yaml
-version: 1.0.0+1
-#       ^^^^ ^
-#       |    └── Build number
-#       └─────── Version name
-```
+A debug APK is used as the unsigned fallback rather than an unsigned release APK because an unsigned APK cannot be installed at all — a debug-signed build at least runs, which is what "anyone can download and play" requires.
 
-**To release a new version**:
-1. Update `version:` in `pubspec.yaml` (e.g., `1.0.1+2`)
-2. Push to `main` or create a tag: `git tag v1.0.1 && git push origin v1.0.1`
-3. The workflow automatically creates a release
+#### `web`
 
-### Flutter Version
+`flutter build web --release --base-href=/`. If the five `FIREBASE_WEB_*` secrets are present they are forwarded as `--dart-define`s; otherwise the build gets `FIREBASE_ENABLED=false`. Output is zipped as `kolom-fight-<version>-web.zip`.
 
-The workflow uses the latest stable Flutter channel. To pin a specific version:
+`--base-href=/` means the bundle must be served from the domain root (GitHub Pages project sites are served from `/<repo>/`, so the Pages workflow is the correct deployment path for that case).
 
-```yaml
-env:
-  FLUTTER_VERSION: '3.35.0'  # Change this to pin a version
-```
+#### `windows`
 
-Then update all `subosito/flutter-action` steps to use `flutter-version: ${{ env.FLUTTER_VERSION }}`
+Generates the Windows platform folder with `flutter create . --platforms=windows` when it is missing, builds with the same version and Firebase defines, then zips the `Release` directory as `kolom-fight-<version>-windows.zip`. The archive is written with `System.IO.Compression.ZipFile` rather than `Compress-Archive`, which can complete without error yet produce no file; packaging fails loudly if the archive is missing.
 
-## 🔐 Secrets (Optional)
+Both desktop jobs anchor their archive to `$GITHUB_WORKSPACE`, because `upload-artifact` resolves relative paths against the workspace and a wrong relative depth otherwise fails only at the upload step.
 
-For production builds with custom signing:
+#### `linux`
 
-### Android Signing
-- `ANDROID_KEYSTORE`: Base64-encoded `.jks` file
-- `ANDROID_KEYSTORE_PASSWORD`: Keystore password
-- `ANDROID_KEY_ALIAS`: Key alias
-- `ANDROID_KEY_PASSWORD`: Key password
+Installs Flutter's documented Linux build dependencies plus the ones this project's plugins need: `audioplayers` plays through GStreamer (`libgstreamer1.0-dev`, `libgstreamer-plugins-base1.0-dev`, `gstreamer1.0-plugins-base`) and `flutter_secure_storage` links against `libsecret-1-dev`. Generates the Linux platform folder when missing, builds, and tars the bundle as `kolom-fight-<version>-linux-x64.tar.gz`.
 
-### iOS Signing
-- `IOS_CERTIFICATE`: Base64-encoded `.p12` certificate
-- `IOS_CERTIFICATE_PASSWORD`: Certificate password
-- `IOS_PROVISIONING_PROFILE`: Base64-encoded provisioning profile
-- `IOS_TEAM_ID`: Apple Developer Team ID
+#### `checksums`
 
-### Server Configuration
-- `SERVER_HOST`: Backend server hostname (currently hardcoded as `game.example.com`)
+Downloads every artifact, copies the files into one folder and writes `SHA256SUMS.txt` with `sha256sum`. Re-uploads the combined folder as the `release-files` artifact.
 
-**To encode a file as Base64**:
-```bash
-base64 -i release-key.jks | pbcopy  # macOS
-base64 -i release-key.jks | xclip   # Linux
-```
+#### `release`
 
-## 🚀 Manual Builds
+Downloads `release-files`, writes the release notes (including a per-platform install table and an explicit note about whether Google sign-in is configured), then creates or updates the GitHub Release with `gh`:
 
-### Trigger a Build Manually
+- existing tag → `gh release edit` + `gh release upload --clobber`
+- new tag → `gh release create --target <sha>`
 
-1. Go to: https://github.com/mahmud-r-farhan/pen-game/actions
-2. Select "Build and Release" workflow
-3. Click "Run workflow"
-4. Choose branch and click "Run workflow"
+Pre-releases are created with `--prerelease` and never marked `--latest`.
 
-### Build Locally
+### 3. Deploy Web — `deploy-web.yml`
 
-See the main [README.md](../README.md) for local build instructions.
+**Triggers:** push to `main` touching `client_flutter/**` or the workflow itself, plus manual dispatch.
 
-## 📊 Workflow Status Badges
+Builds the web bundle, uploads it with `actions/upload-pages-artifact@v5`, then deploys with `actions/deploy-pages@v5` into the `github-pages` environment. It requires Pages to be enabled for the repository (see below).
 
-Add these badges to your README to show build status:
+## Secrets reference
 
-```markdown
-![Build and Release](https://github.com/mahmud-r-farhan/pen-game/actions/workflows/build-and-release.yml/badge.svg)
-![CI Checks](https://github.com/mahmud-r-farhan/pen-game/actions/workflows/ci-checks.yml/badge.svg)
-```
+**All secrets are optional.** A repository with zero secrets still produces playable artifacts.
 
-## 🐛 Troubleshooting
+| Secret | Required for | Notes |
+|---|---|---|
+| `GOOGLE_SERVICES_JSON` | Google sign-in on Android | Full contents of the Firebase Android config file. |
+| `FIREBASE_WEB_API_KEY` | Google sign-in on web/desktop | Web API key. |
+| `FIREBASE_WEB_APP_ID` | Google sign-in on web/desktop | App ID (`1:…:web:…`). |
+| `FIREBASE_WEB_MESSAGING_SENDER_ID` | Google sign-in on web/desktop | Sender ID. |
+| `FIREBASE_WEB_PROJECT_ID` | Google sign-in on web/desktop | Firebase project ID. |
+| `FIREBASE_WEB_AUTH_DOMAIN` | Google sign-in on web/desktop | Usually `<project>.firebaseapp.com`. |
+| `ANDROID_KEYSTORE_BASE64` | Signed release APK + AAB | `base64 -w0 release.jks`. |
+| `ANDROID_KEYSTORE_PASSWORD` | Signed release APK + AAB | Keystore password. |
+| `ANDROID_KEY_ALIAS` | Signed release APK + AAB | Key alias. |
+| `ANDROID_KEY_PASSWORD` | Signed release APK + AAB | Key password. |
 
-### Build Fails
+To add them: **Settings → Secrets and variables → Actions → New repository secret**.
 
-**Check the logs**:
-- Go to: https://github.com/mahmud-r-farhan/pen-game/actions
-- Click on the failed workflow run
-- Expand the failed step to see the error
+## Enabling GitHub Pages
 
-**Common issues**:
+The `deploy-web` workflow needs Pages configured once:
 
-1. **Flutter dependencies fail**
-   - Run `flutter pub get` locally to verify
-   - Check `pubspec.yaml` for syntax errors
+1. **Settings → Pages**
+2. **Build and deployment → Source**: select **GitHub Actions**
+3. Push to `main` (or run the workflow manually)
 
-2. **Android build fails**
-   - Verify Java 17 is being used
-   - Check `build.gradle.kts` for errors
-   - Ensure `google-services.json` is valid
+No `gh-pages` branch and no personal token are required; the workflow uses the built-in `GITHUB_TOKEN` with `pages: write` and `id-token: write` permissions.
 
-3. **iOS build fails**
-   - Ensure Xcode is installed on the runner (automatic on macOS runners)
-   - Check iOS deployment target in `ios/Runner.xcodeproj`
-
-4. **Windows build fails**
-   - Verify Visual Studio Build Tools are installed (automatic on Windows runners)
-   - Check Windows SDK version
-
-### Release Not Created
-
-- Ensure the workflow has `permissions: contents: write`
-- Check that `GITHUB_TOKEN` has write access
-- Verify the tag format matches `v*` (e.g., `v1.0.0`)
-
-### Artifacts Missing
-
-- Check artifact retention period (currently 7 days)
-- Verify all build jobs completed successfully
-- Check the release job logs for upload errors
-
-## 🔄 Platform Initialization
-
-The workflow automatically initializes missing platform folders:
+## Creating a signing key
 
 ```bash
-# If ios/ doesn't exist:
-flutter create . --platforms=ios
+keytool -genkeypair -v \
+  -keystore kolom-fight-release.jks \
+  -alias kolom-fight \
+  -keyalg RSA -keysize 2048 -validity 10000
 
-# If windows/ doesn't exist:
-flutter create . --platforms=windows
+base64 -w0 kolom-fight-release.jks   # -> ANDROID_KEYSTORE_BASE64
 ```
 
-This ensures the workflow works even if platform folders aren't committed to the repo.
+Store the `.jks` file itself in a password manager. Updates must use the **same** signing identity as the installed app, or its authorized successor — losing the key means players can never upgrade in place.
 
-## 📝 Release Notes
+## Enabling Google sign-in
 
-Release notes are automatically generated and include:
-- Version number
-- Download links for all platforms
-- Installation instructions
-- Commit SHA
+1. Create a Firebase project and enable the Google provider in Authentication.
+2. Register the Android app with application ID `com.kolomfight.app` and add the release SHA-1/SHA-256 fingerprints.
+3. Download the config to `client_flutter/android/app/google-services.json` locally (it is git-ignored) and paste the same JSON into the `GOOGLE_SERVICES_JSON` secret.
+4. Register a web app in the same Firebase project and put its five values into the `FIREBASE_WEB_*` secrets.
+5. Set the backend's `FIREBASE_PROJECT_ID` to the same project.
 
-To customize release notes, edit the `gh release create` command in the workflow.
+## Verifying a release locally
 
-## 🎓 Learning Resources
+```bash
+# Backend
+cd server_deno && deno task check && deno task test
 
-- [GitHub Actions Documentation](https://docs.github.com/en/actions)
-- [Flutter CI/CD](https://docs.flutter.dev/deployment/cd)
-- [GitHub Releases](https://docs.github.com/en/repositories/releasing-projects-on-github)
+# Client
+cd client_flutter
+flutter pub get
+dart format --output=none --set-exit-if-changed lib test
+flutter analyze
+flutter test
+```
 
-## 💡 Tips
+## Troubleshooting
 
-1. **Test before pushing**: Run builds locally before pushing to catch errors early
-2. **Use version tags**: Create tags for important releases (`git tag v1.0.0`)
-3. **Monitor builds**: Check the Actions tab regularly for build status
-4. **Keep dependencies updated**: Run `flutter pub upgrade` periodically
-5. **Backup signing keys**: Store production keystores securely offline
+| Symptom | Cause | Fix |
+|---|---|---|
+| `prepare` fails with a version mismatch | Tag does not match `pubspec.yaml` | Bump the version, or delete and re-push the tag. |
+| `release` step reports a 403 | Workflow lacks `contents: write` | The workflow declares it; check repository Actions permissions under Settings → Actions → General → Workflow permissions. |
+| APK is `-debug` instead of `-release` | Signing secrets incomplete | All four `ANDROID_KEYSTORE_*` secrets must be set together. |
+| Google button is disabled | Firebase secrets absent | Build is compiled with `FIREBASE_ENABLED=false` by design. |
+| `deploy-web` fails at deploy | Pages not enabled | Settings → Pages → Source: GitHub Actions. |
+| Windows/Linux job failed | Desktop toolchain | Non-blocking by design; Android and Web still publish. |
+| `No files were found with the provided path` | Archive written somewhere other than `$GITHUB_WORKSPACE` | Anchor packaging output to `$GITHUB_WORKSPACE`; the upload resolves relative paths against it. |
+| `required packages were not found: gstreamer-1.0` / `libsecret-1` | Missing Linux plugin dependencies | Install `libgstreamer1.0-dev`, `libgstreamer-plugins-base1.0-dev` and `libsecret-1-dev`. |
 
----
+## Validated state
 
-**Need help?** Open an issue at https://github.com/mahmud-r-farhan/pen-game/issues
+The pipeline has been run end to end on a pull request with **no secrets configured**. All four platforms built and the checksums job produced a combined bundle:
+
+| Artifact | Size (no Firebase) |
+|---|---|
+| `android-apk` (debug-signed) | ~90 MB |
+| `web-build` | ~19 MB |
+| `windows-build` | ~21 MB |
+| `linux-build` | ~16 MB |
+
+With signing and Firebase secrets configured the Android artifact becomes a signed release APK plus an AAB, and all builds gain Google sign-in.
+
+## Design notes
+
+- **No mandatory secrets.** A fork of this repository can run the entire pipeline with zero configuration.
+- **Tag/version lock.** The release tag must match `pubspec.yaml`, and the in-app badge is fed from the same values, so the displayed version can never drift from the shipped build.
+- **Graceful degradation.** Missing Firebase disables Google sign-in with an explanatory UI message instead of failing the build; missing signing falls back to an installable debug APK.
+- **Desktop is additive.** Windows and Linux failures cannot block the primary Android/Web release.
+- **No auto-release from `main`.** Only an explicit tag (or manual dispatch) publishes, which prevents accidental releases while keeping checks and the web preview continuous.

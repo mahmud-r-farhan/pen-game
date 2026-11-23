@@ -45,9 +45,24 @@ Online clients do not run an independent Forge2D outcome. They render `MATCH_STA
 - `onlineMultiplayer`: transforms authoritative simulation coordinates into each player's local view, renders keyframes, and locks input during playback.
 - `offlineBot`: runs local Forge2D bodies and the offline bot.
 
+#### Aiming and skill expression
+
+`game/shot_predictor.dart` is a pure function from `(pull vector, strike offset)` to `(impulse, spin)`. The drag HUD calls it to draw a live trajectory/impact preview and to translate a finger pull into a deterministic shot, so the same math drives both what the player sees and what the engine applies. It is unit-tested in `test/shot_predictor_test.dart`, which pins the impulse curve so a balance change cannot silently land.
+
+Strike-point selection and spin are the two skill axes: hitting near the tip trades raw impulse for angular velocity, which is what makes a real pen "helicopter" across the bench instead of sliding in a straight line.
+
 Each online player sees their own pen on the left. Player two's flick and aiming vectors are rotated between local and authoritative coordinate systems; physics positions and shot frames remain server-owned.
 
 `models/match_packet.dart` contains transport DTOs. `models/user_profile.dart` maps backend profiles. Arena stakes shown in the client match `server_deno/arena_config.ts`; shop prices and unlock rules are enforced from `server_deno/catalog.ts`, not trusted from client models.
+
+### Offline practice
+
+`core/auth/local_practice_profile.dart` owns a device-local anonymous profile (separate from the online account, never merged). `models/practice_stats.dart` records wins, losses, current streak and best streak for the selected bot difficulty and is persisted as JSON in shared preferences; corrupt JSON is discarded rather than crashing the screen.
+
+`game/bot/offline_bot_ai.dart` produces bot shots from the same primitives a human uses — aim at the opponent, choose a strike point, apply a difficulty-scaled error term — instead of teleporting pens or picking a winner. It is covered by `test/bot_ai_test.dart`.
+
+`game_screen.dart` shows a once-per-device tutorial overlay on the first practice launch (flag stored under `kolom_practice_tutorial_seen_v1`) and guards the match-over dialog so a late physics callback cannot show it twice.
+
 
 ## 3. Backend modules
 
@@ -188,9 +203,26 @@ flutter test test/physics_sim_test.dart
 ## 7. Android and web release controls
 
 - Android release uses `android/key.properties`; it never falls back to debug signing.
+- The Android application ID is `com.kolomfight.app`; the `google-services` Gradle plugin is applied only when `app/google-services.json` exists, so a build without Firebase needs no stub file.
 - Main Android network config allows platform CAs and HTTPS only, with backup disabled.
 - Debug-only network config permits local cleartext development and user CAs.
 - Release web derives REST and WebSocket URLs from `Uri.base`, so a browser never needs to call a backend on the developer's localhost.
 - Static file serving rejects traversal, serves SPA fallback only for extensionless routes, sets MIME/security headers, and uses no-cache for `index.html`.
+
+### Build-time defines
+
+| Define | Default | Effect |
+|---|---|---|
+| `APP_VERSION` | `1.2.0` | Version shown in Settings. Set by CI to the release version. |
+| `APP_BUILD` | `3` | Build number shown in Settings. Set by CI to the pubspec build number. |
+| `FIREBASE_ENABLED` | `true` | `false` skips Firebase initialisation entirely and disables the Google button with an explanatory message. Guest play and offline practice are unaffected. |
+| `FIREBASE_API_KEY` / `FIREBASE_APP_ID` / `FIREBASE_MESSAGING_SENDER_ID` / `FIREBASE_PROJECT_ID` / `FIREBASE_AUTH_DOMAIN` | empty | Web/desktop Firebase options. |
+| `SERVER_HOST` | automatic | Overrides the backend host (`host:port`). Non-local hosts always use HTTPS/WSS. |
+
+Because the version badge reads the same `APP_VERSION`/`APP_BUILD` values the release workflow injects, the displayed version cannot drift from the shipped artifact.
+
+### Continuous integration
+
+`.github/workflows/` contains `ci-checks.yml` (server + client verification), `release.yml` (tag-driven multi-platform build and GitHub Release), and `deploy-web.yml` (GitHub Pages). Every secret is optional; see [`.github/CI_CD_DOCUMENTATION.md`](../.github/CI_CD_DOCUMENTATION.md) for the full reference, including which secret unlocks which capability.
 
 See the root `README.md` for exact build variables, Firebase setup, signing steps, deployment constraints, and verification commands.

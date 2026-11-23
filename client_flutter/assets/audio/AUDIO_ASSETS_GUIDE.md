@@ -23,7 +23,7 @@ All sound files have been synthesized at **44.1 kHz, 16-bit PCM Mono WAV** to en
 
 ## ⚙️ How Sound Effects are Loaded in the App
 
-The sound system is managed by [`SoundEffects`](file:///c:/Users/coder/Desktop/kolomkhela/client_flutter/lib/core/audio/sound_effects.dart):
+The sound system is managed by [`SoundEffects`](`client_flutter/lib/core/audio/sound_effects.dart`):
 
 ```dart
 // Example triggers:

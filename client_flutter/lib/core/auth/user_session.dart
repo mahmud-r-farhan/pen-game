@@ -26,7 +26,9 @@ class UserSession with ChangeNotifier {
 
   UserProfile get profile {
     final current = _currentProfile;
-    if (current == null) throw StateError('No authenticated player profile is available.');
+    if (current == null) {
+      throw StateError('No authenticated player profile is available.');
+    }
     return current;
   }
 
@@ -34,7 +36,8 @@ class UserSession with ChangeNotifier {
   bool get hasSessionToken => _sessionToken != null;
   // Older versions could cache a local guest over an online profile. Do not
   // treat that cache as an authenticated identity when restoration fails.
-  bool get hasOnlineCachedProfile => hasSessionToken &&
+  bool get hasOnlineCachedProfile =>
+      hasSessionToken &&
       _currentProfile != null &&
       !_currentProfile!.id.startsWith('local_guest_');
   String? get sessionToken => _sessionToken;
@@ -44,7 +47,11 @@ class UserSession with ChangeNotifier {
     try {
       _sessionToken = await _secureStorage.read(key: _secureKeyToken);
       final raw = prefs.getString(_prefKeyProfile);
-      if (raw != null) _currentProfile = UserProfile.fromJson(jsonDecode(raw) as Map<String, dynamic>);
+      if (raw != null) {
+        _currentProfile = UserProfile.fromJson(
+          jsonDecode(raw) as Map<String, dynamic>,
+        );
+      }
     } catch (_) {
       _sessionToken = null;
     }
@@ -55,7 +62,10 @@ class UserSession with ChangeNotifier {
   Future<void> setAuthenticatedSession(AuthSessionData session) async {
     _sessionToken = session.sessionToken;
     ApiService().configureSessionToken(_sessionToken);
-    await _secureStorage.write(key: _secureKeyToken, value: session.sessionToken);
+    await _secureStorage.write(
+      key: _secureKeyToken,
+      value: session.sessionToken,
+    );
     await setProfile(session.profile);
   }
 

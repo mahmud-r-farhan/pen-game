@@ -83,7 +83,9 @@ class MatchStartData {
       firstTurn: json['firstTurn'] as String,
       p1: MatchPlayer.fromJson(json['p1'] as Map<String, dynamic>),
       p2: MatchPlayer.fromJson(json['p2'] as Map<String, dynamic>),
-      initialState: SimState.fromJson(json['initialState'] as Map<String, dynamic>),
+      initialState: SimState.fromJson(
+        json['initialState'] as Map<String, dynamic>,
+      ),
       inputLocked: json['inputLocked'] as bool? ?? false,
       isBot: json['isBot'] as bool? ?? false,
     );
@@ -96,7 +98,8 @@ class QueueWaitingData {
 
   const QueueWaitingData({required this.roomTypeId, this.estimatedSeconds});
 
-  factory QueueWaitingData.fromJson(Map<String, dynamic> json) => QueueWaitingData(
+  factory QueueWaitingData.fromJson(Map<String, dynamic> json) =>
+      QueueWaitingData(
         roomTypeId: json['roomTypeId'] as String? ?? '',
         estimatedSeconds: (json['estimatedSec'] as num?)?.toDouble(),
       );
@@ -154,8 +157,12 @@ class ShotResultData {
     return ShotResultData(
       roomId: json['roomId'] as String? ?? '',
       actorId: json['actorId'] as String? ?? '',
-      frames: framesRaw.map((f) => SimKeyframe.fromList(f as List<dynamic>)).toList(),
-      events: eventsRaw.map((e) => SimHitEvent.fromJson(e as Map<String, dynamic>)).toList(),
+      frames: framesRaw
+          .map((f) => SimKeyframe.fromList(f as List<dynamic>))
+          .toList(),
+      events: eventsRaw
+          .map((e) => SimHitEvent.fromJson(e as Map<String, dynamic>))
+          .toList(),
       fell: (json['fell'] as num?)?.toInt() ?? -1,
       winner: (json['winner'] as num?)?.toInt() ?? -1,
       nextTurn: json['nextTurn'] as String? ?? '',

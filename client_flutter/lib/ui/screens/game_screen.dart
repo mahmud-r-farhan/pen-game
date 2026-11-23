@@ -2,7 +2,9 @@
 import 'dart:async';
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/audio/sound_effects.dart';
+import '../../core/auth/local_practice_profile.dart';
 import '../../core/auth/user_session.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_theme.dart';
@@ -14,6 +16,7 @@ import '../../game/kolom_game_engine.dart';
 import '../../models/arena_room.dart';
 import '../../models/kolom_spec.dart';
 import '../../models/match_packet.dart';
+import '../../models/practice_stats.dart';
 import '../../models/user_profile.dart';
 import '../widgets/emoji_picker_overlay.dart';
 import '../widgets/kolom_avatar.dart';
@@ -37,7 +40,10 @@ class GameScreen extends StatefulWidget {
     this.match,
     this.practiceProfile,
   }) : assert(!isOnline || practiceProfile == null),
-       assert(!isOnline || match != null, 'Online games require an authoritative MATCH_START packet.');
+       assert(
+         !isOnline || match != null,
+         'Online games require an authoritative MATCH_START packet.',
+       );
 
   @override
   State<GameScreen> createState() => _GameScreenState();
@@ -47,6 +53,11 @@ class _GameScreenState extends State<GameScreen> {
   late KolomGameEngine _gameEngine;
   double _strikeOffset = 0.65;
   bool _showEmojiPicker = false;
+  bool _showTutorial = false;
+  bool _matchOverShown = false;
+  PracticeStats? _practiceStats;
+
+  static const String _tutorialSeenKey = 'kolom_practice_tutorial_seen_v1';
 
   String? _incomingEmojiText;
   Timer? _emojiDisplayTimer;
@@ -73,7 +84,8 @@ class _GameScreenState extends State<GameScreen> {
 
   String? _matchOverRoomId;
 
-  UserProfile get _playerProfile => widget.practiceProfile ?? UserSession().profile;
+  UserProfile get _playerProfile =>
+      widget.practiceProfile ?? UserSession().profile;
 
   MatchPlayer? get _onlineOpponent {
     final match = widget.match;
@@ -101,12 +113,44 @@ class _GameScreenState extends State<GameScreen> {
       _opponentAvatar = bot.avatar;
     }
     _initGameEngine();
+    _gameEngine.playerTurn.addListener(_onPlayerTurnChanged);
     if (widget.isOnline) {
       _listenToOnlineEvents();
       _startServerSynchronizedTicker();
     } else {
       _startLocalTurnTimer();
+      _loadPracticeStats();
+      _maybeShowTutorial();
     }
+  }
+
+  Future<void> _loadPracticeStats() async {
+    final stats = await LocalPracticeProfile.getPracticeStats();
+    if (mounted) setState(() => _practiceStats = stats);
+  }
+
+  /// Practice label plus the live local record, so a training session shows
+  /// progression instead of a bare "PRACTICE" tag.
+  String _practiceLabel() {
+    final base = AppLocale.tr('practice_mode');
+    final stats = _practiceStats;
+    if (stats == null || stats.matches == 0) return base;
+    final buffer = StringBuffer('$base · ${stats.wins}W ${stats.losses}L');
+    if (stats.streak > 0) buffer.write(' 🔥${stats.streak}');
+    return buffer.toString();
+  }
+
+  Future<void> _maybeShowTutorial() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (!mounted) return;
+    if (prefs.getBool(_tutorialSeenKey) ?? false) return;
+    setState(() => _showTutorial = true);
+  }
+
+  Future<void> _dismissTutorial() async {
+    setState(() => _showTutorial = false);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_tutorialSeenKey, true);
   }
 
   void _initGameEngine() {
@@ -165,7 +209,8 @@ class _GameScreenState extends State<GameScreen> {
       if (!mounted) return;
       if (_secondsLeft > 0) {
         setState(() => _secondsLeft--);
-        if (_secondsLeft <= 5 && _secondsLeft > 0) SoundEffects().playTimerWarning();
+        if (_secondsLeft <= 5 && _secondsLeft > 0)
+          SoundEffects().playTimerWarning();
       } else {
         _secondsLeft = 30;
         _gameEngine.passTurnDueToTimeout();
@@ -179,12 +224,24 @@ class _GameScreenState extends State<GameScreen> {
 
   void _stopTurnTimer() => _turnCountdownTimer?.cancel();
 
+  void _onPlayerTurnChanged() {
+    if (!mounted) return;
+    _resetTurnTimer();
+    if (!widget.isOnline) {
+      _startLocalTurnTimer();
+    }
+  }
+
   void _listenToOnlineEvents() {
     final client = KolomWsClient();
     _shotResultSub = client.onShotResult.listen((shot) {
-      if (!mounted || (shot.roomId.isNotEmpty && shot.roomId != widget.match?.roomId)) return;
+      if (!mounted ||
+          (shot.roomId.isNotEmpty && shot.roomId != widget.match?.roomId))
+        return;
       for (final event in shot.events) {
-        SoundEffects().playCollision(intensity: (event.impact / 300.0).clamp(0.2, 1.0));
+        SoundEffects().playCollision(
+          intensity: (event.impact / 300.0).clamp(0.2, 1.0),
+        );
       }
       _gameEngine.playOnlineShot(
         shot.frames,
@@ -193,7 +250,8 @@ class _GameScreenState extends State<GameScreen> {
     });
 
     _aimingSub = client.onAimingSync.listen((aim) {
-      if ((aim.roomId.isEmpty || aim.roomId == widget.match?.roomId) && aim.actorId != UserSession().profile.id) {
+      if ((aim.roomId.isEmpty || aim.roomId == widget.match?.roomId) &&
+          aim.actorId != UserSession().profile.id) {
         _gameEngine.setRemoteAiming(
           isAiming: aim.isAiming,
           pullX: aim.pullX,
@@ -204,33 +262,47 @@ class _GameScreenState extends State<GameScreen> {
     });
 
     _timerSub = client.onTurnTimerTick.listen((tick) {
-      if (!mounted || (tick.roomId.isNotEmpty && tick.roomId != widget.match?.roomId)) return;
+      if (!mounted ||
+          (tick.roomId.isNotEmpty && tick.roomId != widget.match?.roomId))
+        return;
       setState(() => _secondsLeft = tick.secondsLeft);
       _gameEngine.setOnlineTurn(tick.activeUserId == UserSession().profile.id);
     });
 
     _timeoutSub = client.onTurnTimeout.listen((timeout) {
-      if (timeout.roomId.isNotEmpty && timeout.roomId != widget.match?.roomId) return;
+      if (timeout.roomId.isNotEmpty && timeout.roomId != widget.match?.roomId)
+        return;
       _resetTurnTimer();
-      _gameEngine.setOnlineTurn(timeout.nextTurnUserId == UserSession().profile.id);
+      _gameEngine.setOnlineTurn(
+        timeout.nextTurnUserId == UserSession().profile.id,
+      );
     });
 
     _emojiSub = client.onEmojiBroadcast.listen((emoji) {
       if (!mounted) return;
-      setState(() => _incomingEmojiText = emoji.textEn.isNotEmpty ? emoji.textEn : emoji.textBn);
+      setState(
+        () => _incomingEmojiText = emoji.textEn.isNotEmpty
+            ? emoji.textEn
+            : emoji.textBn,
+      );
       _emojiDisplayTimer?.cancel();
       _emojiDisplayTimer = Timer(const Duration(seconds: 3), () {
         if (mounted) setState(() => _incomingEmojiText = null);
       });
     });
 
-    _rematchOfferSub = client.onRematchOffer.listen(_showIncomingRematchOfferDialog);
+    _rematchOfferSub = client.onRematchOffer.listen(
+      _showIncomingRematchOfferDialog,
+    );
     _rematchDeclinedSub = client.onRematchDeclined.listen((reason) {
       if (!mounted || !_isWaitingForRematch) return;
       setState(() => _isWaitingForRematch = false);
       Navigator.of(context, rootNavigator: true).maybePop();
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(reason), backgroundColor: AppColors.crimsonStrike),
+        SnackBar(
+          content: Text(reason),
+          backgroundColor: AppColors.crimsonStrike,
+        ),
       );
     });
 
@@ -250,7 +322,11 @@ class _GameScreenState extends State<GameScreen> {
       }
       if (!mounted) return;
       final isWinner = result.winnerId == UserSession().profile.id;
-      _showMatchOverDialog(isWinner, isWinner ? result.payout : 0, result.trophyDelta);
+      _showMatchOverDialog(
+        isWinner,
+        isWinner ? result.payout : 0,
+        result.trophyDelta,
+      );
     });
   }
 
@@ -266,7 +342,10 @@ class _GameScreenState extends State<GameScreen> {
           children: [
             Icon(Icons.replay_rounded, color: AppColors.goldTiffinCoin),
             SizedBox(width: 8),
-            Text('Rematch Request!', style: TextStyle(color: Colors.white, fontSize: 18)),
+            Text(
+              'Rematch Request!',
+              style: TextStyle(color: Colors.white, fontSize: 18),
+            ),
           ],
         ),
         content: Text(
@@ -279,7 +358,10 @@ class _GameScreenState extends State<GameScreen> {
               Navigator.of(ctx).pop();
               KolomWsClient().respondRematch(accept: false);
             },
-            child: const Text('Decline', style: TextStyle(color: Colors.white60)),
+            child: const Text(
+              'Decline',
+              style: TextStyle(color: Colors.white60),
+            ),
           ),
           ElevatedButton(
             onPressed: () {
@@ -289,9 +371,14 @@ class _GameScreenState extends State<GameScreen> {
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.emeraldTurn,
               foregroundColor: Colors.black,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
             ),
-            child: const Text('Accept ⚔️', style: TextStyle(fontWeight: FontWeight.bold)),
+            child: const Text(
+              'Accept ⚔️',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
           ),
         ],
       ),
@@ -308,7 +395,10 @@ class _GameScreenState extends State<GameScreen> {
           children: [
             Icon(Icons.warning_amber_rounded, color: AppColors.crimsonStrike),
             SizedBox(width: 8),
-            Text('Exit Match?', style: TextStyle(color: Colors.white, fontSize: 18)),
+            Text(
+              'Exit Match?',
+              style: TextStyle(color: Colors.white, fontSize: 18),
+            ),
           ],
         ),
         content: Text(
@@ -320,16 +410,24 @@ class _GameScreenState extends State<GameScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text(AppLocale.tr('cancel'), style: const TextStyle(color: Colors.white60)),
+            child: Text(
+              AppLocale.tr('cancel'),
+              style: const TextStyle(color: Colors.white60),
+            ),
           ),
           ElevatedButton(
             onPressed: () => Navigator.of(ctx).pop(true),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.crimsonStrike,
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
             ),
-            child: const Text('Confirm Exit', style: TextStyle(fontWeight: FontWeight.bold)),
+            child: const Text(
+              'Confirm Exit',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
           ),
         ],
       ),
@@ -348,6 +446,18 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   void _showMatchOverDialog(bool isWinner, int payout, int trophyDelta) {
+    if (_matchOverShown) return;
+    _matchOverShown = true;
+    _stopTurnTimer();
+
+    if (!widget.isOnline) {
+      LocalPracticeProfile.recordPracticeResult(isWinner: isWinner).then((
+        stats,
+      ) {
+        if (mounted) setState(() => _practiceStats = stats);
+      });
+    }
+
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -367,16 +477,24 @@ class _GameScreenState extends State<GameScreen> {
               barrierDismissible: false,
               builder: (ctx) => AlertDialog(
                 backgroundColor: AppColors.glassSurfaceHeavy,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
                 title: const Row(
                   children: [
                     SizedBox(
                       width: 20,
                       height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2.2, color: AppColors.cyanSpin),
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.2,
+                        color: AppColors.cyanSpin,
+                      ),
                     ),
                     SizedBox(width: 12),
-                    Text('Waiting for Opponent...', style: TextStyle(color: Colors.white, fontSize: 16)),
+                    Text(
+                      'Waiting for Opponent...',
+                      style: TextStyle(color: Colors.white, fontSize: 16),
+                    ),
                   ],
                 ),
                 content: const Text(
@@ -390,7 +508,10 @@ class _GameScreenState extends State<GameScreen> {
                       Navigator.of(ctx).pop();
                       Navigator.of(context).pop(); // return to lobby
                     },
-                    child: const Text('Cancel & Return to Lobby', style: TextStyle(color: Colors.white60)),
+                    child: const Text(
+                      'Cancel & Return to Lobby',
+                      style: TextStyle(color: Colors.white60),
+                    ),
                   ),
                 ],
               ),
@@ -406,6 +527,8 @@ class _GameScreenState extends State<GameScreen> {
               _opponentFlag = freshBot.flagEmoji;
               _opponentAvatar = freshBot.avatar;
             });
+            _gameEngine.updateOpponentSpec(_opponentPen);
+            _matchOverShown = false;
             _gameEngine.resetRound();
             _startLocalTurnTimer();
           }
@@ -421,6 +544,7 @@ class _GameScreenState extends State<GameScreen> {
   @override
   void dispose() {
     _stopTurnTimer();
+    _gameEngine.playerTurn.removeListener(_onPlayerTurnChanged);
     _shotResultSub?.cancel();
     _aimingSub?.cancel();
     _timerSub?.cancel();
@@ -453,9 +577,7 @@ class _GameScreenState extends State<GameScreen> {
             fit: StackFit.expand,
             children: [
               // 1. Center 72% Flame 2D Physics Game Canvas (Direct Slingshot Touch Pass-through)
-              Positioned.fill(
-                child: GameWidget(game: _gameEngine),
-              ),
+              Positioned.fill(child: GameWidget(game: _gameEngine)),
 
               // 2. Incoming Opponent Emoji Bubble Overlay
               if (_incomingEmojiText != null)
@@ -463,7 +585,10 @@ class _GameScreenState extends State<GameScreen> {
                   top: 90,
                   right: 40,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 10,
+                    ),
                     decoration: BoxDecoration(
                       color: AppColors.glassSurfaceHeavy,
                       borderRadius: BorderRadius.circular(20),
@@ -493,7 +618,10 @@ class _GameScreenState extends State<GameScreen> {
                 right: 0,
                 child: SafeArea(
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       crossAxisAlignment: CrossAxisAlignment.center,
@@ -501,203 +629,330 @@ class _GameScreenState extends State<GameScreen> {
                         // Back button (with confirmation)
                         IconButton(
                           onPressed: _confirmExitMatch,
-                          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white70),
+                          icon: const Icon(
+                            Icons.arrow_back_ios_new_rounded,
+                            color: Colors.white70,
+                          ),
                         ),
 
-                    // Player 1 Card (You) + Clan Tag + 30s Countdown Rounded Timer Ring
-                    _buildPlayerCard(
-                      name: user.username,
-                      tag: user.tag,
-                      flag: user.flagEmoji,
-                      avatar: user.avatar,
-                      clanTag: user.clubTag,
-                      isActiveTurn: isPlayerTurn,
-                      secondsLeft: isPlayerTurn ? _secondsLeft : 30,
-                    ),
+                        // Player 1 Card (You) + Clan Tag + 30s Countdown Rounded Timer Ring
+                        _buildPlayerCard(
+                          name: user.username,
+                          tag: user.tag,
+                          flag: user.flagEmoji,
+                          avatar: user.avatar,
+                          clanTag: user.clubTag,
+                          isActiveTurn: isPlayerTurn,
+                          secondsLeft: isPlayerTurn ? _secondsLeft : 30,
+                        ),
 
-                    // Center Stake Pot Badge & Turn Status
-                    Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                        // Center Stake Pot Badge & Turn Status
+                        Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.glassSurfaceHeavy,
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                  color: AppColors.goldTiffinCoin,
+                                  width: 1.2,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: AppColors.goldTiffinCoin.withValues(
+                                      alpha: 0.25,
+                                    ),
+                                    blurRadius: 10,
+                                  ),
+                                ],
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(
+                                    Icons.monetization_on_rounded,
+                                    color: AppColors.goldTiffinCoin,
+                                    size: 18,
+                                  ),
+                                  const SizedBox(width: 5),
+                                  Text(
+                                    widget.isOnline
+                                        ? '${widget.room.potCoins} ${AppLocale.tr('pot_label')}'
+                                        : _practiceLabel(),
+                                    style: KolomTheme.monoNumeric(
+                                      color: AppColors.goldTiffinCoin,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            ValueListenableBuilder<String>(
+                              valueListenable: _gameEngine.turnStatus,
+                              builder: (context, status, child) {
+                                return Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 3,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.black.withValues(alpha: 0.65),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Text(
+                                    status,
+                                    style: const TextStyle(
+                                      color: Colors.white70,
+                                      fontSize: 11,
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ],
+                        ),
+
+                        // Player 2 Card (Opponent / Bot) + Clan Tag + 30s Countdown Rounded Timer Ring
+                        _buildPlayerCard(
+                          name: _opponentName,
+                          tag: _opponentTag,
+                          flag: _opponentFlag,
+                          avatar: _opponentAvatar,
+                          clanTag: _onlineOpponent?.clubTag,
+                          isActiveTurn: !isPlayerTurn,
+                          secondsLeft: !isPlayerTurn ? _secondsLeft : 30,
+                        ),
+
+                        // Pass Turn button (ONLY visible and enabled on active player's turn!)
+                        if (isPlayerTurn)
+                          IconButton(
+                            onPressed: () {
+                              _gameEngine.passTurnDueToTimeout();
+                            },
+                            icon: const Icon(
+                              Icons.flag_rounded,
+                              color: AppColors.goldTiffinCoin,
+                            ),
+                            tooltip: AppLocale.tr('pass_turn'),
+                          )
+                        else
+                          const SizedBox(width: 48),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+
+              // 4. Bottom Thumb Zone: Mobile-First Landscape Ergonomics
+              Positioned(
+                left: 20,
+                right: 20,
+                bottom: 12,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    // Bottom-Left Thumb Zone: [💬 Emoji Chat]
+                    Tooltip(
+                      message: AppLocale.tr('quick_chat'),
+                      child: InkWell(
+                        onTap: () {
+                          setState(() {
+                            _showEmojiPicker = !_showEmojiPicker;
+                          });
+                        },
+                        borderRadius: BorderRadius.circular(16),
+                        child: Container(
+                          padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
                             color: AppColors.glassSurfaceHeavy,
                             borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: AppColors.goldTiffinCoin, width: 1.2),
+                            border: Border.all(color: AppColors.glassBorder),
                             boxShadow: [
                               BoxShadow(
-                                color: AppColors.goldTiffinCoin.withValues(alpha: 0.25),
+                                color: Colors.black.withValues(alpha: 0.4),
                                 blurRadius: 10,
                               ),
                             ],
                           ),
-                          child: Row(
-                            children: [
-                              const Icon(Icons.monetization_on_rounded, color: AppColors.goldTiffinCoin, size: 18),
-                              const SizedBox(width: 5),
-                              Text(
-                                widget.isOnline
-                                    ? '${widget.room.potCoins} ${AppLocale.tr('pot_label')}'
-                                    : 'PRACTICE',
-                                style: KolomTheme.monoNumeric(
-                                  color: AppColors.goldTiffinCoin,
-                                  fontSize: 13,
-                                ),
+                          child: const Icon(
+                            Icons.chat_bubble_outline_rounded,
+                            color: AppColors.cyanSpin,
+                            size: 22,
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(width: 14),
+
+                    // Center Thumb Zone: [🎯 STRIKE POINT SLIDER]
+                    Expanded(
+                      child: StrikeSlider(
+                        value: _strikeOffset,
+                        onChanged: (val) {
+                          setState(() {
+                            _strikeOffset = val;
+                            _gameEngine.strikeOffset = val;
+                          });
+                        },
+                      ),
+                    ),
+
+                    const SizedBox(width: 14),
+
+                    // Bottom-Right Thumb Zone: [🔄 Reset / Center Camera]
+                    Tooltip(
+                      message: AppLocale.tr('center_camera'),
+                      child: InkWell(
+                        onTap: () {
+                          SoundEffects().playFlick();
+                          _gameEngine.camera.viewfinder.position =
+                              Vector2.zero();
+                        },
+                        borderRadius: BorderRadius.circular(16),
+                        child: Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: AppColors.glassSurfaceHeavy,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: AppColors.glassBorder),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.4),
+                                blurRadius: 10,
                               ),
                             ],
                           ),
+                          child: const Icon(
+                            Icons.center_focus_strong_rounded,
+                            color: AppColors.emeraldTurn,
+                            size: 22,
+                          ),
                         ),
-                        const SizedBox(height: 4),
-                        ValueListenableBuilder<String>(
-                          valueListenable: _gameEngine.turnStatus,
-                          builder: (context, status, child) {
-                            return Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-                              decoration: BoxDecoration(
-                                color: Colors.black.withValues(alpha: 0.65),
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: Text(
-                                status,
-                                style: const TextStyle(color: Colors.white70, fontSize: 11),
-                              ),
-                            );
-                          },
-                        ),
-                      ],
+                      ),
                     ),
-
-                    // Player 2 Card (Opponent / Bot) + Clan Tag + 30s Countdown Rounded Timer Ring
-                    _buildPlayerCard(
-                      name: _opponentName,
-                      tag: _opponentTag,
-                      flag: _opponentFlag,
-                      avatar: _opponentAvatar,
-                      clanTag: _onlineOpponent?.clubTag,
-                      isActiveTurn: !isPlayerTurn,
-                      secondsLeft: !isPlayerTurn ? _secondsLeft : 30,
-                    ),
-
-                    // Pass Turn button (ONLY visible and enabled on active player's turn!)
-                    if (isPlayerTurn)
-                      IconButton(
-                        onPressed: () {
-                          _gameEngine.passTurnDueToTimeout();
-                        },
-                        icon: const Icon(Icons.flag_rounded, color: AppColors.goldTiffinCoin),
-                        tooltip: 'Pass Turn',
-                      )
-                    else
-                      const SizedBox(width: 48),
                   ],
                 ),
               ),
-            ),
-          ),
 
-          // 4. Bottom Thumb Zone: Mobile-First Landscape Ergonomics
-          Positioned(
-            left: 20,
-            right: 20,
-            bottom: 12,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                // Bottom-Left Thumb Zone: [💬 Emoji Chat]
-                InkWell(
-                  onTap: () {
-                    setState(() {
-                      _showEmojiPicker = !_showEmojiPicker;
-                    });
-                  },
-                  borderRadius: BorderRadius.circular(16),
-                  child: Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: AppColors.glassSurfaceHeavy,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: AppColors.glassBorder),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.4),
-                          blurRadius: 10,
-                        ),
-                      ],
-                    ),
-                    child: const Icon(Icons.chat_bubble_outline_rounded, color: AppColors.cyanSpin, size: 22),
-                  ),
-                ),
+              // 5. First-run practice tutorial (shown once per device)
+              if (_showTutorial)
+                Positioned.fill(child: _buildTutorialOverlay()),
 
-                const SizedBox(width: 14),
-
-                // Center Thumb Zone: [🎯 STRIKE POINT SLIDER]
-                Expanded(
-                  child: StrikeSlider(
-                    value: _strikeOffset,
-                    onChanged: (val) {
-                      setState(() {
-                        _strikeOffset = val;
-                        _gameEngine.strikeOffset = val;
-                      });
+              // 6. Emoji Picker Popover Modal
+              if (_showEmojiPicker)
+                Positioned(
+                  left: 20,
+                  bottom: 80,
+                  child: EmojiPickerOverlay(
+                    onSelect: (emojiId, text) {
+                      setState(() => _showEmojiPicker = false);
+                      if (widget.isOnline) {
+                        KolomWsClient().sendEmojiChat(
+                          emojiId: emojiId,
+                          textBn: text,
+                        );
+                      }
+                      setState(() => _incomingEmojiText = text);
+                      _emojiDisplayTimer?.cancel();
+                      _emojiDisplayTimer = Timer(
+                        const Duration(seconds: 3),
+                        () {
+                          if (mounted)
+                            setState(() => _incomingEmojiText = null);
+                        },
+                      );
                     },
                   ),
                 ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
-                const SizedBox(width: 14),
-
-                // Bottom-Right Thumb Zone: [🔄 Reset / Center Camera]
-                InkWell(
-                  onTap: () {
-                    SoundEffects().playFlick();
-                    _gameEngine.camera.viewfinder.position = Vector2.zero();
-                  },
-                  borderRadius: BorderRadius.circular(16),
-                  child: Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: AppColors.glassSurfaceHeavy,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: AppColors.glassBorder),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.4),
-                          blurRadius: 10,
-                        ),
-                      ],
+  Widget _buildTutorialOverlay() {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        color: Colors.black.withValues(alpha: 0.72),
+        alignment: Alignment.center,
+        padding: const EdgeInsets.symmetric(horizontal: 28),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 420),
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(22, 22, 22, 18),
+            decoration: BoxDecoration(
+              color: AppColors.glassSurfaceHeavy,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: AppColors.goldTiffinCoin, width: 1.5),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.goldTiffinCoin.withValues(alpha: 0.22),
+                  blurRadius: 26,
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.touch_app_rounded,
+                  color: AppColors.goldTiffinCoin,
+                  size: 42,
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  AppLocale.tr('tutorial_title'),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 20,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  AppLocale.tr('tutorial_body'),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 13,
+                    height: 1.45,
+                  ),
+                ),
+                const SizedBox(height: 18),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: _dismissTutorial,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.goldTiffinCoin,
+                      foregroundColor: Colors.black,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
                     ),
-                    child: const Icon(Icons.center_focus_strong_rounded, color: AppColors.emeraldTurn, size: 22),
+                    child: Text(
+                      AppLocale.tr('tutorial_cta'),
+                      style: const TextStyle(fontWeight: FontWeight.w900),
+                    ),
                   ),
                 ),
               ],
             ),
           ),
-
-          // 5. Emoji Picker Popover Modal
-          if (_showEmojiPicker)
-            Positioned(
-              left: 20,
-              bottom: 80,
-              child: EmojiPickerOverlay(
-                onSelect: (emojiId, text) {
-                  setState(() => _showEmojiPicker = false);
-                  if (widget.isOnline) {
-                    KolomWsClient().sendEmojiChat(emojiId: emojiId, textBn: text);
-                  }
-                  setState(() => _incomingEmojiText = text);
-                  _emojiDisplayTimer?.cancel();
-                  _emojiDisplayTimer = Timer(const Duration(seconds: 3), () {
-                    if (mounted) setState(() => _incomingEmojiText = null);
-                  });
-                },
-              ),
-            ),
-        ],
+        ),
       ),
-    ),
-  ),
-);
-}
+    );
+  }
 
   Widget _buildPlayerCard({
     required String name,
@@ -760,12 +1015,18 @@ class _GameScreenState extends State<GameScreen> {
                 children: [
                   if (clanTag != null && clanTag.isNotEmpty) ...[
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 4,
+                        vertical: 1,
+                      ),
                       margin: const EdgeInsets.only(right: 4),
                       decoration: BoxDecoration(
                         color: AppColors.cyanSpin.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(4),
-                        border: Border.all(color: AppColors.cyanSpin, width: 0.8),
+                        border: Border.all(
+                          color: AppColors.cyanSpin,
+                          width: 0.8,
+                        ),
                       ),
                       child: Text(
                         '[$clanTag]',
@@ -789,7 +1050,10 @@ class _GameScreenState extends State<GameScreen> {
               ),
               Text(
                 tag,
-                style: const TextStyle(color: AppColors.slateMuted, fontSize: 10),
+                style: const TextStyle(
+                  color: AppColors.slateMuted,
+                  fontSize: 10,
+                ),
               ),
             ],
           ),

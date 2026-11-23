@@ -3,12 +3,13 @@ import 'package:flutter/material.dart';
 
 enum KolomModel {
   hiSchoolClassic, // Matador Hi-School vibe
-  econoStriker,    // Econo DX vibe (transparent yellow)
-  oceanGelPro,     // Linc Ocean Gel vibe (rubber grip)
+  econoStriker, // Econo DX vibe (transparent yellow)
+  oceanGelPro, // Linc Ocean Gel vibe (rubber grip)
   hectorMetalTank, // Metallic charcoal & gold executive pen
-  doubleCapMod,    // Classroom legendary modified pen (dual caps + weight)
-  goldParkerVIP,   // Golden luxury Parker vibe
-  neonSpinner,     // High-tech futuristic glow pen
+  doubleCapMod, // Classroom legendary modified pen (dual caps + weight)
+  goldParkerVIP, // Golden luxury Parker vibe
+  neonSpinner, // High-tech futuristic glow pen
+  titaniumStriker, // Aerospace titanium classroom legend
 }
 
 class KolomSpec {
@@ -18,13 +19,13 @@ class KolomSpec {
   final String nameBn;
   final String tagLineEn;
   final String tagLineBn;
-  final double length;         // meters in physics world (slender & longer)
-  final double radius;         // half-thickness (sleek ballpoint profile)
-  final double density;        // mass density
-  final double linearDamping;  // sliding friction
+  final double length; // meters in physics world (slender & longer)
+  final double radius; // half-thickness (sleek ballpoint profile)
+  final double density; // mass density
+  final double linearDamping; // sliding friction
   final double angularDamping; // spin resistance
-  final double restitution;    // bounciness
-  final double comOffsetX;     // center-of-mass shift toward cap
+  final double restitution; // bounciness
+  final double comOffsetX; // center-of-mass shift toward cap
   final Color barrelColor;
   final Color capColor;
   final Color gripColor;
@@ -63,8 +64,10 @@ class KolomSpec {
   String get nameEn => name;
   int get massRating => ((density / 2.8) * 100).clamp(10, 100).toInt();
   int get gripRating => ((angularDamping / 4.0) * 100).clamp(10, 100).toInt();
-  int get speedRating => (((4.0 - linearDamping) / 2.5) * 100).clamp(10, 100).toInt();
-  int get whipSpinRating => ((comOffsetX.abs() / 0.55) * 100).clamp(20, 100).toInt();
+  int get speedRating =>
+      (((4.0 - linearDamping) / 2.5) * 100).clamp(10, 100).toInt();
+  int get whipSpinRating =>
+      ((comOffsetX.abs() / 0.55) * 100).clamp(20, 100).toInt();
 
   static const Map<KolomModel, KolomSpec> catalog = {
     KolomModel.hiSchoolClassic: KolomSpec(
@@ -138,7 +141,8 @@ class KolomSpec {
       id: 'hectorMetalTank',
       name: 'Hector Metal Tank',
       nameBn: 'হেক্টর মেটাল ট্যাংক',
-      tagLineEn: 'Heavy metallic executive body, knock opponent pens off in one blow!',
+      tagLineEn:
+          'Heavy metallic executive body, knock opponent pens off in one blow!',
       tagLineBn: 'ভারী ধাতব শরীর, প্রতিপক্ষের কলম এক ধাক্কায় মেঝেতে!',
       length: 5.5,
       radius: 0.19,
@@ -159,7 +163,8 @@ class KolomSpec {
       id: 'doubleCapMod',
       name: 'Double-Cap Boss',
       nameBn: 'ডাবল ক্যাপ বস',
-      tagLineEn: 'Modified with dual caps for crazy helicopter whip-spin strikes!',
+      tagLineEn:
+          'Modified with dual caps for crazy helicopter whip-spin strikes!',
       tagLineBn: 'উভয় মাথায় ক্যাপ লাগানো, পাগলাটে স্পিন আর ব্যালেন্স!',
       length: 5.6,
       radius: 0.18,
@@ -181,7 +186,8 @@ class KolomSpec {
       id: 'goldParkerVIP',
       name: 'Royal Gold Parker',
       nameBn: 'রয়েল গোল্ড পার্কার',
-      tagLineEn: '24K gold finish with diamond-cut nib for high-roller champions!',
+      tagLineEn:
+          '24K gold finish with diamond-cut nib for high-roller champions!',
       tagLineBn: '২৪ ক্যারেট গোল্ডেন ফিনিশ, অভিজাত টুর্নামেন্টের মুকুট!',
       length: 5.5,
       radius: 0.185,
@@ -217,6 +223,28 @@ class KolomSpec {
       accentColor: Color(0xFF00E5FF),
       unlockPrice: 6500,
       minLevel: 6,
+    ),
+    KolomModel.titaniumStriker: KolomSpec(
+      model: KolomModel.titaniumStriker,
+      id: 'titaniumStriker',
+      name: 'Titanium Bench King',
+      nameBn: 'টাইটানিয়াম বেঞ্চ কিং',
+      tagLineEn:
+          'Aerospace titanium barrel with a counterweighted tail. Maximum knockback!',
+      tagLineBn: 'টাইটানিয়াম বডি ও কাউন্টারওয়েটেড টেল। সর্বোচ্চ নকব্যাক!',
+      length: 5.55,
+      radius: 0.192,
+      density: 2.35,
+      linearDamping: 2.9,
+      angularDamping: 2.7,
+      restitution: 0.70,
+      comOffsetX: -0.52,
+      barrelColor: Color(0xFFB0BEC5),
+      capColor: Color(0xFF263238),
+      gripColor: Color(0xFFFFB300),
+      accentColor: Color(0xFFECEFF1),
+      unlockPrice: 9000,
+      minLevel: 7,
     ),
   };
 

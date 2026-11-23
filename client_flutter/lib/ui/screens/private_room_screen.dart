@@ -58,7 +58,9 @@ class _PrivateRoomScreenState extends State<PrivateRoomScreen> {
     } catch (error) {
       if (mounted) {
         setState(() => _isBusy = false);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.toString())));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(error.toString())));
       }
     }
   }
@@ -76,11 +78,16 @@ class _PrivateRoomScreenState extends State<PrivateRoomScreen> {
     try {
       final profile = UserSession().profile;
       await KolomWsClient().connect(profile);
-      KolomWsClient().joinPrivateRoom(roomCode: code, penModel: profile.equippedPen);
+      KolomWsClient().joinPrivateRoom(
+        roomCode: code,
+        penModel: profile.equippedPen,
+      );
     } catch (error) {
       if (mounted) {
         setState(() => _isBusy = false);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.toString())));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(error.toString())));
       }
     }
   }
@@ -107,16 +114,28 @@ class _PrivateRoomScreenState extends State<PrivateRoomScreen> {
             backgroundColor: AppColors.bgSurfaceDark,
             elevation: 0,
             leading: IconButton(
-              icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+              icon: const Icon(
+                Icons.arrow_back_ios_new_rounded,
+                color: Colors.white,
+                size: 20,
+              ),
               onPressed: () => Navigator.of(context).pop(),
             ),
             title: Row(
               children: [
-                const Icon(Icons.vpn_key_rounded, color: AppColors.goldTiffinCoin, size: 22),
+                const Icon(
+                  Icons.vpn_key_rounded,
+                  color: AppColors.goldTiffinCoin,
+                  size: 22,
+                ),
                 const SizedBox(width: 8),
                 Text(
                   AppLocale.tr('private_match'),
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.white),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                    color: Colors.white,
+                  ),
                 ),
               ],
             ),
@@ -139,7 +158,10 @@ class _PrivateRoomScreenState extends State<PrivateRoomScreen> {
                     children: [
                       const Row(
                         children: [
-                          Icon(Icons.add_circle_outline_rounded, color: AppColors.goldTiffinCoin),
+                          Icon(
+                            Icons.add_circle_outline_rounded,
+                            color: AppColors.goldTiffinCoin,
+                          ),
                           SizedBox(width: 8),
                           Text(
                             'Host Custom Match',
@@ -152,7 +174,13 @@ class _PrivateRoomScreenState extends State<PrivateRoomScreen> {
                         ],
                       ),
                       const SizedBox(height: 12),
-                      const Text('Choose Arena & Table Stake:', style: TextStyle(color: AppColors.slateMuted, fontSize: 13)),
+                      const Text(
+                        'Choose Arena & Table Stake:',
+                        style: TextStyle(
+                          color: AppColors.slateMuted,
+                          fontSize: 13,
+                        ),
+                      ),
                       const SizedBox(height: 8),
                       DropdownButtonFormField<ArenaRoom>(
                         initialValue: _selectedRoom,
@@ -162,11 +190,15 @@ class _PrivateRoomScreenState extends State<PrivateRoomScreen> {
                           fillColor: AppColors.bgSurfaceDark,
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: AppColors.glassBorder),
+                            borderSide: const BorderSide(
+                              color: AppColors.glassBorder,
+                            ),
                           ),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: AppColors.glassBorder),
+                            borderSide: const BorderSide(
+                              color: AppColors.glassBorder,
+                            ),
                           ),
                         ),
                         items: ArenaRoom.rooms.map((r) {
@@ -197,7 +229,13 @@ class _PrivateRoomScreenState extends State<PrivateRoomScreen> {
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Text('Room Code:', style: TextStyle(color: AppColors.slateMuted, fontSize: 12)),
+                                  const Text(
+                                    'Room Code:',
+                                    style: TextStyle(
+                                      color: AppColors.slateMuted,
+                                      fontSize: 12,
+                                    ),
+                                  ),
                                   Text(
                                     _generatedCode!,
                                     style: const TextStyle(
@@ -212,12 +250,21 @@ class _PrivateRoomScreenState extends State<PrivateRoomScreen> {
                               ),
                               IconButton(
                                 onPressed: () {
-                                  Clipboard.setData(ClipboardData(text: _generatedCode!));
+                                  Clipboard.setData(
+                                    ClipboardData(text: _generatedCode!),
+                                  );
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('Room code copied to clipboard!')),
+                                    const SnackBar(
+                                      content: Text(
+                                        'Room code copied to clipboard!',
+                                      ),
+                                    ),
                                   );
                                 },
-                                icon: const Icon(Icons.copy_rounded, color: AppColors.emeraldTurn),
+                                icon: const Icon(
+                                  Icons.copy_rounded,
+                                  color: AppColors.emeraldTurn,
+                                ),
                               ),
                             ],
                           ),
@@ -226,9 +273,22 @@ class _PrivateRoomScreenState extends State<PrivateRoomScreen> {
                         const Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.goldTiffinCoin)),
+                            SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: AppColors.goldTiffinCoin,
+                              ),
+                            ),
                             SizedBox(width: 10),
-                            Text('Waiting for friend to join with code...', style: TextStyle(color: AppColors.slateMuted, fontSize: 13)),
+                            Text(
+                              'Waiting for friend to join with code...',
+                              style: TextStyle(
+                                color: AppColors.slateMuted,
+                                fontSize: 13,
+                              ),
+                            ),
                           ],
                         ),
                       ] else
@@ -238,9 +298,14 @@ class _PrivateRoomScreenState extends State<PrivateRoomScreen> {
                             backgroundColor: AppColors.goldTiffinCoin,
                             foregroundColor: Colors.black,
                             minimumSize: const Size.fromHeight(48),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
-                          child: const Text('Generate Room Code', style: TextStyle(fontWeight: FontWeight.bold)),
+                          child: const Text(
+                            'Generate Room Code',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
                         ),
                     ],
                   ),
@@ -285,20 +350,29 @@ class _PrivateRoomScreenState extends State<PrivateRoomScreen> {
                         ),
                         decoration: InputDecoration(
                           hintText: 'Enter 6-digit code (e.g. 489210)',
-                          hintStyle: const TextStyle(color: AppColors.slateMuted, fontSize: 14),
+                          hintStyle: const TextStyle(
+                            color: AppColors.slateMuted,
+                            fontSize: 14,
+                          ),
                           filled: true,
                           fillColor: AppColors.bgSurfaceDark,
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(14),
-                            borderSide: const BorderSide(color: AppColors.glassBorder),
+                            borderSide: const BorderSide(
+                              color: AppColors.glassBorder,
+                            ),
                           ),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(14),
-                            borderSide: const BorderSide(color: AppColors.glassBorder),
+                            borderSide: const BorderSide(
+                              color: AppColors.glassBorder,
+                            ),
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(14),
-                            borderSide: const BorderSide(color: AppColors.cyanSpin),
+                            borderSide: const BorderSide(
+                              color: AppColors.cyanSpin,
+                            ),
                           ),
                         ),
                       ),
@@ -309,9 +383,14 @@ class _PrivateRoomScreenState extends State<PrivateRoomScreen> {
                           backgroundColor: AppColors.cyanSpin,
                           foregroundColor: Colors.black,
                           minimumSize: const Size.fromHeight(48),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
-                        child: const Text('Join Match', style: TextStyle(fontWeight: FontWeight.bold)),
+                        child: const Text(
+                          'Join Match',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
                       ),
                     ],
                   ),

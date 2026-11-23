@@ -1,6 +1,6 @@
 # GOOGLE_PLAY_ASO_MASTER.md — Kolom Fight (কলম খেলা)
-> **App Package Name:** `com.penfight.kolomkhela`  
-> **Release Version:** `0.0.1` (Build `1`)  
+> **App Package Name:** `com.kolomfight.app`  
+> **Release Version:** `1.2.0` (Build `3`)  
 > **Android Launcher Label:** `Kolom Fight` (Bilingual: `কলম খেলা` via `res/values-bn/strings.xml`)  
 > **Target Market:** Bangladesh (Primary), India / West Bengal (Secondary), Global South Asian Diaspora  
 > **ASO Strategy:** Hybrid English + Bangla Romanized ("Kolom", "Tiffin", "Khela") + Bangla Script keywords for maximum organic conversion and nostalgic discovery.

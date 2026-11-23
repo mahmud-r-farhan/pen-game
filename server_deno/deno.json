@@ -3,7 +3,7 @@
     "start": "deno run --unstable-kv --allow-net --allow-read --allow-write --allow-env server.ts",
     "dev": "deno run --unstable-kv --allow-net --allow-read --allow-write --allow-env --watch server.ts",
     "check": "deno check --unstable-kv server.ts game_manager.ts integration_test.ts",
-    "test": "deno test --unstable-kv --allow-read physics_sim_test.ts",
+    "test": "deno test --unstable-kv --allow-read physics_sim_test.ts catalog_test.ts",
     "test:integration": "deno run --allow-net --allow-env integration_test.ts"
   },
   "compilerOptions": {

@@ -21,6 +21,14 @@ class AuthService {
   factory AuthService() => _instance;
   AuthService._internal();
 
+  /// Compile-time switch used by community/release builds that intentionally
+  /// ship without Firebase credentials. Guest play and offline practice remain
+  /// fully functional; the UI simply does not offer Google sign-in.
+  static const bool firebaseEnabled = bool.fromEnvironment(
+    'FIREBASE_ENABLED',
+    defaultValue: true,
+  );
+
   bool _isFirebaseInitialized = false;
   String? _firebaseConfigurationError;
 
@@ -28,15 +36,27 @@ class AuthService {
   String? get firebaseConfigurationError => _firebaseConfigurationError;
 
   Future<void> init() async {
+    if (!firebaseEnabled) {
+      _isFirebaseInitialized = false;
+      _firebaseConfigurationError =
+          'Google sign-in is not configured for this build. Guest play and offline practice remain available.';
+      return;
+    }
     try {
       if (Firebase.apps.isEmpty) {
         if (kIsWeb) {
           const apiKey = String.fromEnvironment('FIREBASE_API_KEY');
           const appId = String.fromEnvironment('FIREBASE_APP_ID');
-          const senderId = String.fromEnvironment('FIREBASE_MESSAGING_SENDER_ID');
+          const senderId = String.fromEnvironment(
+            'FIREBASE_MESSAGING_SENDER_ID',
+          );
           const projectId = String.fromEnvironment('FIREBASE_PROJECT_ID');
           const authDomain = String.fromEnvironment('FIREBASE_AUTH_DOMAIN');
-          if (apiKey.isEmpty || appId.isEmpty || senderId.isEmpty || projectId.isEmpty || authDomain.isEmpty) {
+          if (apiKey.isEmpty ||
+              appId.isEmpty ||
+              senderId.isEmpty ||
+              projectId.isEmpty ||
+              authDomain.isEmpty) {
             throw const AuthException(
               'Google sign-in needs Firebase web configuration. Guest play remains available.',
             );
@@ -59,7 +79,9 @@ class AuthService {
       if (!kIsWeb) await GoogleSignIn.instance.initialize();
     } catch (error) {
       _isFirebaseInitialized = false;
-      _firebaseConfigurationError = error is AuthException ? error.message : 'Firebase is not configured: $error';
+      _firebaseConfigurationError = error is AuthException
+          ? error.message
+          : 'Firebase is not configured: $error';
       debugPrint(_firebaseConfigurationError);
     }
   }
@@ -98,27 +120,37 @@ class AuthService {
 
   Future<UserProfile> signInWithGoogle() async {
     if (!_isFirebaseInitialized) {
-      throw AuthException(_firebaseConfigurationError ?? 'Google sign-in is not configured for this build.');
+      throw AuthException(
+        _firebaseConfigurationError ??
+            'Google sign-in is not configured for this build.',
+      );
     }
 
     String? idToken;
     try {
       if (kIsWeb) {
         final provider = fb.GoogleAuthProvider();
-        final credential = await fb.FirebaseAuth.instance.signInWithPopup(provider);
+        final credential = await fb.FirebaseAuth.instance.signInWithPopup(
+          provider,
+        );
         idToken = await credential.user?.getIdToken(false);
       } else {
         final googleUser = await GoogleSignIn.instance.authenticate();
         final googleAuth = googleUser.authentication;
-        final credential = fb.GoogleAuthProvider.credential(idToken: googleAuth.idToken);
-        final userCredential = await fb.FirebaseAuth.instance.signInWithCredential(credential);
+        final credential = fb.GoogleAuthProvider.credential(
+          idToken: googleAuth.idToken,
+        );
+        final userCredential = await fb.FirebaseAuth.instance
+            .signInWithCredential(credential);
         idToken = await userCredential.user?.getIdToken(false);
       }
     } catch (error) {
       throw AuthException('Google sign-in was not completed: $error');
     }
     if (idToken == null || idToken.isEmpty) {
-      throw const AuthException('Firebase did not return an ID token. Please try again.');
+      throw const AuthException(
+        'Firebase did not return an ID token. Please try again.',
+      );
     }
 
     // The backend verifies signature, audience, issuer, expiry and provider.

@@ -1,0 +1,712 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  # Re-run the whole pipeline when the workflow itself changes on a PR, so the
+  # release path is validated before it is ever trusted with a tag. Publishing
+  # stays tag-only (see the `release` job condition).
+  pull_request:
+    paths:
+      - '.github/workflows/release.yml'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag (for example v1.2.0). Leave empty to use the pubspec version.'
+        required: false
+        type: string
+      prerelease:
+        description: 'Mark the GitHub release as a pre-release'
+        required: false
+        type: boolean
+        default: false
+      publish:
+        description: 'Create the GitHub Release (off = build and upload artifacts only)'
+        required: false
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  FLUTTER_VERSION: '3.44.9'
+
+jobs:
+  prepare:
+    name: Prepare release metadata
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
+      build_number: ${{ steps.meta.outputs.build_number }}
+      tag: ${{ steps.meta.outputs.tag }}
+      prerelease: ${{ steps.meta.outputs.prerelease }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Resolve version and release tag
+        id: meta
+        shell: bash
+        env:
+          INPUT_TAG: ${{ inputs.tag }}
+          INPUT_PRERELEASE: ${{ inputs.prerelease }}
+        run: |
+          set -euo pipefail
+          VERSION=$(grep '^version:' client_flutter/pubspec.yaml | sed 's/version: *//' | tr -d '\r\n')
+          VERSION_NAME=${VERSION%%+*}
+          BUILD_NUMBER=${VERSION##*+}
+
+          if [[ ! "$VERSION_NAME" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::pubspec version '$VERSION_NAME' is not valid semver."
+            exit 1
+          fi
+          if [[ ! "$BUILD_NUMBER" =~ ^[0-9]+$ ]]; then
+            echo "::error::pubspec build number '$BUILD_NUMBER' is not an integer."
+            exit 1
+          fi
+
+          if [[ "${{ github.ref_type }}" == "tag" ]]; then
+            TAG="${{ github.ref_name }}"
+          elif [[ -n "$INPUT_TAG" ]]; then
+            TAG="$INPUT_TAG"
+          else
+            TAG="v${VERSION_NAME}"
+          fi
+
+          if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::Release tag '$TAG' must look like v1.2.3 or v1.2.3-rc.1."
+            exit 1
+          fi
+
+          TAG_VERSION=${TAG#v}
+          TAG_BASE=${TAG_VERSION%%-*}
+          if [[ "$TAG_BASE" != "$VERSION_NAME" ]]; then
+            echo "::error::Tag version '$TAG_BASE' does not match pubspec version '$VERSION_NAME'."
+            exit 1
+          fi
+
+          PRERELEASE=false
+          if [[ "$TAG_VERSION" == *-* ]]; then
+            PRERELEASE=true
+          fi
+          if [[ "$INPUT_PRERELEASE" == "true" ]]; then
+            PRERELEASE=true
+          fi
+
+          echo "version=$VERSION_NAME" >> "$GITHUB_OUTPUT"
+          echo "build_number=$BUILD_NUMBER" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "prerelease=$PRERELEASE" >> "$GITHUB_OUTPUT"
+          echo "Version: $VERSION_NAME  Build: $BUILD_NUMBER  Tag: $TAG  Pre-release: $PRERELEASE"
+
+  android:
+    name: Build Android
+    runs-on: ubuntu-latest
+    needs: prepare
+    timeout-minutes: 45
+    outputs:
+      apk_mode: ${{ steps.signing.outputs.mode }}
+      firebase_enabled: ${{ steps.firebase.outputs.enabled }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v6
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+          cache-key: 'flutter-${{ env.FLUTTER_VERSION }}-${{ runner.os }}'
+
+      - name: Get Flutter dependencies
+        working-directory: ./client_flutter
+        run: flutter pub get
+
+      - name: Configure optional Firebase
+        id: firebase
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          set -euo pipefail
+          if [ -n "$GOOGLE_SERVICES_JSON" ]; then
+            printf '%s' "$GOOGLE_SERVICES_JSON" > client_flutter/android/app/google-services.json
+            python3 -m json.tool client_flutter/android/app/google-services.json > /dev/null
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::Google sign-in enabled from GOOGLE_SERVICES_JSON."
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::GOOGLE_SERVICES_JSON is not set; building without Google sign-in."
+          fi
+
+      - name: Configure optional Android release signing
+        id: signing
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [ -n "$ANDROID_KEYSTORE_BASE64" ] && [ -n "$ANDROID_KEYSTORE_PASSWORD" ] && \
+             [ -n "$ANDROID_KEY_ALIAS" ] && [ -n "$ANDROID_KEY_PASSWORD" ]; then
+            printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > client_flutter/android/app/release.jks
+            python3 - <<'PYCODE'
+          import os
+
+          def escape(value):
+              units = value.encode('utf-16-be')
+              out = []
+              for i in range(0, len(units), 2):
+                  code = int.from_bytes(units[i:i + 2], 'big')
+                  char = chr(code)
+                  if code < 32 or code > 126:
+                      out.append(chr(92) + 'u%04x' % code)
+                  elif char == chr(92) or char in ' :=#!':
+                      out.append(chr(92) + char)
+                  else:
+                      out.append(char)
+              return ''.join(out)
+
+          values = {
+              'storeFile': 'release.jks',
+              'storePassword': os.environ['ANDROID_KEYSTORE_PASSWORD'],
+              'keyAlias': os.environ['ANDROID_KEY_ALIAS'],
+              'keyPassword': os.environ['ANDROID_KEY_PASSWORD'],
+          }
+          with open('client_flutter/android/key.properties', 'w', encoding='ascii') as out:
+              for key, value in values.items():
+                  out.write(key + '=' + escape(value) + chr(10))
+          PYCODE
+            echo "mode=release" >> "$GITHUB_OUTPUT"
+            echo "::notice::Android release signing configured."
+          else
+            echo "mode=debug" >> "$GITHUB_OUTPUT"
+            echo "::notice::Android signing secrets are not set; building an installable debug APK."
+          fi
+
+      - name: Build Android APK
+        working-directory: ./client_flutter
+        env:
+          APK_MODE: ${{ steps.signing.outputs.mode }}
+          FIREBASE_ENABLED: ${{ steps.firebase.outputs.enabled }}
+        run: |
+          set -euo pipefail
+          ARGS=(
+            --build-name="${{ needs.prepare.outputs.version }}"
+            --build-number="${{ needs.prepare.outputs.build_number }}"
+            --dart-define="APP_VERSION=${{ needs.prepare.outputs.version }}"
+            --dart-define="APP_BUILD=${{ needs.prepare.outputs.build_number }}"
+          )
+          if [ "$FIREBASE_ENABLED" != "true" ]; then
+            ARGS+=(--dart-define=FIREBASE_ENABLED=false)
+          fi
+
+          if [ "$APK_MODE" = "release" ]; then
+            flutter build apk --release "${ARGS[@]}"
+            cp build/app/outputs/flutter-apk/app-release.apk \
+              "../kolom-fight-${{ needs.prepare.outputs.version }}-android.apk"
+          else
+            flutter build apk --debug "${ARGS[@]}"
+            cp build/app/outputs/flutter-apk/app-debug.apk \
+              "../kolom-fight-${{ needs.prepare.outputs.version }}-android-debug.apk"
+          fi
+
+      - name: Build Android App Bundle (signed builds only)
+        if: steps.signing.outputs.mode == 'release'
+        working-directory: ./client_flutter
+        env:
+          FIREBASE_ENABLED: ${{ steps.firebase.outputs.enabled }}
+        run: |
+          set -euo pipefail
+          ARGS=(
+            --build-name="${{ needs.prepare.outputs.version }}"
+            --build-number="${{ needs.prepare.outputs.build_number }}"
+            --dart-define="APP_VERSION=${{ needs.prepare.outputs.version }}"
+            --dart-define="APP_BUILD=${{ needs.prepare.outputs.build_number }}"
+          )
+          if [ "$FIREBASE_ENABLED" != "true" ]; then
+            ARGS+=(--dart-define=FIREBASE_ENABLED=false)
+          fi
+          flutter build appbundle --release "${ARGS[@]}"
+          cp build/app/outputs/bundle/release/app-release.aab \
+            "../kolom-fight-${{ needs.prepare.outputs.version }}-android.aab"
+
+      - name: Verify Android artifacts
+        run: ls -lh kolom-fight-*android*
+
+      - name: Upload Android artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: android-apk
+          path: |
+            kolom-fight-*-android.apk
+            kolom-fight-*-android-debug.apk
+            kolom-fight-*-android.aab
+          if-no-files-found: error
+          retention-days: 14
+
+  web:
+    name: Build Web
+    runs-on: ubuntu-latest
+    needs: prepare
+    timeout-minutes: 30
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+          cache-key: 'flutter-${{ env.FLUTTER_VERSION }}-${{ runner.os }}'
+
+      - name: Get Flutter dependencies
+        working-directory: ./client_flutter
+        run: flutter pub get
+
+      - name: Build Web release
+        working-directory: ./client_flutter
+        env:
+          FIREBASE_API_KEY: ${{ secrets.FIREBASE_WEB_API_KEY }}
+          FIREBASE_APP_ID: ${{ secrets.FIREBASE_WEB_APP_ID }}
+          FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.FIREBASE_WEB_MESSAGING_SENDER_ID }}
+          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_WEB_PROJECT_ID }}
+          FIREBASE_AUTH_DOMAIN: ${{ secrets.FIREBASE_WEB_AUTH_DOMAIN }}
+          APP_VERSION: ${{ needs.prepare.outputs.version }}
+          APP_BUILD: ${{ needs.prepare.outputs.build_number }}
+        run: |
+          set -euo pipefail
+          ARGS=(
+            --release
+            --base-href=/
+            --build-name="$APP_VERSION"
+            --build-number="$APP_BUILD"
+            --dart-define="APP_VERSION=$APP_VERSION"
+            --dart-define="APP_BUILD=$APP_BUILD"
+          )
+          if [ -n "$FIREBASE_API_KEY" ] && [ -n "$FIREBASE_APP_ID" ] && \
+             [ -n "$FIREBASE_MESSAGING_SENDER_ID" ] && [ -n "$FIREBASE_PROJECT_ID" ] && \
+             [ -n "$FIREBASE_AUTH_DOMAIN" ]; then
+            ARGS+=(
+              --dart-define="FIREBASE_API_KEY=$FIREBASE_API_KEY"
+              --dart-define="FIREBASE_APP_ID=$FIREBASE_APP_ID"
+              --dart-define="FIREBASE_MESSAGING_SENDER_ID=$FIREBASE_MESSAGING_SENDER_ID"
+              --dart-define="FIREBASE_PROJECT_ID=$FIREBASE_PROJECT_ID"
+              --dart-define="FIREBASE_AUTH_DOMAIN=$FIREBASE_AUTH_DOMAIN"
+            )
+            echo "::notice::Google sign-in enabled for web from Firebase secrets."
+          else
+            ARGS+=(--dart-define=FIREBASE_ENABLED=false)
+            echo "::notice::Firebase web secrets are not set; building without Google sign-in."
+          fi
+          flutter build web "${ARGS[@]}"
+
+      - name: Package Web as zip
+        working-directory: ./client_flutter/build
+        run: zip -r "../../kolom-fight-${{ needs.prepare.outputs.version }}-web.zip" web/
+
+      - name: Upload Web artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: web-build
+          path: kolom-fight-${{ needs.prepare.outputs.version }}-web.zip
+          if-no-files-found: error
+          retention-days: 14
+
+  windows:
+    name: Build Windows
+    runs-on: windows-latest
+    needs: prepare
+    timeout-minutes: 60
+    # Desktop builds are a bonus for this mobile/web title; a failure here must
+    # never block the Android + Web release.
+    continue-on-error: true
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+          cache-key: 'flutter-${{ env.FLUTTER_VERSION }}-${{ runner.os }}'
+
+      - name: Get Flutter dependencies
+        working-directory: ./client_flutter
+        run: flutter pub get
+
+      - name: Create Windows platform folder if missing
+        working-directory: ./client_flutter
+        shell: pwsh
+        run: |
+          if (-Not (Test-Path "windows")) {
+            Write-Host "Generating Windows platform files..."
+            flutter create . --platforms=windows
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
+
+      - name: Build Windows release
+        working-directory: ./client_flutter
+        shell: pwsh
+        env:
+          FIREBASE_API_KEY: ${{ secrets.FIREBASE_WEB_API_KEY }}
+          FIREBASE_APP_ID: ${{ secrets.FIREBASE_WEB_APP_ID }}
+          FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.FIREBASE_WEB_MESSAGING_SENDER_ID }}
+          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_WEB_PROJECT_ID }}
+          FIREBASE_AUTH_DOMAIN: ${{ secrets.FIREBASE_WEB_AUTH_DOMAIN }}
+          APP_VERSION: ${{ needs.prepare.outputs.version }}
+          APP_BUILD: ${{ needs.prepare.outputs.build_number }}
+        run: |
+          $ErrorActionPreference = "Stop"
+          $defines = @(
+            "--dart-define=APP_VERSION=$env:APP_VERSION",
+            "--dart-define=APP_BUILD=$env:APP_BUILD"
+          )
+          if ($env:FIREBASE_API_KEY -and $env:FIREBASE_APP_ID -and $env:FIREBASE_MESSAGING_SENDER_ID -and $env:FIREBASE_PROJECT_ID -and $env:FIREBASE_AUTH_DOMAIN) {
+            $defines += "--dart-define=FIREBASE_API_KEY=$env:FIREBASE_API_KEY"
+            $defines += "--dart-define=FIREBASE_APP_ID=$env:FIREBASE_APP_ID"
+            $defines += "--dart-define=FIREBASE_MESSAGING_SENDER_ID=$env:FIREBASE_MESSAGING_SENDER_ID"
+            $defines += "--dart-define=FIREBASE_PROJECT_ID=$env:FIREBASE_PROJECT_ID"
+            $defines += "--dart-define=FIREBASE_AUTH_DOMAIN=$env:FIREBASE_AUTH_DOMAIN"
+          } else {
+            $defines += "--dart-define=FIREBASE_ENABLED=false"
+          }
+          flutter build windows --release `
+            "--build-name=$env:APP_VERSION" `
+            "--build-number=$env:APP_BUILD" `
+            @defines
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Package Windows as zip
+        shell: pwsh
+        working-directory: ./client_flutter
+        run: |
+          $ErrorActionPreference = "Stop"
+          try {
+            # Prefer Flutter's documented output path, then fall back to a search.
+            $candidates = @(
+              "build\windows\x64\runner\Release",
+              "build\windows\runner\Release"
+            )
+            $releaseDir = $candidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+            if (-not $releaseDir) {
+              $found = Get-ChildItem -Path "build\windows" -Recurse -Directory -Filter "Release" |
+                Select-Object -First 1
+              if ($found) { $releaseDir = $found.FullName }
+            }
+            if (-not $releaseDir) { throw "Could not find a Release directory under build\windows." }
+            $releaseDir = (Resolve-Path $releaseDir).Path
+
+            # Anchor to GITHUB_WORKSPACE: the artifact upload resolves relative
+            # paths against it, so both must agree on the same absolute location.
+            $destination = Join-Path $env:GITHUB_WORKSPACE "kolom-fight-${{ needs.prepare.outputs.version }}-windows.zip"
+            if (Test-Path $destination) { Remove-Item $destination -Force }
+
+            # Compress-Archive can silently produce nothing on large trees, so
+            # build the archive with the .NET zip API instead.
+            Add-Type -AssemblyName System.IO.Compression.FileSystem
+            [System.IO.Compression.ZipFile]::CreateFromDirectory($releaseDir, $destination, [System.IO.Compression.CompressionLevel]::Optimal, $false)
+
+            if (-not (Test-Path $destination)) { throw "Archive was not created at $destination" }
+            Write-Host "Packaged $releaseDir -> $destination ($((Get-Item $destination).Length) bytes)"
+          } catch {
+            $message = $_.Exception.Message -replace '%', '%25' -replace "`r", '%0D' -replace "`n", '%0A'
+            Write-Output "::error title=Windows packaging failed::$message"
+            exit 1
+          }
+
+      - name: Upload Windows artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: windows-build
+          path: kolom-fight-${{ needs.prepare.outputs.version }}-windows.zip
+          if-no-files-found: error
+          retention-days: 14
+
+  linux:
+    name: Build Linux
+    runs-on: ubuntu-latest
+    needs: prepare
+    timeout-minutes: 45
+    continue-on-error: true
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Install Linux desktop dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build libgtk-3-dev clang cmake pkg-config \
+            libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev gstreamer1.0-plugins-base \
+            liblzma-dev libsecret-1-dev
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+          cache-key: 'flutter-${{ env.FLUTTER_VERSION }}-${{ runner.os }}'
+
+      - name: Get Flutter dependencies
+        working-directory: ./client_flutter
+        run: flutter pub get
+
+      - name: Create Linux platform folder if missing
+        working-directory: ./client_flutter
+        run: |
+          set -euo pipefail
+          if [ ! -d "linux" ]; then
+            echo "Generating Linux platform files..."
+            flutter create . --platforms=linux
+          fi
+
+      - name: Build Linux release
+        working-directory: ./client_flutter
+        env:
+          FIREBASE_API_KEY: ${{ secrets.FIREBASE_WEB_API_KEY }}
+          FIREBASE_APP_ID: ${{ secrets.FIREBASE_WEB_APP_ID }}
+          FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.FIREBASE_WEB_MESSAGING_SENDER_ID }}
+          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_WEB_PROJECT_ID }}
+          FIREBASE_AUTH_DOMAIN: ${{ secrets.FIREBASE_WEB_AUTH_DOMAIN }}
+          APP_VERSION: ${{ needs.prepare.outputs.version }}
+          APP_BUILD: ${{ needs.prepare.outputs.build_number }}
+        run: |
+          set -euo pipefail
+          ARGS=(
+            --build-name="$APP_VERSION"
+            --build-number="$APP_BUILD"
+            --dart-define="APP_VERSION=$APP_VERSION"
+            --dart-define="APP_BUILD=$APP_BUILD"
+          )
+          if [ -n "$FIREBASE_API_KEY" ] && [ -n "$FIREBASE_APP_ID" ] && \
+             [ -n "$FIREBASE_MESSAGING_SENDER_ID" ] && [ -n "$FIREBASE_PROJECT_ID" ] && \
+             [ -n "$FIREBASE_AUTH_DOMAIN" ]; then
+            ARGS+=(
+              --dart-define="FIREBASE_API_KEY=$FIREBASE_API_KEY"
+              --dart-define="FIREBASE_APP_ID=$FIREBASE_APP_ID"
+              --dart-define="FIREBASE_MESSAGING_SENDER_ID=$FIREBASE_MESSAGING_SENDER_ID"
+              --dart-define="FIREBASE_PROJECT_ID=$FIREBASE_PROJECT_ID"
+              --dart-define="FIREBASE_AUTH_DOMAIN=$FIREBASE_AUTH_DOMAIN"
+            )
+          else
+            ARGS+=(--dart-define=FIREBASE_ENABLED=false)
+          fi
+          set +e
+          flutter build linux --release "${ARGS[@]}" > "$RUNNER_TEMP/linux-build.log" 2>&1
+          status=$?
+          set -e
+          cat "$RUNNER_TEMP/linux-build.log"
+          if [ "$status" -ne 0 ]; then
+            python3 - "$RUNNER_TEMP/linux-build.log" <<'PYCODE'
+          import sys
+
+          lines = [line.rstrip() for line in open(sys.argv[1], encoding='utf-8', errors='replace') if line.strip()]
+          text = ' | '.join(lines[-15:])
+          for source, target in (('%', '%25'), ('\r', '%0D'), ('\n', '%0A')):
+              text = text.replace(source, target)
+          print('::error title=Linux build failed::' + text[:1500])
+          PYCODE
+          fi
+          exit "$status"
+
+      - name: Package Linux as tar.gz
+        working-directory: ./client_flutter/build/linux/x64/release
+        run: |
+          set -euo pipefail
+          # Anchor to GITHUB_WORKSPACE: the relative depth from this directory
+          # is easy to get wrong, and the upload resolves against the workspace.
+          tar -czf "$GITHUB_WORKSPACE/kolom-fight-${{ needs.prepare.outputs.version }}-linux-x64.tar.gz" bundle/
+          ls -lh "$GITHUB_WORKSPACE/kolom-fight-${{ needs.prepare.outputs.version }}-linux-x64.tar.gz"
+
+      - name: Upload Linux artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: linux-build
+          path: kolom-fight-${{ needs.prepare.outputs.version }}-linux-x64.tar.gz
+          if-no-files-found: error
+          retention-days: 14
+
+  checksums:
+    name: Generate checksums
+    runs-on: ubuntu-latest
+    needs: [prepare, android, web, windows, linux]
+    timeout-minutes: 10
+    steps:
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v8
+        with:
+          path: ./artifacts
+
+      - name: Collect release files and checksums
+        run: |
+          set -euo pipefail
+          mkdir -p release-files
+          find artifacts -type f -exec cp {} release-files/ \;
+          cd release-files
+          sha256sum -- * > SHA256SUMS.txt
+          echo "=== Release files ==="
+          ls -lh
+
+      - name: Upload release bundle
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-files
+          path: release-files/*
+          if-no-files-found: error
+          retention-days: 14
+
+  release:
+    name: Publish GitHub Release
+    runs-on: ubuntu-latest
+    needs: [prepare, android, checksums]
+    # Publish only from a real tag push, or from a manual run that explicitly
+    # asked for it. Pull-request validation runs and publish=false runs build
+    # everything and leave the artifacts on the run, without creating a release.
+    if: startsWith(github.ref, 'refs/tags/') || inputs.publish == true
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - name: Download release bundle
+        uses: actions/download-artifact@v8
+        with:
+          name: release-files
+          path: ./release-files
+
+      - name: List release files
+        run: ls -lh release-files/
+
+      - name: Write release notes
+        env:
+          VERSION: ${{ needs.prepare.outputs.version }}
+          APK_MODE: ${{ needs.android.outputs.apk_mode }}
+          FIREBASE_ENABLED: ${{ needs.android.outputs.firebase_enabled }}
+          COMMIT: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          cd release-files
+
+          if [ "$APK_MODE" = "release" ]; then
+            APK_LINE="Download, allow installs from unknown sources, then open the app."
+          else
+            APK_LINE="Installable debug build signed with the debug key. Allow installs from unknown sources if Android prompts."
+          fi
+          if [ "$FIREBASE_ENABLED" = "true" ]; then
+            AUTH_LINE="Google sign-in is configured in this build. Guest play is also available."
+          else
+            AUTH_LINE="This build ships without Google sign-in. Guest play and the full offline practice mode work without an account."
+          fi
+
+          # Only advertise artifacts that actually exist in this run. Desktop
+          # builds are best-effort, so their rows must not promise files that
+          # were never produced.
+          {
+            echo "| Platform | File | How to play |"
+            echo "|---|---|---|"
+            if [ -f "kolom-fight-${VERSION}-android.apk" ]; then
+              echo "| Android | \`kolom-fight-${VERSION}-android.apk\` | ${APK_LINE} |"
+            fi
+            if [ -f "kolom-fight-${VERSION}-android-debug.apk" ]; then
+              echo "| Android | \`kolom-fight-${VERSION}-android-debug.apk\` | ${APK_LINE} |"
+            fi
+            if [ -f "kolom-fight-${VERSION}-android.aab" ]; then
+              echo "| Android (Play) | \`kolom-fight-${VERSION}-android.aab\` | App bundle for store submission. |"
+            fi
+            if [ -f "kolom-fight-${VERSION}-web.zip" ]; then
+              echo "| Web | \`kolom-fight-${VERSION}-web.zip\` | Unzip and serve the folder with any static web server. |"
+            fi
+            if [ -f "kolom-fight-${VERSION}-windows.zip" ]; then
+              echo "| Windows | \`kolom-fight-${VERSION}-windows.zip\` | Unzip everything and run the executable. |"
+            fi
+            if [ -f "kolom-fight-${VERSION}-linux-x64.tar.gz" ]; then
+              echo "| Linux | \`kolom-fight-${VERSION}-linux-x64.tar.gz\` | Extract and run the bundled executable. |"
+            fi
+          } > downloads.md
+
+          cat > release-notes.md <<EOF
+          ## Kolom Fight v${VERSION}
+
+          A turn-based classroom pen battle with deterministic physics, eight Bangladeshi education-themed arenas, and eight pens with distinct mass, grip, bounce and centre-of-mass behaviour.
+
+          ### Downloads
+
+          $(cat downloads.md)
+
+          Verify any download with \`SHA256SUMS.txt\`.
+
+          ### Notes
+
+          - ${AUTH_LINE}
+          - Online matches are server-authoritative. Offline practice is clearly labelled and never changes online progress.
+          - Coins are virtual game currency only. There is no cash-out and no real-money wagering.
+
+          **Commit:** \`${COMMIT}\`
+          EOF
+
+          cat release-notes.md
+
+      - name: Create or update GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ needs.prepare.outputs.tag }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+          PRERELEASE: ${{ needs.prepare.outputs.prerelease }}
+          REPO: ${{ github.repository }}
+          TARGET: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          TITLE="Kolom Fight (কলম খেলা) v${VERSION}"
+
+          # Build the flag list explicitly instead of passing "--flag=false",
+          # which not every gh version parses the same way.
+          EDIT_FLAGS=()
+          CREATE_FLAGS=()
+          if [ "$PRERELEASE" = "true" ]; then
+            EDIT_FLAGS+=(--prerelease)
+            CREATE_FLAGS+=(--prerelease)
+          else
+            EDIT_FLAGS+=(--prerelease=false --latest)
+            CREATE_FLAGS+=(--latest)
+          fi
+
+          if gh release view "$TAG" --repo "$REPO" >/dev/null 2>&1; then
+            echo "Release $TAG already exists; refreshing notes and assets."
+            gh release edit "$TAG" --repo "$REPO" \
+              --title "$TITLE" \
+              --notes-file release-notes.md \
+              "${EDIT_FLAGS[@]}"
+            gh release upload "$TAG" release-files/* --repo "$REPO" --clobber
+          else
+            gh release create "$TAG" release-files/* \
+              --repo "$REPO" \
+              --target "$TARGET" \
+              --title "$TITLE" \
+              --notes-file release-notes.md \
+              "${CREATE_FLAGS[@]}"
+          fi
+
+      - name: Print release URL
+        env:
+          TAG: ${{ needs.prepare.outputs.tag }}
+          REPO: ${{ github.repository }}
+        run: |
+          echo "Release published: https://github.com/$REPO/releases/tag/$TAG"
